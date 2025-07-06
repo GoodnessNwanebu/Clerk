@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// This file is not being used since we're using Pages Router instead of App Router
+// It's kept for reference in case you want to migrate to App Router in the future
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

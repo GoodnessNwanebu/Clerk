@@ -1,3 +1,40 @@
+# ClerkSmart Email Integration with Resend
+
+This repository contains the implementation of email functionality for ClerkSmart, a medical education platform. The email integration allows students to receive detailed feedback reports about their clinical performance.
+
+## Implementation Overview
+
+We've implemented email functionality using [Resend](https://resend.com), a modern email API that works seamlessly with React and Next.js.
+
+### Key Components
+
+1. **React Email Template**: We've created a beautiful, responsive email template using React Email components.
+2. **Next.js API Route**: A serverless function that securely handles email sending with Resend.
+3. **Email Service**: A client-side service that communicates with the API route.
+4. **Email Capture Modal**: A user interface for collecting email addresses.
+
+## Setup Instructions
+
+For detailed setup instructions, see [RESEND_SETUP.md](./RESEND_SETUP.md).
+
+## Features
+
+- **Beautiful Email Templates**: Responsive, well-designed emails that look great on all devices.
+- **Secure API Key Handling**: API keys are stored securely as environment variables.
+- **Error Handling**: Comprehensive error handling for a smooth user experience.
+- **Email Validation**: Basic validation to ensure valid email addresses.
+
+## Usage
+
+Students can receive detailed feedback reports by:
+
+1. Completing a clinical case in ClerkSmart
+2. Viewing their feedback on the feedback page
+3. Clicking "Email Me the Full Report"
+4. Entering their email address (if not already provided)
+
+The system will then send a comprehensive report to their email address.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

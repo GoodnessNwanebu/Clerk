@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="100" fill="#f8fafc" opacity="0.3"/>
+  
+  <!-- Human silhouette - pregnant woman -->
+  <g>
+    <!-- Head -->
+    <circle cx="100" cy="45" r="18" fill="#64748b"/>
+    
+    <!-- Hair -->
+    <path d="M82 35C82 35 85 20 100 20C115 20 118 35 118 35V45C118 45 115 55 100 55C85 55 82 45 82 45V35Z" fill="#475569"/>
+    
+    <!-- Neck -->
+    <rect x="95" y="63" width="10" height="12" rx="5" fill="#64748b"/>
+    
+    <!-- Body with pregnant belly -->
+    <path d="M75 75C75 75 65 110 65 140C65 150 135 150 135 140C135 110 125 75 125 75L115 85C115 85 125 105 125 115C125 130 75 130 75 115C75 105 85 85 85 85L75 75Z" fill="#64748b"/>
+    
+    <!-- Arms -->
+    <path d="M75 85C65 95 60 110 65 120" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+    <path d="M125 85C135 95 140 110 135 120" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+    
+    <!-- Legs -->
+    <path d="M85 150L80 180" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+    <path d="M115 150L120 180" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Department indicator - pink circle for obstetrics -->
+  <circle cx="100" cy="110" r="20" stroke="#ec4899" stroke-width="2" stroke-dasharray="4 2" fill="none"/>
+</svg> 
