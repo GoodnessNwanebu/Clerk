@@ -14,7 +14,12 @@ interface ErrorResponse {
     error: string;
 }
 
-const handleApiError = (error: any, context: string): NextResponse<ErrorResponse> => {
+interface ApiError extends Error {
+    message: string;
+    status?: number;
+}
+
+const handleApiError = (error: ApiError, context: string): NextResponse<ErrorResponse> => {
     console.error(`Error in ${context}:`, error);
     
     if (error.message && error.message.includes('QUOTA_EXCEEDED')) {
@@ -131,7 +136,7 @@ export async function POST(request: NextRequest) {
             const practiceCase = parseJsonResponse<Case>(response.text, context);
             return NextResponse.json(practiceCase);
         } catch (error) {
-            return handleApiError(error, context);
+            return handleApiError(error as ApiError, context);
         }
     } catch (error) {
         console.error('Error parsing request:', error);
