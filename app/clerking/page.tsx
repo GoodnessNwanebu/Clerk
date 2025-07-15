@@ -1,10 +1,12 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import { useAppContext } from '../context/AppContext';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { getPatientResponse } from '../services/geminiService';
-import { Icon } from '../components/Icon';
-import { Message } from '../types';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../context/AppContext';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { getPatientResponse } from '../../services/geminiService';
+import { Icon } from '../../components/Icon';
+import { Message } from '../../types';
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -31,6 +33,13 @@ const ClerkingScreen: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if we have required case data before rendering
+  useEffect(() => {
+    if (!caseState.department || !caseState.caseDetails) {
+      router.push('/departments');
+    }
+  }, [caseState.department, caseState.caseDetails, router]);
   
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,11 +62,11 @@ const ClerkingScreen: React.FC = () => {
         const responseText = await getPatientResponse(updatedHistory, caseState.caseDetails);
         const patientMessage: Message = { sender: 'patient', text: responseText, timestamp: new Date().toISOString() };
         addMessage(patientMessage);
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         let errorText = 'Sorry, there was a connection issue.';
-        if (err instanceof Error) {
-            errorText = err.message.startsWith('QUOTA_EXCEEDED') ? err.message.split(': ')[1] : err.message;
+        if (error instanceof Error) {
+            errorText = error.message.startsWith('QUOTA_EXCEEDED') ? error.message.split(': ')[1] : error.message;
         }
         setApiError(errorText); // Set API error state to display to user
         const errorMessage: Message = { sender: 'system', text: `Error: ${errorText}`, timestamp: new Date().toISOString() };
@@ -95,8 +104,8 @@ const ClerkingScreen: React.FC = () => {
         }
       }
       startListening();
-    } catch (err) {
-      console.error("Error checking mic permissions:", err);
+    } catch (error) {
+      console.error("Error checking mic permissions:", error);
       // Fallback for browsers that don't support permissions.query
       handlePermissionAllow();
     }
@@ -107,7 +116,7 @@ const ClerkingScreen: React.FC = () => {
       if (typeof window !== 'undefined' && navigator?.mediaDevices) {
         navigator.mediaDevices.getUserMedia({ audio: true })
           .then(() => startListening())
-          .catch(err => alert("Microphone access is required. Please enable it in your browser settings."));
+          .catch(() => alert("Microphone access is required. Please enable it in your browser settings."));
       }
   };
   
@@ -123,8 +132,8 @@ const ClerkingScreen: React.FC = () => {
     }
   }
 
+  // Early return after all hooks have been called
   if (!caseState.department || !caseState.caseDetails) {
-    useEffect(() => { router.push('/departments'); }, [router]);
     return null;
   }
 
@@ -157,17 +166,27 @@ const ClerkingScreen: React.FC = () => {
         </div>
         
         <div className="space-y-4 px-4 max-w-4xl mx-auto">
-          {caseState.messages.map((msg: Message, index: number) => (
-            <div key={index} className={`flex ${msg.sender === 'student' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs md:max-w-md p-3 rounded-2xl whitespace-pre-wrap ${
-                msg.sender === 'student' ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
-                msg.sender === 'patient' ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-white rounded-bl-lg' :
-                'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
+          {caseState.messages.map((msg: Message, index: number) => {
+            // Check if this is the opening line (first system message)
+            const isOpeningLine = index === 0 && msg.sender === 'system';
+            
+            return (
+              <div key={index} className={`flex ${
+                msg.sender === 'student' ? 'justify-end' : 
+                msg.sender === 'patient' ? 'justify-start' :
+                isOpeningLine ? 'justify-center' : 'justify-start'
               }`}>
-                {msg.text}
+                <div className={`p-3 rounded-2xl whitespace-pre-wrap ${
+                  msg.sender === 'student' ? 'max-w-xs md:max-w-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
+                  msg.sender === 'patient' ? 'max-w-xs md:max-w-md bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-white rounded-bl-lg' :
+                  isOpeningLine ? 'max-w-lg bg-transparent text-slate-500 dark:text-slate-400 text-center text-base' :
+                  'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
+                }`}>
+                  {msg.text}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {isListening && (
             <div className="flex justify-end">
               <div className="max-w-xs md:max-w-md p-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 rounded-br-lg">
@@ -219,4 +238,4 @@ const ClerkingScreen: React.FC = () => {
   );
 };
 
-export default ClerkingScreen;
+export default ClerkingScreen; 

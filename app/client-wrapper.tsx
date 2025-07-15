@@ -1,9 +1,7 @@
-import type { AppProps } from 'next/app';
-import { AppProvider } from '../context/AppContext';
-import { ThemeProvider } from '../context/ThemeContext';
-import '../src/app/globals.css';
+'use client';
+
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter, usePathname } from 'next/navigation';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -22,8 +20,13 @@ const LoadingScreen = () => (
   </div>
 );
 
-function MyApp({ Component, pageProps }: AppProps) {
+export default function ClientWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -31,13 +34,13 @@ function MyApp({ Component, pageProps }: AppProps) {
     const hasOnboarded = typeof window !== 'undefined' ? localStorage.getItem('hasOnboarded') : null;
     
     // Don't redirect if user is already on the onboarding page
-    if (router.pathname === '/onboarding') {
+    if (pathname === '/onboarding') {
       setIsLoading(false);
       return;
     }
     
     // Don't redirect for API routes or special Next.js pages
-    if (router.pathname.startsWith('/api/') || router.pathname.startsWith('/_')) {
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_')) {
       setIsLoading(false);
       return;
     }
@@ -52,20 +55,12 @@ function MyApp({ Component, pageProps }: AppProps) {
     } else {
       setIsLoading(false);
     }
-  }, [router.pathname]);
+  }, [pathname, router]);
   
   // Show branded loading screen while determining if redirect is needed
-  if (isLoading && router.pathname !== '/onboarding') {
+  if (isLoading && pathname !== '/onboarding') {
     return <LoadingScreen />;
   }
 
-  return (
-    <ThemeProvider>
-      <AppProvider>
-        <Component {...pageProps} />
-      </AppProvider>
-    </ThemeProvider>
-  );
-}
-
-export default MyApp;
+  return <>{children}</>;
+} 

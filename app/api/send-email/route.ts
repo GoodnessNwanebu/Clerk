@@ -1,35 +1,28 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
-import ClerkReportEmail from '../../emails/ClerkReportEmail';
-import { DetailedFeedbackReport } from '../../types';
+import ClerkReportEmail from '../../../emails/ClerkReportEmail';
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { report, recipientEmail } = req.body;
+    const { report, recipientEmail } = await request.json();
 
     if (!report || !recipientEmail) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(recipientEmail)) {
-      return res.status(400).json({ error: 'Invalid email address' });
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
     // Render the React email template to HTML
-    const emailHtml = render(ClerkReportEmail({ report }));
+    // @ts-expect-error - React email render compatibility issue
+    const emailHtml = await render(ClerkReportEmail({ report }));
 
     // Send the email using Resend
     const { data, error } = await resend.emails.send({
@@ -41,14 +34,14 @@ export default async function handler(
 
     if (error) {
       console.error('Error sending email:', error);
-      return res.status(500).json({ error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return res.status(200).json({ success: true, data });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Error in send-email API:', error);
-    return res.status(500).json({ 
+    return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'An unknown error occurred' 
-    });
+    }, { status: 500 });
   }
 } 

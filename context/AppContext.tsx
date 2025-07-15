@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { CaseState, Department, Feedback, InvestigationResult, Message, Case } from '../types';
 import { generateClinicalCase } from '../services/geminiService';
@@ -6,7 +8,9 @@ interface AppContextType {
   caseState: CaseState;
   isGeneratingCase: boolean;
   userEmail: string | null;
+  userCountry: string | null;
   setUserEmail: (email: string) => void;
+  setUserCountry: (country: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
   addMessage: (message: Message) => void;
   setPreliminaryData: (diagnosis: string, plan: string) => void;
@@ -34,6 +38,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [caseState, setCaseState] = useState<CaseState>(initialCaseState);
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [userEmail, setUserEmailState] = useState<string | null>(null);
+  const [userCountry, setUserCountryState] = useState<string | null>(null);
   const isBrowser = typeof window !== 'undefined';
 
   useEffect(() => {
@@ -43,6 +48,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (storedEmail) {
       setUserEmailState(storedEmail);
     }
+
+    const storedCountry = localStorage.getItem('userCountry');
+    if (storedCountry) {
+      setUserCountryState(storedCountry);
+    }
   }, [isBrowser]);
 
   const setUserEmail = (email: string) => {
@@ -51,11 +61,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     setUserEmailState(email);
   };
+
+  const setUserCountry = (country: string) => {
+    if (isBrowser) {
+      localStorage.setItem('userCountry', country);
+    }
+    setUserCountryState(country);
+  };
   
   const generateNewCase = useCallback(async (department: Department) => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await generateClinicalCase(department.name);
+      const newCase = await generateClinicalCase(department.name, userCountry || undefined);
       if (!newCase) {
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
@@ -77,7 +94,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
         setIsGeneratingCase(false);
     }
-  }, []);
+  }, [userCountry]);
   
   const addMessage = useCallback((message: Message) => {
     setCaseState((prev: CaseState) => ({ ...prev, messages: [...prev.messages, message] }));
@@ -103,7 +120,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCaseState(initialCaseState);
   }, []);
 
-  const value = { caseState, isGeneratingCase, userEmail, setUserEmail, generateNewCase, addMessage, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback, resetCase };
+  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, addMessage, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback, resetCase };
 
   return (
     <AppContext.Provider value={value}>

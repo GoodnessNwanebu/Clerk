@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { Icon } from '../components/Icon';
 import { SettingsModal } from '../components/SettingsModal';
 
@@ -21,7 +23,7 @@ const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onCl
   );
 };
 
-const EntryScreen: React.FC = () => {
+export default function HomePage() {
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -66,6 +68,4 @@ const EntryScreen: React.FC = () => {
       </div>
     </>
   );
-};
-
-export default EntryScreen;
+} 

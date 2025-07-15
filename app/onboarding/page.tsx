@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { Icon } from '../components/Icon';
+import { useRouter } from 'next/navigation';
+import { Icon } from '../../components/Icon';
 import Head from 'next/head';
 
 const onboardingSteps = [
@@ -24,23 +26,66 @@ const onboardingSteps = [
     title: 'Clinical Assessment',
     description: 'Formulate a diagnosis, order investigations, and receive instant, educational feedback on your performance.',
   },
+  {
+    icon: 'globe',
+    title: 'Your Location',
+    description: 'Help us personalize your cases with culturally relevant patients and regional medical patterns.',
+  },
+];
+
+const COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'IN', name: 'India' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'GH', name: 'Ghana' },
+  { code: 'UG', name: 'Uganda' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'SE', name: 'Sweden' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CN', name: 'China' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'TH', name: 'Thailand' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'OTHER', name: 'Other' },
 ];
 
 const OnboardingScreen: React.FC = () => {
   const [step, setStep] = useState(0);
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
 
   // Ensure the component is fully mounted before animations start
   useEffect(() => {
     setIsReady(true);
   }, []);
 
+  const isCountryStep = step === onboardingSteps.length - 1;
+  const canContinue = isCountryStep ? selectedCountry !== '' : true;
+
   const handleNext = () => {
     if (step < onboardingSteps.length - 1) {
       setStep(step + 1);
     } else {
+      // Save country selection and onboarding completion
       if (typeof window !== 'undefined') {
+        localStorage.setItem('userCountry', selectedCountry);
         localStorage.setItem('hasOnboarded', 'true');
       }
       router.push('/');
@@ -72,7 +117,27 @@ const OnboardingScreen: React.FC = () => {
               </div>
           </div>
           <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm">{currentStep.description}</p>
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
+          
+          {isCountryStep && (
+            <div className="w-full max-w-sm">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Select your country
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors"
+              >
+                <option value="">Choose your country...</option>
+                {COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex-shrink-0 w-full max-w-sm mx-auto">
@@ -92,9 +157,12 @@ const OnboardingScreen: React.FC = () => {
           </div>
           <button
             onClick={handleNext}
-            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200"
+            disabled={!canContinue}
+            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
+              !canContinue ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
+            }`}
           >
-            <span>Continue</span>
+            <span>{step === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}</span>
             <Icon name="arrow-right" size={20} />
           </button>
         </div>
@@ -103,4 +171,4 @@ const OnboardingScreen: React.FC = () => {
   );
 };
 
-export default OnboardingScreen;
+export default OnboardingScreen; 

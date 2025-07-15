@@ -1,9 +1,11 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
-import { useAppContext } from '../context/AppContext';
-import { DEPARTMENTS } from '../constants';
-import { Department } from '../types';
-import { Icon } from '../components/Icon';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../context/AppContext';
+import { DEPARTMENTS } from '../../constants';
+import { Department } from '../../types';
+import { Icon } from '../../components/Icon';
 
 const LoadingOverlay: React.FC<{ message: string }> = ({ message }) => (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
@@ -86,4 +88,4 @@ const DepartmentSelectionScreen: React.FC = () => {
   );
 };
 
-export default DepartmentSelectionScreen;
+export default DepartmentSelectionScreen; 

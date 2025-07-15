@@ -35,8 +35,8 @@ const fetchFromApi = async (type: string, payload: object) => {
     return response.json();
 };
 
-export const generateClinicalCase = async (departmentName: string): Promise<Case> => {
-    const clinicalCase = await fetchFromApi('generateCase', { departmentName });
+export const generateClinicalCase = async (departmentName: string, userCountry?: string): Promise<Case> => {
+    const clinicalCase = await fetchFromApi('generateCase', { departmentName, userCountry });
     if (clinicalCase && typeof clinicalCase.primaryInfo === 'string') {
         return clinicalCase;
     }
@@ -44,32 +44,21 @@ export const generateClinicalCase = async (departmentName: string): Promise<Case
 };
 
 export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<string> => {
-    const data = await fetchFromApi('getPatientResponse', { history, caseDetails });
-    // The server returns { response: "text" }, so we extract the text.
-    if (data && typeof data.response === 'string') {
-        return data.response;
-    }
-    throw new Error("The server returned an invalid patient response format.");
+    const response = await fetchFromApi('getPatientResponse', { history, caseDetails });
+    return response.response;
 };
 
 export const getInvestigationResults = async (plan: string, caseDetails: Case): Promise<InvestigationResult[]> => {
     const results = await fetchFromApi('getInvestigationResults', { plan, caseDetails });
-    return results || [];
+    return results;
 };
 
-
-export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback> => {
+export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | null> => {
     const feedback = await fetchFromApi('getFeedback', { caseState });
-    if (!feedback) {
-        throw new Error("The server returned an invalid feedback format.");
-    }
     return feedback;
 };
 
-export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<DetailedFeedbackReport> => {
+export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<DetailedFeedbackReport | null> => {
     const feedback = await fetchFromApi('getDetailedFeedback', { caseState });
-    if (!feedback) {
-        throw new Error("The server returned an invalid detailed report format.");
-    }
     return feedback;
 };

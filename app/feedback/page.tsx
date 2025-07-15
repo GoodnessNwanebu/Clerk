@@ -1,10 +1,12 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
-import { useAppContext } from '../context/AppContext';
-import { Icon } from '../components/Icon';
-import { EmailCaptureModal } from '../components/EmailCaptureModal';
-import { getDetailedCaseFeedback } from '../services/geminiService';
-import { sendFeedbackEmail } from '../services/emailService';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../context/AppContext';
+import { Icon } from '../../components/Icon';
+import { EmailCaptureModal } from '../../components/EmailCaptureModal';
+import { getDetailedCaseFeedback } from '../../services/geminiService';
+import { sendFeedbackEmail } from '../../services/emailService';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
@@ -196,4 +198,4 @@ const FeedbackScreen: React.FC = () => {
     );
 };
 
-export default FeedbackScreen;
+export default FeedbackScreen; 
