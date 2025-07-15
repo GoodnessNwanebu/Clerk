@@ -43,6 +43,26 @@ export const generateClinicalCase = async (departmentName: string, userCountry?:
     throw new Error("The server returned an invalid case format.");
 };
 
+export const generatePracticeCase = async (departmentName: string, condition: string, userCountry?: string): Promise<Case> => {
+    const response = await fetch('/api/practice', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ departmentName, condition, userCountry }),
+    });
+
+    if (!response.ok) {
+        await handleApiError(response, 'generatePracticeCase');
+    }
+
+    const practiceCase = await response.json();
+    if (practiceCase && typeof practiceCase.primaryInfo === 'string') {
+        return practiceCase;
+    }
+    throw new Error("The server returned an invalid case format.");
+};
+
 export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<string> => {
     const response = await fetchFromApi('getPatientResponse', { history, caseDetails });
     return response.response;

@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { CaseState, Department, Feedback, InvestigationResult, Message, Case } from '../types';
-import { generateClinicalCase } from '../services/geminiService';
+import { generateClinicalCase, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
 
 interface AppContextType {
   caseState: CaseState;
@@ -12,6 +12,7 @@ interface AppContextType {
   setUserEmail: (email: string) => void;
   setUserCountry: (country: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
+  generatePracticeCase: (department: Department, condition: string) => Promise<void>;
   addMessage: (message: Message) => void;
   setPreliminaryData: (diagnosis: string, plan: string) => void;
   setInvestigationResults: (results: InvestigationResult[]) => void;
@@ -95,6 +96,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsGeneratingCase(false);
     }
   }, [userCountry]);
+
+  const generatePracticeCase = useCallback(async (department: Department, condition: string) => {
+    setIsGeneratingCase(true);
+    try {
+      const newCase = await generatePracticeCaseService(department.name, condition, userCountry || undefined);
+      if (!newCase) {
+        throw new Error(`Failed to generate a practice case for ${condition} in ${department.name}`);
+      }
+      
+      setCaseState({
+        ...initialCaseState,
+        department,
+        caseDetails: newCase,
+        messages: [{
+            sender: 'system',
+            text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
+            timestamp: new Date().toISOString()
+        }]
+      });
+    } catch (error) {
+        console.error("Error in generatePracticeCase:", error);
+        // Rethrow the error to be caught by the caller UI
+        throw error;
+    } finally {
+        setIsGeneratingCase(false);
+    }
+  }, [userCountry]);
   
   const addMessage = useCallback((message: Message) => {
     setCaseState((prev: CaseState) => ({ ...prev, messages: [...prev.messages, message] }));
@@ -120,7 +148,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCaseState(initialCaseState);
   }, []);
 
-  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, addMessage, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback, resetCase };
+  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback, resetCase };
 
   return (
     <AppContext.Provider value={value}>

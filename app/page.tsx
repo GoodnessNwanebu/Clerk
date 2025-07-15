@@ -46,10 +46,10 @@ export default function HomePage() {
             onClick={() => router.push('/departments')}
           />
           <ActionCard
-            icon="history"
-            title="Continue Case"
-            subtitle="Pick up where you left off"
-            disabled
+            icon="target"
+            title="Practice Mode"
+            subtitle="Practice specific conditions"
+            onClick={() => router.push('/practice')}
           />
           <ActionCard
             icon="book"

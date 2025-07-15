@@ -129,7 +129,7 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
         - ## Review of Systems
     - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
 
-    Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+            Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
 
     try {
         const response = await ai.generateContent({
