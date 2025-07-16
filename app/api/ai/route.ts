@@ -181,14 +181,28 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
     const { plan, caseDetails } = payload;
     const context = 'getInvestigationResults';
     const userMessage = `A medical student has requested investigations for a patient with a likely diagnosis of '${caseDetails.diagnosis}'.
-    Parse their free-text plan and return a JSON array of results.
-    The JSON schema for each item must be: {"name": string, "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal" | "High" | "Low" | "Critical"}.
-    - Generate medically plausible, realistic values consistent with the diagnosis. Some results should be abnormal to create a challenge.
-    - FBC should be broken down into Hemoglobin, WBC, Platelets.
-    - U&E into Sodium, Potassium, Urea, Creatinine.
-    - LFT into Bilirubin, ALT, AST.
-    - If a test is mentioned that you cannot simulate, omit it from the final JSON.
-    - Respond ONLY with the JSON array inside a root object: e.g. {"results": [...]}.
+    Parse their free-text plan and return ALL requested tests as a JSON array. Use two different result formats:
+
+    QUANTITATIVE RESULTS (for lab values, vitals): 
+    {"name": string, "type": "quantitative", "category": "laboratory"|"specialized", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
+
+    DESCRIPTIVE RESULTS (for imaging, pathology, specialized tests):
+    {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
+
+    GUIDELINES:
+    - Generate medically plausible, realistic results consistent with the diagnosis
+    - FBC breakdown: Hemoglobin, WBC, Platelets (quantitative)
+    - U&E breakdown: Sodium, Potassium, Urea, Creatinine (quantitative) 
+    - LFT breakdown: Bilirubin, ALT, AST (quantitative)
+    - Imaging studies: Detailed radiology reports with structured findings and impressions
+    - ECGs: Professional interpretation with rhythm, axis, intervals, abnormalities
+    - Echo: Structured cardiac findings with measurements and function assessment
+    - Include ALL tests mentioned - do not omit any tests
+    - Make some results abnormal to create educational value
+    - Use professional medical terminology in descriptive reports
+    - For imaging, format as: FINDINGS: [detailed observations] IMPRESSION: [clinical interpretation]
+
+    Respond ONLY with JSON: {"results": [...]}
 
     The student's plan: "${plan}"`;
 

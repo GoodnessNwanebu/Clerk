@@ -65,9 +65,9 @@ const DepartmentSelectionScreen: React.FC = () => {
   return (
     <>
       {isGeneratingCase && <LoadingOverlay message="Creating new case..." />}
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
         <header className="flex items-center justify-between mb-8">
-          <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-800 transition-colors">
+          <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
             <Icon name="arrow-left" size={24} />
           </button>
           <h1 className="text-2xl font-bold text-center">Choose a Department</h1>
