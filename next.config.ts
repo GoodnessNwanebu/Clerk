@@ -15,6 +15,9 @@ const nextConfig: NextConfig = withPWA({
     ignoreDuringBuilds: true, // We'll fix these later
   },
   optimizeFonts: true,
+  turbopack: {
+    // Turbopack specific options
+  }
 });
 
 export default nextConfig;
