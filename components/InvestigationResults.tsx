@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InvestigationResult } from '../types';
-import { Play, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 const getStatusColors = (status: InvestigationResult['status']) => {
   switch (status) {

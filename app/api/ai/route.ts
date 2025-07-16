@@ -148,7 +148,7 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
 async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case }) {
     const { history, caseDetails } = payload;
     const context = 'getPatientResponse';
-    const systemInstruction = `You are an AI acting as a patient in a medical simulation.
+    const systemInstruction = `You are a patient in a medical simulation.
     Your entire identity and medical history are defined by the PRIMARY_INFORMATION provided below.
     - You MUST adhere strictly to this information. Do not contradict it.
     - If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
@@ -213,7 +213,7 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
     - "diagnosis" should be the most likely correct diagnosis.
     - "keyTakeaway" should be a single, concise sentence summarizing the most critical point from "whatCouldBeImproved".
     - "whatYouDidWell" should contain 2-3 positive points.
-    - "whatCouldBeImproved" should contain 2-3 actionable suggestions.
+    - "whatCouldBeImproved" should contain 3-4 actionable suggestions.
     - "clinicalTip" should be a single, insightful educational takeaway.
 
     Case data:

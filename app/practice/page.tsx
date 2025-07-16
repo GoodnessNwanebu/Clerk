@@ -169,10 +169,10 @@ const PracticeModeScreen: React.FC = () => {
                 <span>Tips for Practice Mode</span>
               </h3>
               <ul className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
-                <li>• Be specific with conditions (e.g., "Acute Myocardial Infarction" vs "Heart Problem")</li>
-                <li>• Use medical terminology for more accurate simulations</li>
-                <li>• Practice common OSCE conditions that you need to master</li>
-                <li>• Try different presentations of the same condition</li>
+                <li>&bull; Be specific with conditions (e.g., &ldquo;Acute Myocardial Infarction&rdquo; vs &ldquo;Heart Problem&rdquo;)</li>
+                <li>&bull; Use medical terminology for more accurate simulations</li>
+                <li>&bull; Practice common OSCE conditions that you need to master</li>
+                <li>&bull; Try different presentations of the same condition</li>
               </ul>
             </div>
           </main>

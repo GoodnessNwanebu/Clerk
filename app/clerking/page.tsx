@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAppContext } from '../../context/AppContext';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { getPatientResponse } from '../../services/geminiService';
@@ -159,7 +160,13 @@ const ClerkingScreen: React.FC = () => {
       <main className="flex-grow pt-28 pb-32 overflow-y-auto">
         <div className="flex flex-col items-center mb-8 px-4">
             <div className="relative">
-                <img src={caseState.department.avatar} alt="Patient Avatar" className="w-24 h-24 rounded-full border-4 border-slate-200 dark:border-slate-700" />
+                <Image 
+                  src={caseState.department.avatar} 
+                  alt="Patient Avatar" 
+                  width={96} 
+                  height={96}
+                  className="rounded-full border-4 border-slate-200 dark:border-slate-700" 
+                />
                 {(isListening || isPatientThinking) && <div className="absolute inset-0 rounded-full border-2 border-teal-400 animate-pulse"></div>}
             </div>
             <p className="text-slate-500 dark:text-slate-400 mt-2">{isPatientThinking ? 'Patient is thinking...' : isListening ? 'Listening...' : 'Ready to talk'}</p>
