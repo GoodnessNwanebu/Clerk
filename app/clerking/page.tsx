@@ -7,6 +7,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { getPatientResponse } from '../../services/geminiService';
 import { Icon } from '../../components/Icon';
+import { ClerkingTimer } from '../../components/ClerkingTimer';
 import { Message } from '../../types';
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
@@ -138,6 +139,11 @@ const ClerkingScreen: React.FC = () => {
     return null;
   }
 
+  const handleTimeUp = () => {
+    // Optional: Add any logic when timer expires, such as auto-navigation to summary
+    console.log('Time is up for this patient session');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
       {showPermissionModal && <PermissionModal onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />}
@@ -151,9 +157,12 @@ const ClerkingScreen: React.FC = () => {
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseState.department.name}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
           </div>
-          <button onClick={() => router.push('/summary')} className="font-semibold text-teal-500 hover:text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 transition-colors pr-2">
-            Finish
-          </button>
+          <div className="flex items-center space-x-3">
+            <ClerkingTimer onTimeUp={handleTimeUp} />
+            <button onClick={() => router.push('/summary')} className="font-semibold text-teal-500 hover:text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+              Finish
+            </button>
+          </div>
         </div>
       </header>
 
