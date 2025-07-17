@@ -62,38 +62,40 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
   if (results.length === 0) return null;
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-6 sm:space-y-8">
       <h4 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center space-x-2">
         <Icon name="award" size={20} className="text-teal-500" />
         <span>Laboratory Results</span>
       </h4>
-      <div className="space-y-4 sm:space-y-5">
+      <div className="space-y-6 sm:space-y-8">
         {results.map((result, index) => (
           <div 
             key={index} 
-            className={`border-l-4 pl-4 sm:pl-6 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
+            className={`border-l-4 pl-6 sm:pl-8 py-4 sm:py-6 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
             style={{ transitionDelay: `${index * 100}ms`, opacity: animate ? 1 : 0 }}
           >
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline space-y-2 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline space-y-3 sm:space-y-0">
               <span className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">{result.name}</span>
-              <div className="flex flex-col sm:flex-row sm:items-baseline space-y-1 sm:space-y-0 sm:space-x-2">
+              <div className="flex flex-col sm:flex-row sm:items-baseline space-y-2 sm:space-y-0 sm:space-x-3">
                 <div className="flex items-baseline space-x-2">
                   <span className={`font-bold text-xl sm:text-2xl ${getStatusColors(result.status).replace('bg-', 'text-')}`}>
                     {result.value}
                   </span>
                   <span className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{result.unit}</span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getStatusBadgeColors(result.status)} self-start sm:self-auto`}>
+                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusBadgeColors(result.status)} self-start sm:self-auto`}>
                   {result.status}
                 </span>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-4 sm:mt-5">
               <QuantitativeBar result={result} animate={animate} />
             </div>
-            <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Ref: {result.range.low} - {result.range.high} {result.unit}
-            </div>
+            {result.reference && (
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 sm:mt-4">
+                Reference: {result.reference}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -118,12 +120,12 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
   if (results.length === 0) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h4 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center space-x-2">
         <Icon name="search" size={20} className="text-emerald-500" />
         <span>Imaging & Reports</span>
       </h4>
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-4 sm:space-y-6">
         {results.map((result, index) => {
           const isExpanded = expandedCards.has(index);
           const hasAbnormalFlags = result.abnormalFlags && result.abnormalFlags.length > 0;
@@ -137,31 +139,31 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
               <div className="bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <button
                   onClick={() => toggleCard(index)}
-                  className="w-full p-4 sm:p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="w-full p-5 sm:p-6 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <Icon 
                         name={getReportIcon(result.reportType)} 
-                        size={20} 
+                        size={22} 
                         className={hasAbnormalFlags ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400'} 
                       />
                       <div>
-                        <h5 className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
+                        <h5 className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg mb-1">
                           {result.name}
                         </h5>
                         {hasAbnormalFlags && (
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="flex flex-wrap gap-2 mt-3">
                             {result.abnormalFlags.slice(0, 2).map((flag, flagIndex) => (
                               <span 
                                 key={flagIndex} 
-                                className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs sm:text-sm rounded-full"
+                                className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs sm:text-sm rounded-full font-medium"
                               >
                                 {flag}
                               </span>
                             ))}
                             {result.abnormalFlags.length > 2 && (
-                              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-full">
+                              <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-full font-medium">
                                 +{result.abnormalFlags.length - 2} more
                               </span>
                             )}
@@ -171,24 +173,24 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
                     </div>
                     <Icon 
                       name={isExpanded ? 'chevrons-right' : 'chevrons-right'} 
-                      size={16} 
+                      size={18} 
                       className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
                     />
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
-                    <div className="pt-4 space-y-4">
+                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
+                    <div className="pt-5 space-y-5">
                       <div>
-                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">FINDINGS:</h6>
+                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-3">FINDINGS:</h6>
                         <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                           {result.findings}
                         </p>
                       </div>
                       
                       <div>
-                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">IMPRESSION:</h6>
+                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-3">IMPRESSION:</h6>
                         <p className="text-slate-800 dark:text-slate-200 text-sm sm:text-base font-medium leading-relaxed">
                           {result.impression}
                         </p>
@@ -196,26 +198,10 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
 
                       {result.recommendation && (
                         <div>
-                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">RECOMMENDATION:</h6>
+                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-3">RECOMMENDATION:</h6>
                           <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                             {result.recommendation}
                           </p>
-                        </div>
-                      )}
-
-                      {hasAbnormalFlags && (
-                        <div>
-                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">ABNORMAL FINDINGS:</h6>
-                          <div className="flex flex-wrap gap-1">
-                            {result.abnormalFlags.map((flag, flagIndex) => (
-                              <span 
-                                key={flagIndex} 
-                                className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs sm:text-sm rounded-full"
-                              >
-                                {flag}
-                              </span>
-                            ))}
-                          </div>
                         </div>
                       )}
                     </div>
@@ -334,7 +320,7 @@ export const InvestigationResults: React.FC<{ results: InvestigationResult[] }> 
       </div>
 
       {/* Results content */}
-      <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
+      <div className="p-8 sm:p-10 space-y-8 sm:space-y-10">
         {filteredResults.quantitative.length > 0 && (
           <QuantitativeResults results={filteredResults.quantitative} animate={animate} />
         )}
@@ -344,7 +330,7 @@ export const InvestigationResults: React.FC<{ results: InvestigationResult[] }> 
         )}
 
         {filteredResults.quantitative.length === 0 && filteredResults.descriptive.length === 0 && (
-          <div className="text-center text-slate-500 dark:text-slate-400 py-8">
+          <div className="text-center text-slate-500 dark:text-slate-400 py-12">
             <p>No results in this category.</p>
           </div>
         )}
