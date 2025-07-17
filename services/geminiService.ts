@@ -1,4 +1,4 @@
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport } from '../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes } from '../types';
 
 const handleApiError = async (response: Response, context: string) => {
     // Attempt to parse error JSON from the serverless function
@@ -78,7 +78,7 @@ export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | 
     return feedback;
 };
 
-export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<DetailedFeedbackReport | null> => {
+export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<ConsultantTeachingNotes | null> => {
     const feedback = await fetchFromApi('getDetailedFeedback', { caseState });
     return feedback;
 };

@@ -137,8 +137,7 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
             contents: [{ text: userMessage }],
         });
         
-        const text = response.text;
-        const caseJson = parseJsonResponse<Case>(text, context);
+        const caseJson = parseJsonResponse<Case>(response.text, context);
         return NextResponse.json(caseJson);
     } catch (error) {
         return handleApiError(error, context);
@@ -253,19 +252,42 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
 async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     const { caseState } = payload;
     const context = 'getDetailedCaseFeedback';
-    const userMessage = `You are a senior medical educator. Generate a comprehensive educational report for this student's clinical case performance.
-    The report should be suitable for emailing and provide detailed educational value.
-    
-    Return a JSON object with this exact structure: {"diagnosis": string, "department": string, "studentDiagnosis": string, "patientSummary": string, "conversationSummary": string, "clinicalReasoning": string, "investigationAnalysis": string, "managementReview": string, "keyLearningPoints": string[], "areasForImprovement": string[], "recommendations": string[], "educationalResources": string[]}.
-    
-    Case data:
+    const userMessage = `You are a senior consultant providing clinical teaching notes after observing a student's clerking. Write in a calm, non-judgmental, educational tone using direct address ("you" not "the student").
+
+    Generate a JSON object with this exact structure: 
+    {
+        "diagnosis": string, 
+        "keyLearningPoint": string, 
+        "clerkingStructure": string,
+        "missedOpportunities": [{"opportunity": string, "clinicalSignificance": string}],
+        "clinicalReasoning": string,
+        "communicationNotes": string,
+        "clinicalPearls": string[]
+    }
+
+    TEACHING APPROACH:
+    - Use direct address: "You asked about chest pain, but missed..." not "The student asked..."
+    - Be encouraging and educational, not critical
+    - Focus on learning opportunities rather than mistakes
+    - Explain WHY things matter clinically
+    - Include ALL clinically relevant missed opportunities (no artificial limits)
+    - Sound like a consultant sharing clinical wisdom
+
+    CONTENT GUIDELINES:
+    - "diagnosis": The correct diagnosis for this case
+    - "keyLearningPoint": One major teaching moment from this case (single sentence)
+    - "clerkingStructure": Comment on whether you followed a systematic approach vs scattered questioning
+    - "missedOpportunities": ALL significant questions/areas you didn't explore, with clinical significance explained
+    - "clinicalReasoning": Assessment of how well you built and narrowed your differential diagnosis
+    - "communicationNotes": Brief comment on your patient interaction style and empathy
+    - "clinicalPearls": 1-3 memorable clinical teaching points related to this case
+
+    Case analysis:
     - Department: ${caseState.department!.name}
     - Correct Diagnosis: ${caseState.caseDetails!.diagnosis}
-    - Patient Details: ${caseState.caseDetails!.primaryInfo}
-    - Conversation: ${JSON.stringify(caseState.messages)}
-    - Student's Final Diagnosis: ${caseState.finalDiagnosis}
-    - Student's Management Plan: ${caseState.managementPlan}
-    - Investigation Results: ${JSON.stringify(caseState.investigationResults)}`;
+    - Your Final Diagnosis: ${caseState.finalDiagnosis}
+    - Conversation Transcript: ${JSON.stringify(caseState.messages)}
+    - Your Management Plan: ${caseState.managementPlan}`;
 
     try {
         const response = await ai.generateContent({
@@ -273,8 +295,8 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
             contents: [{ text: userMessage }],
         });
         
-        const detailedFeedback = parseJsonResponse<DetailedFeedbackReport>(response.text, context);
-        return NextResponse.json(detailedFeedback);
+        const teachingNotes = parseJsonResponse<any>(response.text, context);
+        return NextResponse.json(teachingNotes);
     } catch (error) {
         return handleApiError(error, context);
     }

@@ -8,24 +8,22 @@ import {
   Text,
   Heading,
   Hr,
-  Link,
-  Img,
   Preview,
 } from '@react-email/components';
-import { DetailedFeedbackReport } from '../types';
+import { ConsultantTeachingNotes } from '../types';
 
 interface ClerkReportEmailProps {
-  report: DetailedFeedbackReport;
+  report: ConsultantTeachingNotes;
 }
 
 export const ClerkReportEmail: React.FC<ClerkReportEmailProps> = ({ report }) => {
   return (
     <Html>
       <Head />
-      <Preview>Your ClerkSmart Case Report: {report.diagnosis}</Preview>
+      <Preview>Clinical Teaching Notes: {report.diagnosis}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
-          <Heading style={styles.header}>ClerkSmart Case Report</Heading>
+          <Heading style={styles.header}>Clinical Teaching Notes</Heading>
           
           <Section style={styles.section}>
             <Heading as="h2" style={styles.sectionHeading}>Case Diagnosis</Heading>
@@ -35,50 +33,23 @@ export const ClerkReportEmail: React.FC<ClerkReportEmailProps> = ({ report }) =>
           <Hr style={styles.divider} />
           
           <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Key Takeaway</Heading>
-            <Text style={styles.text}>{report.keyTakeaway}</Text>
+            <Heading as="h2" style={styles.sectionHeading}>Key Learning Point</Heading>
+            <Text style={styles.text}>{report.keyLearningPoint}</Text>
           </Section>
           
           <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>What You Did Well</Heading>
-            <ul style={styles.list}>
-              {report.whatYouDidWell.map((point, index) => (
-                <li key={index} style={styles.listItem}>
-                  <Text style={styles.text}>{point}</Text>
-                </li>
-              ))}
-            </ul>
+            <Heading as="h2" style={styles.sectionHeading}>Clerking Structure</Heading>
+            <Text style={styles.text}>{report.clerkingStructure}</Text>
           </Section>
           
           <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Areas for Improvement</Heading>
-            <ul style={styles.list}>
-              {report.whatCouldBeImproved.map((point, index) => (
-                <li key={index} style={styles.listItem}>
-                  <Text style={styles.text}>{point}</Text>
-                </li>
-              ))}
-            </ul>
-          </Section>
-          
-          <Hr style={styles.divider} />
-          
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>In-depth Analysis</Heading>
-            
-            <Heading as="h3" style={styles.subHeading}>Highlights from your conversation:</Heading>
-            {report.positiveQuotes.map((quote, index) => (
-              <div key={index} style={styles.quoteContainer}>
-                <Text style={styles.quote}>"{quote.quote}"</Text>
-                <Text style={styles.quoteExplanation}><strong>Analysis:</strong> {quote.explanation}</Text>
-              </div>
-            ))}
-            
-            <Heading as="h3" style={styles.subHeading}>Learning opportunities from your conversation:</Heading>
-            {report.improvementQuotes.map((quote, index) => (
-              <div key={index} style={styles.quoteContainer}>
-                <Text style={styles.quote}>"{quote.quote}"</Text>
-                <Text style={styles.quoteExplanation}><strong>Analysis:</strong> {quote.explanation}</Text>
+            <Heading as="h2" style={styles.sectionHeading}>Missed Opportunities</Heading>
+            {report.missedOpportunities.map((item, index) => (
+              <div key={index} style={styles.opportunityContainer}>
+                <Text style={styles.opportunityTitle}>{item.opportunity}</Text>
+                <Text style={styles.significanceText}>
+                  <strong>Clinical significance:</strong> {item.clinicalSignificance}
+                </Text>
               </div>
             ))}
           </Section>
@@ -86,15 +57,31 @@ export const ClerkReportEmail: React.FC<ClerkReportEmailProps> = ({ report }) =>
           <Hr style={styles.divider} />
           
           <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Clinical Tip</Heading>
-            <Text style={styles.text}>{report.clinicalTip}</Text>
+            <Heading as="h2" style={styles.sectionHeading}>Clinical Reasoning</Heading>
+            <Text style={styles.text}>{report.clinicalReasoning}</Text>
+          </Section>
+          
+          <Section style={styles.section}>
+            <Heading as="h2" style={styles.sectionHeading}>Communication & Patient Interaction</Heading>
+            <Text style={styles.text}>{report.communicationNotes}</Text>
+          </Section>
+          
+          <Hr style={styles.divider} />
+          
+          <Section style={styles.section}>
+            <Heading as="h2" style={styles.sectionHeading}>Clinical Pearls</Heading>
+            {report.clinicalPearls.map((pearl, index) => (
+              <div key={index} style={styles.pearlContainer}>
+                <Text style={styles.pearlText}>• {pearl}</Text>
+              </div>
+            ))}
           </Section>
           
           <Hr style={styles.divider} />
           
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
-              This report was generated by ClerkSmart to help you improve your clinical skills.
+              These teaching notes were generated by ClerkSmart to support your clinical learning journey.
             </Text>
             <Text style={styles.footerText}>
               © {new Date().getFullYear()} ClerkSmart
@@ -113,7 +100,7 @@ const styles = {
   },
   container: {
     margin: '0 auto',
-    padding: '20px 0',
+    padding: '20px', // Changed from '20px 0' to add horizontal padding
     maxWidth: '600px',
   },
   header: {
@@ -134,13 +121,6 @@ const styles = {
     color: '#0f766e',
     margin: '10px 0',
   },
-  subHeading: {
-    fontSize: '16px',
-    lineHeight: '1.3',
-    fontWeight: '600',
-    color: '#0f766e',
-    margin: '15px 0 10px 0',
-  },
   text: {
     fontSize: '14px',
     lineHeight: '1.6',
@@ -151,29 +131,37 @@ const styles = {
     borderTop: '1px solid #e2e8f0',
     margin: '15px 0',
   },
-  list: {
-    padding: '0 0 0 20px',
+  opportunityContainer: {
+    backgroundColor: '#fef3c7',
+    borderLeft: '3px solid #f59e0b',
+    padding: '12px 15px',
     margin: '10px 0',
+    borderRadius: '4px',
   },
-  listItem: {
-    margin: '5px 0',
-  },
-  quoteContainer: {
-    backgroundColor: '#f8fafc',
-    borderLeft: '3px solid #0f766e',
-    padding: '10px 15px',
-    margin: '15px 0',
-  },
-  quote: {
+  opportunityTitle: {
     fontSize: '14px',
-    fontStyle: 'italic',
-    color: '#334155',
-    margin: '0 0 8px 0',
+    fontWeight: '600',
+    color: '#92400e',
+    margin: '0 0 6px 0',
   },
-  quoteExplanation: {
+  significanceText: {
     fontSize: '13px',
-    color: '#475569',
+    color: '#78716c',
     margin: '0',
+    fontStyle: 'italic',
+  },
+  pearlContainer: {
+    backgroundColor: '#f0fdf4',
+    borderLeft: '3px solid #22c55e',
+    padding: '10px 15px',
+    margin: '8px 0',
+    borderRadius: '4px',
+  },
+  pearlText: {
+    fontSize: '14px',
+    color: '#166534',
+    margin: '0',
+    fontWeight: '500',
   },
   footer: {
     textAlign: 'center' as const,

@@ -58,6 +58,20 @@ export interface Feedback {
     clinicalTip: string;
 }
 
+export interface ConsultantTeachingNotes {
+    diagnosis: string;
+    keyLearningPoint: string;
+    clerkingStructure: string;
+    missedOpportunities: Array<{
+        opportunity: string;
+        clinicalSignificance: string;
+    }>;
+    clinicalReasoning: string;
+    communicationNotes: string;
+    clinicalPearls: string[];
+}
+
+// Keep the old interface for backward compatibility with the feedback page
 export interface DetailedFeedbackReport extends Feedback {
     positiveQuotes: { quote: string; explanation: string; }[];
     improvementQuotes: { quote: string; explanation: string; }[];
