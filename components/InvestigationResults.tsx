@@ -71,27 +71,27 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
         {results.map((result, index) => (
           <div 
             key={index} 
-            className={`border-l-4 pl-4 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
+            className={`border-l-4 pl-4 sm:pl-6 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
             style={{ transitionDelay: `${index * 100}ms`, opacity: animate ? 1 : 0 }}
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline space-y-2 sm:space-y-0">
-              <span className="font-semibold text-slate-800 dark:text-white text-sm sm:text-base">{result.name}</span>
+              <span className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">{result.name}</span>
               <div className="flex flex-col sm:flex-row sm:items-baseline space-y-1 sm:space-y-0 sm:space-x-2">
                 <div className="flex items-baseline space-x-2">
-                  <span className={`font-bold text-lg sm:text-xl ${getStatusColors(result.status).replace('bg-', 'text-')}`}>
+                  <span className={`font-bold text-xl sm:text-2xl ${getStatusColors(result.status).replace('bg-', 'text-')}`}>
                     {result.value}
                   </span>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">{result.unit}</span>
+                  <span className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{result.unit}</span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColors(result.status)} self-start sm:self-auto`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getStatusBadgeColors(result.status)} self-start sm:self-auto`}>
                   {result.status}
                 </span>
               </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-3">
               <QuantitativeBar result={result} animate={animate} />
             </div>
-            <div className="text-right text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               Ref: {result.range.low} - {result.range.high} {result.unit}
             </div>
           </div>
@@ -137,7 +137,7 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
               <div className="bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <button
                   onClick={() => toggleCard(index)}
-                  className="w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="w-full p-4 sm:p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -147,21 +147,21 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
                         className={hasAbnormalFlags ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400'} 
                       />
                       <div>
-                        <h5 className="font-semibold text-slate-800 dark:text-white text-sm sm:text-base">
+                        <h5 className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
                           {result.name}
                         </h5>
                         {hasAbnormalFlags && (
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {result.abnormalFlags.slice(0, 2).map((flag, flagIndex) => (
                               <span 
                                 key={flagIndex} 
-                                className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs rounded-full"
+                                className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs sm:text-sm rounded-full"
                               >
                                 {flag}
                               </span>
                             ))}
                             {result.abnormalFlags.length > 2 && (
-                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs rounded-full">
+                              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-full">
                                 +{result.abnormalFlags.length - 2} more
                               </span>
                             )}
@@ -178,26 +178,26 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
-                    <div className="pt-4 space-y-3">
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
+                    <div className="pt-4 space-y-4">
                       <div>
-                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm mb-2">FINDINGS:</h6>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">FINDINGS:</h6>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                           {result.findings}
                         </p>
                       </div>
                       
                       <div>
-                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm mb-2">IMPRESSION:</h6>
-                        <p className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-relaxed">
+                        <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">IMPRESSION:</h6>
+                        <p className="text-slate-800 dark:text-slate-200 text-sm sm:text-base font-medium leading-relaxed">
                           {result.impression}
                         </p>
                       </div>
 
                       {result.recommendation && (
                         <div>
-                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm mb-2">RECOMMENDATION:</h6>
-                          <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">RECOMMENDATION:</h6>
+                          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                             {result.recommendation}
                           </p>
                         </div>
@@ -205,12 +205,12 @@ const DescriptiveResults: React.FC<{ results: DescriptiveResult[]; animate: bool
 
                       {hasAbnormalFlags && (
                         <div>
-                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm mb-2">ABNORMAL FINDINGS:</h6>
+                          <h6 className="font-medium text-slate-700 dark:text-slate-300 text-sm sm:text-base mb-2">ABNORMAL FINDINGS:</h6>
                           <div className="flex flex-wrap gap-1">
                             {result.abnormalFlags.map((flag, flagIndex) => (
                               <span 
                                 key={flagIndex} 
-                                className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs rounded-full"
+                                className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-xs sm:text-sm rounded-full"
                               >
                                 {flag}
                               </span>
@@ -247,10 +247,10 @@ export const InvestigationResults: React.FC<{ results: InvestigationResult[] }> 
 
   if (results.length === 0) {
     return (
-      <div className="bg-white/80 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl text-center text-slate-500 dark:text-slate-400">
+      <div className="bg-white/80 dark:bg-slate-800/50 p-6 sm:p-8 rounded-xl text-center text-slate-500 dark:text-slate-400">
         <Icon name="search" size={48} className="mx-auto mb-4 text-slate-300 dark:text-slate-600" />
-        <p className="text-base sm:text-lg font-medium mb-2">No investigation results available.</p>
-        <p className="text-sm">Please specify investigations like "FBC", "U&E", "Chest X-ray", "Ultrasound", etc.</p>
+        <p className="text-lg sm:text-xl font-medium mb-3">No investigation results available.</p>
+        <p className="text-sm sm:text-base">Please specify investigations like "FBC", "U&E", "Chest X-ray", "Ultrasound", etc.</p>
       </div>
     );
   }
@@ -334,7 +334,7 @@ export const InvestigationResults: React.FC<{ results: InvestigationResult[] }> 
       </div>
 
       {/* Results content */}
-      <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+      <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
         {filteredResults.quantitative.length > 0 && (
           <QuantitativeResults results={filteredResults.quantitative} animate={animate} />
         )}
