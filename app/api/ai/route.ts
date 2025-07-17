@@ -137,8 +137,7 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
             contents: [{ text: userMessage }],
         });
         
-        const text = response.text;
-        const caseJson = parseJsonResponse<Case>(text, context);
+        const caseJson = parseJsonResponse<Case>(response.text, context);
         return NextResponse.json(caseJson);
     } catch (error) {
         return handleApiError(error, context);
@@ -153,7 +152,7 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
     - You MUST adhere strictly to this information. Do not contradict it.
     - If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
     - Respond naturally, as a real person would. Be concise.
-    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon.
+    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do not give up a lot of information at once.
 
     PRIMARY_INFORMATION:
     ${caseDetails.primaryInfo}`;
@@ -181,14 +180,28 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
     const { plan, caseDetails } = payload;
     const context = 'getInvestigationResults';
     const userMessage = `A medical student has requested investigations for a patient with a likely diagnosis of '${caseDetails.diagnosis}'.
-    Parse their free-text plan and return a JSON array of results.
-    The JSON schema for each item must be: {"name": string, "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal" | "High" | "Low" | "Critical"}.
-    - Generate medically plausible, realistic values consistent with the diagnosis. Some results should be abnormal to create a challenge.
-    - FBC should be broken down into Hemoglobin, WBC, Platelets.
-    - U&E into Sodium, Potassium, Urea, Creatinine.
-    - LFT into Bilirubin, ALT, AST.
-    - If a test is mentioned that you cannot simulate, omit it from the final JSON.
-    - Respond ONLY with the JSON array inside a root object: e.g. {"results": [...]}.
+    Parse their free-text plan and return ALL requested tests as a JSON array. Use two different result formats:
+
+    QUANTITATIVE RESULTS (for lab values, vitals): 
+    {"name": string, "type": "quantitative", "category": "laboratory"|"specialized", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
+
+    DESCRIPTIVE RESULTS (for imaging, pathology, specialized tests):
+    {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
+
+    GUIDELINES:
+    - Generate medically plausible, realistic results consistent with the diagnosis
+    - FBC breakdown: Hemoglobin, WBC, Platelets (quantitative)
+    - U&E breakdown: Sodium, Potassium, Urea, Creatinine (quantitative) 
+    - LFT breakdown: Bilirubin, ALT, AST (quantitative)
+    - Imaging studies: Detailed radiology reports with structured findings and impressions
+    - ECGs: Professional interpretation with rhythm, axis, intervals, abnormalities
+    - Echo: Structured cardiac findings with measurements and function assessment
+    - Include ALL tests mentioned - do not omit any tests
+    - Make some results abnormal to create educational value
+    - Use professional medical terminology in descriptive reports
+    - For imaging, format as: FINDINGS: [detailed observations] IMPRESSION: [clinical interpretation]
+
+    Respond ONLY with JSON: {"results": [...]}
 
     The student's plan: "${plan}"`;
 
@@ -239,19 +252,42 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
 async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     const { caseState } = payload;
     const context = 'getDetailedCaseFeedback';
-    const userMessage = `You are a senior medical educator. Generate a comprehensive educational report for this student's clinical case performance.
-    The report should be suitable for emailing and provide detailed educational value.
-    
-    Return a JSON object with this exact structure: {"diagnosis": string, "department": string, "studentDiagnosis": string, "patientSummary": string, "conversationSummary": string, "clinicalReasoning": string, "investigationAnalysis": string, "managementReview": string, "keyLearningPoints": string[], "areasForImprovement": string[], "recommendations": string[], "educationalResources": string[]}.
-    
-    Case data:
+    const userMessage = `You are a senior consultant providing clinical teaching notes after observing a student's clerking. Write in a calm, non-judgmental, educational tone using direct address ("you" not "the student").
+
+    Generate a JSON object with this exact structure: 
+    {
+        "diagnosis": string, 
+        "keyLearningPoint": string, 
+        "clerkingStructure": string,
+        "missedOpportunities": [{"opportunity": string, "clinicalSignificance": string}],
+        "clinicalReasoning": string,
+        "communicationNotes": string,
+        "clinicalPearls": string[]
+    }
+
+    TEACHING APPROACH:
+    - Use direct address: "You asked about chest pain, but missed..." not "The student asked..."
+    - Be encouraging and educational, not critical
+    - Focus on learning opportunities rather than mistakes
+    - Explain WHY things matter clinically
+    - Include ALL clinically relevant missed opportunities (no artificial limits)
+    - Sound like a consultant sharing clinical wisdom
+
+    CONTENT GUIDELINES:
+    - "diagnosis": The correct diagnosis for this case
+    - "keyLearningPoint": One major teaching moment from this case (single sentence)
+    - "clerkingStructure": Comment on whether you followed a systematic approach vs scattered questioning
+    - "missedOpportunities": ALL significant questions/areas you didn't explore, with clinical significance explained
+    - "clinicalReasoning": Assessment of how well you built and narrowed your differential diagnosis
+    - "communicationNotes": Brief comment on your patient interaction style and empathy
+    - "clinicalPearls": 1-3 memorable clinical teaching points related to this case
+
+    Case analysis:
     - Department: ${caseState.department!.name}
     - Correct Diagnosis: ${caseState.caseDetails!.diagnosis}
-    - Patient Details: ${caseState.caseDetails!.primaryInfo}
-    - Conversation: ${JSON.stringify(caseState.messages)}
-    - Student's Final Diagnosis: ${caseState.finalDiagnosis}
-    - Student's Management Plan: ${caseState.managementPlan}
-    - Investigation Results: ${JSON.stringify(caseState.investigationResults)}`;
+    - Your Final Diagnosis: ${caseState.finalDiagnosis}
+    - Conversation Transcript: ${JSON.stringify(caseState.messages)}
+    - Your Management Plan: ${caseState.managementPlan}`;
 
     try {
         const response = await ai.generateContent({
@@ -259,8 +295,8 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
             contents: [{ text: userMessage }],
         });
         
-        const detailedFeedback = parseJsonResponse<DetailedFeedbackReport>(response.text, context);
-        return NextResponse.json(detailedFeedback);
+        const teachingNotes = parseJsonResponse<any>(response.text, context);
+        return NextResponse.json(teachingNotes);
     } catch (error) {
         return handleApiError(error, context);
     }

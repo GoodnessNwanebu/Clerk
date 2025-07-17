@@ -14,9 +14,10 @@ const nextConfig: NextConfig = withPWA({
   eslint: {
     ignoreDuringBuilds: true, // We'll fix these later
   },
-  optimizeFonts: true,
   turbopack: {
-    // Turbopack specific options
+    rules: {
+      // Add any custom Turbopack rules here
+    }
   }
 });
 

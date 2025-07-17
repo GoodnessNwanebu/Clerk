@@ -7,6 +7,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { getPatientResponse } from '../../services/geminiService';
 import { Icon } from '../../components/Icon';
+import { ClerkingTimer } from '../../components/ClerkingTimer';
 import { Message } from '../../types';
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
@@ -32,9 +33,48 @@ const ClerkingScreen: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [inputText, setInputText] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [isTextareaFocused, setIsTextareaFocused] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
+  // Auto-resize textarea function
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const newHeight = Math.min(textarea.scrollHeight, 120); // Max height 120px
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, []);
+
+  // Handle scroll for sticky header and scroll-to-bottom button
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsHeaderSticky(window.scrollY > 50);
+      
+      // Check if user has scrolled up from bottom (threshold of 100px from bottom)
+      const isNearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+      setShowScrollToBottom(!isNearBottom);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-resize textarea when input changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputText, adjustTextareaHeight]);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+  
   // Check if we have required case data before rendering
   useEffect(() => {
     if (!caseState.department || !caseState.caseDetails) {
@@ -138,11 +178,20 @@ const ClerkingScreen: React.FC = () => {
     return null;
   }
 
+  const handleTimeUp = () => {
+    // Optional: Add any logic when timer expires, such as auto-navigation to summary
+    console.log('Time is up for this patient session');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
       {showPermissionModal && <PermissionModal onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />}
       
-      <header className="fixed top-0 left-0 right-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm z-10 border-b border-slate-200 dark:border-slate-700 p-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)'}}>
+      <header className={`fixed top-0 left-0 right-0 z-10 border-b p-4 transition-all duration-300 ${
+        isHeaderSticky 
+          ? 'bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200 dark:border-slate-700 shadow-lg' 
+          : 'bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50'
+      }`} style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)'}}>
         <div className="flex justify-between items-center max-w-4xl mx-auto">
           <button onClick={() => router.push('/departments')} className="p-2 -ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white">
             <Icon name="arrow-left" size={24} />
@@ -151,13 +200,16 @@ const ClerkingScreen: React.FC = () => {
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseState.department.name}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
           </div>
-          <button onClick={() => router.push('/summary')} className="font-semibold text-teal-500 hover:text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 transition-colors pr-2">
-            Finish
-          </button>
+          <div className="flex items-center space-x-3">
+            <ClerkingTimer onTimeUp={handleTimeUp} />
+            <button onClick={() => router.push('/summary')} className="font-semibold text-teal-500 hover:text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+              Finish
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-grow pt-28 pb-32 overflow-y-auto">
+      <main className="flex-grow pt-28 pb-40 overflow-y-auto" ref={mainRef}>
         <div className="flex flex-col items-center mb-8 px-4">
             <div className="relative">
                 <Image 
@@ -214,32 +266,59 @@ const ClerkingScreen: React.FC = () => {
           )}
           <div ref={chatEndRef} />
         </div>
+
+        {/* Floating Scroll to Bottom Button */}
+        <button
+          onClick={scrollToBottom}
+          className={`fixed bottom-32 left-1/2 transform -translate-x-1/2 z-20 w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 ${
+            showScrollToBottom 
+              ? 'opacity-100 scale-100 translate-y-0' 
+              : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+          }`}
+          aria-label="Scroll to bottom"
+          style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
+        >
+          <Icon name="arrow-down" size={20} />
+        </button>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-slate-100 dark:bg-slate-800 z-10 border-t border-slate-200 dark:border-slate-700 p-2 transition-colors duration-300" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)'}}>
-        <div className="flex items-end max-w-4xl mx-auto gap-2">
-            <textarea
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Type your message..."
-                rows={1}
-                className="flex-grow bg-white dark:bg-slate-700 text-slate-900 dark:text-white p-3 rounded-xl border border-slate-300 dark:border-slate-600 resize-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
-                style={{maxHeight: "120px"}}
-            />
-            <button
-                onClick={inputText.trim() ? () => handleSendMessage(inputText) : handleMicClick}
-                disabled={!hasRecognitionSupport || isPatientThinking}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all duration-300 flex-shrink-0
-                ${isListening ? 'bg-red-600' : 'bg-gradient-to-br from-teal-500 to-emerald-600'}
-                ${isPatientThinking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}
-                `}
-            >
-                {inputText.trim() ? <Icon name="send" size={24} /> : <Icon name={isListening ? 'mic-off' : 'mic'} size={24} />}
-            </button>
+      <footer className="fixed bottom-0 left-0 right-0 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-md z-10 border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-8 transition-colors duration-300" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)'}}>
+        <div className="flex items-center max-w-4xl mx-auto gap-3">
+            <div className="flex-grow relative">
+                <textarea
+                    ref={textareaRef}
+                    value={inputText}
+                    onChange={e => {
+                        setInputText(e.target.value);
+                    }}
+                    onFocus={() => setIsTextareaFocused(true)}
+                    onBlur={() => setIsTextareaFocused(false)}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Type your message..."
+                    rows={1}
+                    className="w-full bg-white/90 dark:bg-slate-700/90 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border-0 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:shadow-lg focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-0 backdrop-blur-sm"
+                    style={{
+                        minHeight: '48px',
+                        maxHeight: '120px',
+                        lineHeight: '1.5'
+                    }}
+                />
+            </div>
+            <div className="flex-shrink-0 flex items-center">
+                <button
+                    onClick={inputText.trim() ? () => handleSendMessage(inputText) : handleMicClick}
+                    disabled={!hasRecognitionSupport || isPatientThinking}
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all duration-300 shadow-lg
+                    ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700'}
+                    ${isPatientThinking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 hover:shadow-xl active:scale-95'}
+                    `}
+                >
+                    {inputText.trim() ? <Icon name="send" size={20} /> : <Icon name={isListening ? 'mic-off' : 'mic'} size={20} />}
+                </button>
+            </div>
         </div>
-        {!hasRecognitionSupport && <p className="text-red-400 text-xs text-center mt-1">Voice input not supported on this browser.</p>}
-        {(speechError || apiError) && <p className="text-red-400 text-xs text-center mt-1 max-w-xs mx-auto">{speechError || apiError}</p>}
+        {!hasRecognitionSupport && <p className="text-red-400 text-xs text-center mt-2">Voice input not supported on this browser.</p>}
+        {(speechError || apiError) && <p className="text-red-400 text-xs text-center mt-2 max-w-xs mx-auto">{speechError || apiError}</p>}
       </footer>
     </div>
   );
