@@ -62,6 +62,9 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     const { departmentName, userCountry } = payload;
     const context = 'generateClinicalCase';
     
+    // Check if this is a pediatric case
+    const isPediatric = departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');
+    
     // Randomly select a medical bucket
     const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
     
@@ -95,15 +98,33 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
         
         LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
         : `Use culturally diverse names and consider common global disease patterns.`;
+
+    // Pediatric-specific prompt additions
+    const pediatricPrompt = isPediatric ? `
+    
+    🧒 PEDIATRIC CASE REQUIREMENTS:
+    - Include patient age (specify in months for infants <2 years, years for older children)
+    - Specify which parent is accompanying (mother or father)
+    - Consider age-appropriate communication levels:
+      * Infants (0-12 months): Non-verbal, all history from parent
+      * Toddlers (1-3 years): Basic words, mainly parent provides history
+      * Preschool (3-5 years): Simple sentences, parent supplements
+      * School-age (6-12 years): Good communication, some direct interaction
+      * Adolescents (13+ years): Adult-like communication, may want privacy from parents
+    - Include developmental milestones relevant to the case
+    - Consider family dynamics and parental concerns
+    ` : '';
     
     const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
     
     ${locationPrompt}
+    ${pediatricPrompt}
     
     REQUIREMENTS:
     - The case MUST fit the pathophysiology category: "${randomBucket}"
     - The case should be solvable by a medical student
     - Balance regional authenticity with educational value
+    ${isPediatric ? '- For pediatric cases, ensure age-appropriate presentation and include developmental context' : ''}
     
     EXAMPLES by pathophysiology category:
     - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease
@@ -115,21 +136,33 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
     - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
     
-    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
+    ${isPediatric ? 
+    `The output MUST be a single, perfectly valid JSON object with this structure: 
+    {"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}}.` :
+    `The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.`}
 
-    - "diagnosis": The most likely diagnosis for the case that fits the "${randomBucket}" category.
+    - "diagnosis": The most likely diagnosis for the case that fits the ${randomBucket} category
     - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-        - ## BIODATA
+        - ## BIODATA ${isPediatric ? '(Include child age and accompanying parent)' : ''}
         - ## Presenting Complaint
         - ## History of Presenting Complaint
         - ## Past Medical and Surgical History
         - ## Drug History
         - ## Family History
-        - ## Social History
+        - ## Social History ${isPediatric ? '(Include family structure, school/daycare, developmental concerns)' : ''}
         - ## Review of Systems
-    - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
+        ${isPediatric ? '- ## Developmental History (milestones, concerns, school performance if applicable)' : ''}
+    - "openingLine": A natural, first-person statement ${isPediatric ? 'from the parent introducing the child or from the child (age-appropriate)' : 'from the patient'} that initiates the consultation.
+    ${isPediatric ? `
+    - "pediatricProfile": Object containing:
+        - "patientAge": Age in years (use decimals for infants, e.g., 0.5 for 6 months)
+        - "ageGroup": One of "infant", "toddler", "preschool", "school-age", "adolescent"
+        - "respondingParent": "mother" or "father"
+        - "parentProfile": Parent's education/health literacy profile
+        - "developmentalStage": Brief description of child's developmental level
+        - "communicationLevel": Child's ability to communicate ("non-verbal", "basic", "conversational", "adult-like")` : ''}
 
-            Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+    Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
 
     try {
         const response = await ai.generateContent({
@@ -147,30 +180,131 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
 async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case }) {
     const { history, caseDetails } = payload;
     const context = 'getPatientResponse';
-    const systemInstruction = `You are a patient in a medical simulation.
-    Your entire identity and medical history are defined by the PRIMARY_INFORMATION provided below.
-    - You MUST adhere strictly to this information. Do not contradict it.
-    - If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
-    - Respond naturally, as a real person would. Be concise.
-    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do volunteer too much information at once, only answer what was asked.
+    
+    // Determine if this is a pediatric case
+    const isPediatric = caseDetails.isPediatric || caseDetails.pediatricProfile;
+    
+    let systemInstruction = '';
+    
+    if (isPediatric && caseDetails.pediatricProfile) {
+        const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = caseDetails.pediatricProfile;
+        
+        systemInstruction = `You are managing a pediatric medical simulation with TWO speakers: the child patient and the ${respondingParent}.
 
-    PRIMARY_INFORMATION:
-    ${caseDetails.primaryInfo}`;
+PATIENT DETAILS:
+- Child's age: ${patientAge} years old (${ageGroup})
+- Communication level: ${communicationLevel}
+- Developmental stage: ${developmentalStage}
+- Accompanying parent: ${respondingParent}
+
+PARENT PROFILE:
+- Education: ${parentProfile.educationLevel}
+- Health literacy: ${parentProfile.healthLiteracy}
+- Occupation: ${parentProfile.occupation}
+- Record keeping: ${parentProfile.recordKeeping}
+
+RESPONSE RULES:
+1. ALWAYS indicate who is speaking by starting responses with "[Mother]:", "[Father]:", or "[Child]:"
+2. Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals like "(quietly)", "(looking tired)", etc.
+3. Determine who should respond based on question type:
+   
+   **PARENT responds to:**
+   - Birth history, pregnancy complications
+   - Developmental milestones (when child reached milestones)
+   - Vaccination history
+   - Past medical history the child can't remember
+   - Family history
+   - School performance concerns
+   - Behavioral observations at home
+   - Questions requiring detailed medical knowledge
+   
+   **CHILD responds to (when age-appropriate):**
+   - Current symptoms they can describe ("My tummy hurts")
+   - Pain location and severity (if old enough)
+   - Activities they like/dislike
+   - How they feel right now
+   - Simple yes/no questions about symptoms
+   
+   **BOTH may contribute to:**
+   - Recent illness history (parent provides context, child adds subjective experience)
+   - Current concerns (parent observes, child describes feelings)
+
+4. AGE-APPROPRIATE RESPONSES:
+   - Infants/Toddlers: Only parent speaks, child may cry or be restless
+   - Preschool: Child gives simple responses, parent provides detail
+   - School-age: Child can describe symptoms, parent adds context
+   - Adolescents: Child may want to speak privately about some topics
+
+5. PARENT PERSONALITY: Reflect the parent's education and health literacy in their responses
+6. CHILD PERSONALITY: Use age-appropriate language and emotional responses, but NO descriptive actions
+7. Stay consistent with the medical history provided below
+
+PRIMARY_INFORMATION:
+${caseDetails.primaryInfo}`;
+    } else {
+        // Regular adult case
+        systemInstruction = `You are a patient in a medical simulation.
+Your entire identity and medical history are defined by the PRIMARY_INFORMATION provided below.
+- You MUST adhere strictly to this information. Do not contradict it.
+- If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
+- Respond naturally, as a real person would. Be concise.
+- Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals like "(wincing)", "(looking worried)", etc.
+- NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do not volunteer too much information at once, only answer what was asked.
+
+PRIMARY_INFORMATION:
+${caseDetails.primaryInfo}`;
+    }
     
     // Convert the history to a format suitable for the API
     const conversation = history
-        .filter(msg => msg.sender === 'student' || msg.sender === 'patient')
-        .map(msg => msg.text).join('\n\n');
+        .filter(msg => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
+        .map(msg => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
+        .join('\n\n');
     
     try {
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ 
-                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\nPatient's response:` 
+                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (specify speaker):' : 'Patient response:'}` 
             }],
         });
         
-        return NextResponse.json({ response: response.text });
+        // Parse the response to extract speaker and message for pediatric cases
+        let responseText = response.text.trim();
+        let sender: 'patient' | 'parent' = 'patient';
+        let speakerLabel = '';
+        
+        if (isPediatric) {
+            // Check for speaker labels
+            const motherMatch = responseText.match(/^\[Mother\]:\s*(.*)/s);
+            const fatherMatch = responseText.match(/^\[Father\]:\s*(.*)/s);
+            const childMatch = responseText.match(/^\[Child\]:\s*(.*)/s);
+            
+            if (motherMatch) {
+                sender = 'parent';
+                speakerLabel = 'Mother';
+                responseText = motherMatch[1].trim();
+            } else if (fatherMatch) {
+                sender = 'parent';
+                speakerLabel = 'Father';
+                responseText = fatherMatch[1].trim();
+            } else if (childMatch) {
+                sender = 'patient';
+                speakerLabel = 'Child';
+                responseText = childMatch[1].trim();
+            }
+            // If no label found, default to child for backward compatibility
+            if (!speakerLabel) {
+                sender = 'patient';
+                speakerLabel = 'Child';
+            }
+        }
+        
+        return NextResponse.json({ 
+            response: responseText,
+            sender: sender,
+            speakerLabel: speakerLabel 
+        });
     } catch (error) {
         return handleApiError(error, context);
     }

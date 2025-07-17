@@ -44,15 +44,30 @@ const getReportIcon = (reportType: DescriptiveResult['reportType']) => {
 
 // Quantitative result bar component
 const QuantitativeBar: React.FC<{ result: QuantitativeResult; animate: boolean }> = ({ result, animate }) => {
-  const { value, range, status } = result;
-  const percentage = Math.min(100, Math.max(0, (value / (range.high * 1.2)) * 100));
-
+  const { value, range } = result;
+  const min = range.low;
+  const max = range.high;
+  
+  // Calculate percentage position
+  const percentage = ((value - min) / (max - min)) * 100;
+  const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
+  
   return (
-    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 sm:h-4">
-      <div
-        className={`h-3 sm:h-4 rounded-full ${getStatusColors(status)} transition-all duration-1000 ease-out`}
-        style={{ width: animate ? `${percentage}%` : '0%' }}
+    <div className="relative h-6 sm:h-8">
+      {/* Background bar */}
+      <div className="absolute inset-x-4 h-full bg-slate-200 dark:bg-slate-700 rounded-full" />
+      
+      {/* Value indicator */}
+      <div 
+        className={`absolute h-full w-1.5 bg-slate-800 dark:bg-white rounded-full transition-all duration-1000 ${animate ? 'opacity-100' : 'opacity-0'}`}
+        style={{ left: `calc(${clampedPercentage}% + 1rem)`, transform: 'translateX(-50%)' }}
       />
+      
+      {/* Range labels */}
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-2">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
     </div>
   );
 };
@@ -71,31 +86,35 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
         {results.map((result, index) => (
           <div 
             key={index} 
-            className={`border-l-4 pl-6 sm:pl-8 py-4 sm:py-6 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
-            style={{ transitionDelay: `${index * 100}ms`, opacity: animate ? 1 : 0 }}
+            className={`border-l-4 pl-6 sm:pl-8 py-4 sm:py-5 transition-all duration-500 ${getUrgencyColors(result.urgency)}`}
+            style={{ transitionDelay: `${index * 100}ms` }}
           >
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline space-y-3 sm:space-y-0">
-              <span className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">{result.name}</span>
-              <div className="flex flex-col sm:flex-row sm:items-baseline space-y-2 sm:space-y-0 sm:space-x-3">
-                <div className="flex items-baseline space-x-2">
-                  <span className={`font-bold text-xl sm:text-2xl ${getStatusColors(result.status).replace('bg-', 'text-')}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-200">
+                  {result.test}
+                </h3>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">
                     {result.value}
                   </span>
-                  <span className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{result.unit}</span>
+                  <span className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+                    {result.unit}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColors(result.status)}`}>
+                    {result.status}
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusBadgeColors(result.status)} self-start sm:self-auto`}>
-                  {result.status}
-                </span>
               </div>
             </div>
-            <div className="mt-4 sm:mt-5">
-              <QuantitativeBar result={result} animate={animate} />
+            <div className="mt-3 sm:mt-4">
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 sm:p-5">
+                <QuantitativeBar result={result} animate={animate} />
+              </div>
             </div>
-            {result.reference && (
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 sm:mt-4">
-                Reference: {result.reference}
-              </p>
-            )}
+            <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Ref: {result.range.low} - {result.range.high} {result.unit}
+            </div>
           </div>
         ))}
       </div>

@@ -118,8 +118,29 @@ const ClerkingScreen: React.FC = () => {
     const updatedHistory = [...caseState.messages, studentMessage];
 
     try {
-        const responseText = await getPatientResponse(updatedHistory, caseState.caseDetails);
-        const patientMessage: Message = { sender: 'patient', text: responseText, timestamp: new Date().toISOString() };
+        const response = await getPatientResponse(updatedHistory, caseState.caseDetails);
+        
+        // Handle both old format (string) and new format (object with speaker info)
+        let responseText: string;
+        let sender: 'patient' | 'parent' = 'patient';
+        let speakerLabel: string | undefined;
+        
+        if (typeof response === 'string') {
+            // Legacy format for backward compatibility
+            responseText = response;
+        } else {
+            // New format with speaker information
+            responseText = response.response;
+            sender = response.sender || 'patient';
+            speakerLabel = response.speakerLabel;
+        }
+        
+        const patientMessage: Message = { 
+            sender, 
+            text: responseText, 
+            timestamp: new Date().toISOString(),
+            speakerLabel 
+        };
         addMessage(patientMessage);
     } catch (error) {
         console.error(error);
@@ -246,20 +267,31 @@ const ClerkingScreen: React.FC = () => {
           {caseState.messages.map((msg: Message, index: number) => {
             // Check if this is the opening line (first system message)
             const isOpeningLine = index === 0 && msg.sender === 'system';
+            const isPediatricMessage = (msg.sender === 'patient' || msg.sender === 'parent') && msg.speakerLabel;
             
             return (
               <div key={index} className={`flex ${
                 msg.sender === 'student' ? 'justify-end' : 
-                msg.sender === 'patient' ? 'justify-start' :
+                msg.sender === 'patient' || msg.sender === 'parent' ? 'justify-start' :
                 isOpeningLine ? 'justify-center' : 'justify-start'
               }`}>
-                <div className={`p-3 rounded-2xl whitespace-pre-wrap ${
-                  msg.sender === 'student' ? 'max-w-xs md:max-w-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
-                  msg.sender === 'patient' ? 'max-w-xs md:max-w-md bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-white rounded-bl-lg' :
-                  isOpeningLine ? 'max-w-lg bg-transparent text-slate-500 dark:text-slate-400 text-center text-base' :
-                  'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
-                }`}>
-                  {msg.text}
+                <div className="flex flex-col">
+                  {/* Speaker label for pediatric cases */}
+                  {isPediatricMessage && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 ml-1">
+                      {msg.speakerLabel}
+                    </div>
+                  )}
+                  <div className={`p-3 rounded-2xl whitespace-pre-wrap ${
+                    msg.sender === 'student' ? 'max-w-xs md:max-w-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
+                    msg.sender === 'patient' || msg.sender === 'parent' ? `max-w-xs md:max-w-md text-slate-800 dark:text-white rounded-bl-lg ${
+                      msg.sender === 'parent' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-slate-200 dark:bg-slate-700'
+                    }` :
+                    isOpeningLine ? 'max-w-lg bg-transparent text-slate-500 dark:text-slate-400 text-center text-base' :
+                    'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
+                  }`}>
+                    {msg.text}
+                  </div>
                 </div>
               </div>
             );

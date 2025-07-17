@@ -1,4 +1,4 @@
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes } from '../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile } from '../types';
 
 const handleApiError = async (response: Response, context: string) => {
     // Attempt to parse error JSON from the serverless function
@@ -38,6 +38,27 @@ const fetchFromApi = async (type: string, payload: object) => {
 export const generateClinicalCase = async (departmentName: string, userCountry?: string): Promise<Case> => {
     const clinicalCase = await fetchFromApi('generateCase', { departmentName, userCountry });
     if (clinicalCase && typeof clinicalCase.primaryInfo === 'string') {
+        // Check if this is a pediatric case that doesn't already have profiles
+        const isPediatric = clinicalCase.isPediatric || departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');
+        
+        if (isPediatric && !clinicalCase.pediatricProfile) {
+            // Generate pediatric profile if not present
+            const pediatricProfile = await fetchFromApi('generatePediatricProfile', { 
+                diagnosis: clinicalCase.diagnosis,
+                departmentName,
+                userCountry
+            });
+            return { ...clinicalCase, pediatricProfile, isPediatric: true };
+        } else if (!isPediatric && !clinicalCase.patientProfile) {
+            // Generate regular patient profile for non-pediatric cases
+            const patientProfile = await fetchFromApi('generatePatientProfile', { 
+                diagnosis: clinicalCase.diagnosis,
+                departmentName,
+                userCountry
+            });
+            return { ...clinicalCase, patientProfile };
+        }
+        
         return clinicalCase;
     }
     throw new Error("The server returned an invalid case format.");
@@ -58,14 +79,32 @@ export const generatePracticeCase = async (departmentName: string, condition: st
 
     const practiceCase = await response.json();
     if (practiceCase && typeof practiceCase.primaryInfo === 'string') {
-        return practiceCase;
+        // Generate a random patient profile for practice cases too
+        const patientProfile = await fetchFromApi('generatePatientProfile', { 
+            diagnosis: practiceCase.diagnosis,
+            departmentName,
+            userCountry
+        });
+        return { ...practiceCase, patientProfile };
     }
     throw new Error("The server returned an invalid case format.");
 };
 
-export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<string> => {
-    const response = await fetchFromApi('getPatientResponse', { history, caseDetails });
-    return response.response;
+export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<string | { response: string; sender: 'patient' | 'parent'; speakerLabel: string }> => {
+    const responseData = await fetchFromApi('getPatientResponse', { history, caseDetails });
+    
+    // Handle both old format (string) and new format (object with speaker info)
+    if (typeof responseData === 'string') {
+        return responseData;
+    } else if (responseData && typeof responseData === 'object') {
+        return {
+            response: responseData.response || '',
+            sender: responseData.sender || 'patient',
+            speakerLabel: responseData.speakerLabel || ''
+        };
+    }
+    
+    throw new Error("Invalid response format from patient response API");
 };
 
 export const getInvestigationResults = async (plan: string, caseDetails: Case): Promise<InvestigationResult[]> => {
