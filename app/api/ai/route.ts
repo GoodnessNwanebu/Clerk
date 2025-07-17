@@ -152,7 +152,7 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
     - You MUST adhere strictly to this information. Do not contradict it.
     - If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
     - Respond naturally, as a real person would. Be concise.
-    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do not give up a lot of information at once.
+    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do volunteer too much information at once, only answer what was asked.
 
     PRIMARY_INFORMATION:
     ${caseDetails.primaryInfo}`;
