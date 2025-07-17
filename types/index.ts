@@ -9,9 +9,10 @@ export interface Department {
 }
 
 export interface Message {
-  sender: 'student' | 'patient' | 'system';
+  sender: 'student' | 'patient' | 'parent' | 'system';
   text: string;
   timestamp: string;
+  speakerLabel?: string; // For pediatric cases: "Mother", "Father", "Child"
 }
 
 // Base interface for all investigation results
@@ -77,10 +78,31 @@ export interface DetailedFeedbackReport extends Feedback {
     improvementQuotes: { quote: string; explanation: string; }[];
 }
 
+// Patient profile types
+export interface PatientProfile {
+    educationLevel: 'basic' | 'moderate' | 'well-informed';
+    healthLiteracy: 'minimal' | 'average' | 'high';
+    occupation: string;
+    recordKeeping: 'detailed' | 'basic' | 'minimal';
+}
+
+// Pediatric-specific patient profile
+export interface PediatricProfile {
+    patientAge: number; // Age in years
+    ageGroup: 'infant' | 'toddler' | 'preschool' | 'school-age' | 'adolescent';
+    respondingParent: 'mother' | 'father';
+    parentProfile: PatientProfile;
+    developmentalStage: string;
+    communicationLevel: 'non-verbal' | 'basic' | 'conversational' | 'adult-like';
+}
+
 export interface Case {
     diagnosis: string;
     primaryInfo: string;
     openingLine: string;
+    patientProfile?: PatientProfile;
+    pediatricProfile?: PediatricProfile; // For pediatric cases
+    isPediatric?: boolean;
 }
 
 export interface CaseState {

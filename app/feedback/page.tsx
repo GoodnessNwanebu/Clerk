@@ -194,6 +194,17 @@ const FeedbackScreen: React.FC = () => {
                 </div>
             </main>
         </div>
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-slate-900 pt-6 pb-8 sm:pb-10">
+  <div className="max-w-3xl mx-auto px-4">
+    <button
+      onClick={() => router.push('/')}
+      className="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+    >
+      <span>Done</span>
+      <Icon name="check" size={20} />
+    </button>
+  </div>
+</div>
         </>
     );
 };
