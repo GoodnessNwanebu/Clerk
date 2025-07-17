@@ -91,11 +91,9 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
             <div className="mt-4 sm:mt-5">
               <QuantitativeBar result={result} animate={animate} />
             </div>
-            {result.reference && (
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 sm:mt-4">
-                Reference: {result.reference}
-              </p>
-            )}
+            <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 sm:mt-4">
+              Ref: {result.range.low} - {result.range.high} {result.unit}
+            </div>
           </div>
         ))}
       </div>
