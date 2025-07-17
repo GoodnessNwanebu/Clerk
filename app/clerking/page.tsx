@@ -41,6 +41,24 @@ const ClerkingScreen: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to ensure proper mobile focus
+  const focusTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Ensure textarea is visible and focusable
+      textarea.style.transform = 'translateZ(0)'; // Force hardware acceleration
+      textarea.focus();
+      
+      // For iOS Safari, sometimes we need a small delay
+      setTimeout(() => {
+        textarea.focus();
+        // Set cursor to end of text
+        const length = textarea.value.length;
+        textarea.setSelectionRange(length, length);
+      }, 100);
+    }
+  }, []);
+
   // Auto-resize textarea function
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -284,7 +302,14 @@ const ClerkingScreen: React.FC = () => {
 
       <footer className="fixed bottom-0 left-0 right-0 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-md z-10 border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-8 transition-colors duration-300" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)'}}>
         <div className="flex items-center max-w-4xl mx-auto gap-3">
-            <div className="flex-grow relative">
+            <div 
+                className="flex-grow relative"
+                onTouchStart={(e) => {
+                    // Ensure touch events reach the textarea
+                    e.stopPropagation();
+                }}
+                onClick={focusTextarea}
+            >
                 <textarea
                     ref={textareaRef}
                     value={inputText}
@@ -296,11 +321,20 @@ const ClerkingScreen: React.FC = () => {
                     onKeyDown={handleInputKeyDown}
                     placeholder="Type your message..."
                     rows={1}
-                    className="w-full bg-white/90 dark:bg-slate-700/90 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border-0 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:shadow-lg focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-0 backdrop-blur-sm"
+                    autoComplete="off"
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    spellCheck="true"
+                    inputMode="text"
+                    enterKeyHint="send"
+                    className="w-full bg-white/90 dark:bg-slate-700/90 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border-0 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:shadow-lg focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-0 backdrop-blur-sm touch-manipulation"
                     style={{
                         minHeight: '48px',
                         maxHeight: '120px',
-                        lineHeight: '1.5'
+                        lineHeight: '1.5',
+                        WebkitUserSelect: 'text',
+                        WebkitTouchCallout: 'default',
+                        touchAction: 'manipulation'
                     }}
                 />
             </div>
