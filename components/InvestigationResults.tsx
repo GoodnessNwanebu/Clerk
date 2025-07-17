@@ -92,7 +92,7 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-200">
-                  {result.test}
+                  {result.name}
                 </h3>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">
