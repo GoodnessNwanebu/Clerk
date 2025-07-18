@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient } from '../../../services/ai-wrapper';
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport } from '../../../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse } from '../../../types';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {
@@ -50,6 +50,22 @@ const handleApiError = (error: unknown, context: string) => {
         if (error.message.includes('quota') || error.message.includes('QUOTA_EXCEEDED')) {
             return NextResponse.json({ error: 'QUOTA_EXCEEDED: You have exceeded your daily quota. Please try again tomorrow.' }, { status: 429 });
         }
+        
+        // Handle API key errors
+        if (error.message.includes('API key') || error.message.includes('authentication') || error.message.includes('403')) {
+            return NextResponse.json({ error: 'API authentication failed. Please check your API key configuration.' }, { status: 401 });
+        }
+        
+        // Handle rate limiting
+        if (error.message.includes('rate limit') || error.message.includes('429')) {
+            return NextResponse.json({ error: 'Rate limit exceeded. Please wait a moment and try again.' }, { status: 429 });
+        }
+        
+        // Handle network/connection errors
+        if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('ENOTFOUND')) {
+            return NextResponse.json({ error: 'Network error. Please check your internet connection and try again.' }, { status: 503 });
+        }
+        
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -162,7 +178,7 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
         - "developmentalStage": Brief description of child's developmental level
         - "communicationLevel": Child's ability to communicate ("non-verbal", "basic", "conversational", "adult-like")` : ''}
 
-    Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+            Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
 
     try {
         const response = await ai.generateContent({
@@ -204,55 +220,69 @@ PARENT PROFILE:
 - Record keeping: ${parentProfile.recordKeeping}
 
 RESPONSE RULES:
-1. ALWAYS indicate who is speaking by starting responses with "[Mother]:", "[Father]:", or "[Child]:"
-2. Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals like "(quietly)", "(looking tired)", etc.
-3. Determine who should respond based on question type:
+1. For EACH speaker's response, use this exact JSON format:
+   {
+     "messages": [
+       {
+         "response": "the actual response text",
+         "sender": "patient" or "parent",
+         "speakerLabel": "Child" or "Mother" or "Father"
+       }
+     ]
+   }
+
+2. When both need to respond:
+   - Return separate messages for each speaker
+   - Put them in the order they would naturally speak
+   - Each message should be complete on its own
+
+3. Use DIRECT DIALOGUE ONLY - no narrative descriptions or parentheticals
+
+4. Determine who should respond based on question type:
    
    **PARENT responds to:**
    - Birth history, pregnancy complications
-   - Developmental milestones (when child reached milestones)
+   - Developmental milestones
    - Vaccination history
    - Past medical history the child can't remember
    - Family history
    - School performance concerns
-   - Behavioral observations at home
+   - Behavioral observations
    - Questions requiring detailed medical knowledge
    
    **CHILD responds to (when age-appropriate):**
-   - Current symptoms they can describe ("My tummy hurts")
+   - Current symptoms they can describe
    - Pain location and severity (if old enough)
    - Activities they like/dislike
    - How they feel right now
    - Simple yes/no questions about symptoms
    
    **BOTH may contribute to:**
-   - Recent illness history (parent provides context, child adds subjective experience)
+   - Recent illness history (parent provides context, child adds experience)
    - Current concerns (parent observes, child describes feelings)
 
-4. AGE-APPROPRIATE RESPONSES:
-   - Infants/Toddlers: Only parent speaks, child may cry or be restless
+5. AGE-APPROPRIATE RESPONSES:
+   - Infants/Toddlers: Only parent speaks
    - Preschool: Child gives simple responses, parent provides detail
    - School-age: Child can describe symptoms, parent adds context
-   - Adolescents: Child may want to speak privately about some topics
+   - Adolescents: Child may want to speak privately
 
-5. PARENT PERSONALITY: Reflect the parent's education and health literacy in their responses
-6. CHILD PERSONALITY: Use age-appropriate language and emotional responses, but NO descriptive actions
-7. Stay consistent with the medical history provided below
+6. Stay consistent with the medical history below
 
 PRIMARY_INFORMATION:
 ${caseDetails.primaryInfo}`;
     } else {
         // Regular adult case
         systemInstruction = `You are a patient in a medical simulation.
-Your entire identity and medical history are defined by the PRIMARY_INFORMATION provided below.
-- You MUST adhere strictly to this information. Do not contradict it.
-- If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
-- Respond naturally, as a real person would. Be concise.
-- Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals like "(wincing)", "(looking worried)", etc.
-- NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon. Do not volunteer too much information at once, only answer what was asked.
+    Your entire identity and medical history are defined by the PRIMARY_INFORMATION provided below.
+    - You MUST adhere strictly to this information. Do not contradict it.
+    - If the student asks a question not covered in your primary information, invent a plausible detail that is consistent with the overall diagnosis of '${caseDetails.diagnosis}'.
+    - Respond naturally, as a real person would. Be concise.
+    - Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals.
+    - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon.
 
-PRIMARY_INFORMATION:
-${caseDetails.primaryInfo}`;
+    PRIMARY_INFORMATION:
+    ${caseDetails.primaryInfo}`;
     }
     
     // Convert the history to a format suitable for the API
@@ -265,46 +295,24 @@ ${caseDetails.primaryInfo}`;
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ 
-                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (specify speaker):' : 'Patient response:'}` 
+                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
             }],
         });
         
-        // Parse the response to extract speaker and message for pediatric cases
-        let responseText = response.text.trim();
-        let sender: 'patient' | 'parent' = 'patient';
-        let speakerLabel = '';
-        
         if (isPediatric) {
-            // Check for speaker labels
-            const motherMatch = responseText.match(/^\[Mother\]:\s*(.*)/s);
-            const fatherMatch = responseText.match(/^\[Father\]:\s*(.*)/s);
-            const childMatch = responseText.match(/^\[Child\]:\s*(.*)/s);
-            
-            if (motherMatch) {
-                sender = 'parent';
-                speakerLabel = 'Mother';
-                responseText = motherMatch[1].trim();
-            } else if (fatherMatch) {
-                sender = 'parent';
-                speakerLabel = 'Father';
-                responseText = fatherMatch[1].trim();
-            } else if (childMatch) {
-                sender = 'patient';
-                speakerLabel = 'Child';
-                responseText = childMatch[1].trim();
-            }
-            // If no label found, default to child for backward compatibility
-            if (!speakerLabel) {
-                sender = 'patient';
-                speakerLabel = 'Child';
-            }
+            // Parse the JSON response for pediatric cases
+            const responseJson = parseJsonResponse<PatientResponse>(response.text, context);
+            return NextResponse.json(responseJson);
+        } else {
+            // For regular cases, return the simple format
+            return NextResponse.json({ 
+                messages: [{
+                    response: response.text.trim(),
+                    sender: 'patient',
+                    speakerLabel: ''
+                }]
+            });
         }
-        
-        return NextResponse.json({ 
-            response: responseText,
-            sender: sender,
-            speakerLabel: speakerLabel 
-        });
     } catch (error) {
         return handleApiError(error, context);
     }
@@ -436,27 +444,93 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     }
 }
 
+async function handleGeneratePatientProfile(payload: { diagnosis: string; departmentName: string; userCountry?: string }) {
+    const { diagnosis, departmentName, userCountry } = payload;
+    const context = 'generatePatientProfile';
+
+    const userMessage = `Generate a patient profile for a case of ${diagnosis} in the ${departmentName} department.
+    ${userCountry ? `Consider cultural context of ${userCountry}.` : ''}
+
+    The output MUST be a single, perfectly valid JSON object with this structure:
+    {
+        "educationLevel": "basic" | "moderate" | "well-informed",
+        "healthLiteracy": "minimal" | "average" | "high",
+        "occupation": string,
+        "recordKeeping": "detailed" | "basic" | "minimal"
+    }
+
+    Ensure natural diversity in profiles:
+    - Education and health literacy should vary independently
+    - Occupations should reflect real demographics
+    - Record keeping habits should vary regardless of other attributes`;
+
+    try {
+        const response = await ai.generateContent({
+            model: MODEL,
+            contents: [{ text: userMessage }],
+        });
+        
+        const profileJson = parseJsonResponse<PatientProfile>(response.text, context);
+        return NextResponse.json(profileJson);
+    } catch (error) {
+        return handleApiError(error, context);
+    }
+}
+
 // --- Main Handler ---
 export async function POST(request: NextRequest) {
     try {
-        const { type, payload } = await request.json();
+        const body = await request.json();
+        
+        // Validate request body structure
+        if (!body || typeof body !== 'object') {
+            return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
+        }
+
+        const { type, payload } = body;
+
+        // Validate type
+        if (!type || typeof type !== 'string') {
+            return NextResponse.json({ error: 'Request type is required' }, { status: 400 });
+        }
+
+        // Validate payload
+        if (!payload || typeof payload !== 'object') {
+            return NextResponse.json({ error: 'Request payload is required' }, { status: 400 });
+        }
+
+        // List of valid request types
+        const validTypes = [
+            'generateCase',
+            'getPatientResponse',
+            'getInvestigationResults',
+            'getFeedback',
+            'getDetailedFeedback',
+            'generatePatientProfile'
+        ];
+
+        if (!validTypes.includes(type)) {
+            return NextResponse.json({ error: `Invalid request type: ${type}` }, { status: 400 });
+        }
 
         switch (type) {
             case 'generateCase':
-                return await handleGenerateCase(payload);
+                return handleGenerateCase(payload);
             case 'getPatientResponse':
-                return await handleGetPatientResponse(payload);
+                return handleGetPatientResponse(payload);
             case 'getInvestigationResults':
-                return await handleGetInvestigationResults(payload);
+                return handleGetInvestigationResults(payload);
             case 'getFeedback':
-                return await handleGetFeedback(payload);
+                return handleGetFeedback(payload);
             case 'getDetailedFeedback':
-                return await handleGetDetailedFeedback(payload);
+                return handleGetDetailedFeedback(payload);
+            case 'generatePatientProfile':
+                return handleGeneratePatientProfile(payload);
             default:
                 return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
         }
-  } catch (error) {
-        console.error('Error parsing request:', error);
-        return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
-  }
+    } catch (error) {
+        console.error('Unhandled error in POST handler:', error);
+        return handleApiError(error, 'POST');
+    }
 } 

@@ -9,7 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const { report, recipientEmail } = await request.json();
-    
+
     console.log('Attempting to send email with Resend API');
     console.log('API Key present:', !!process.env.RESEND_API_KEY);
     console.log('From email:', process.env.FROM_EMAIL || 'ClerkSmart <onboarding@resend.dev>');

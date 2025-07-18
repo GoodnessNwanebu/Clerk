@@ -44,30 +44,61 @@ const getReportIcon = (reportType: DescriptiveResult['reportType']) => {
 
 // Quantitative result bar component
 const QuantitativeBar: React.FC<{ result: QuantitativeResult; animate: boolean }> = ({ result, animate }) => {
-  const { value, range } = result;
-  const min = range.low;
-  const max = range.high;
+  const { value, range, status } = result;
   
-  // Calculate percentage position
-  const percentage = ((value - min) / (max - min)) * 100;
-  const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
+  // Improved logic: Progress bar should visually represent the relationship to normal range
+  let progressBarWidth, indicatorPosition;
   
+  if (status === 'Low') {
+    // For low values: short progress bar, indicator shows it's below normal
+    // Progress bar goes from 0 to the actual value (short)
+    // Indicator positioned at the value (left side, showing it's low)
+    progressBarWidth = (value / range.high) * 100; // Percentage of normal high
+    indicatorPosition = progressBarWidth; // Indicator at the value position
+  } else if (status === 'High') {
+    // For high values: longer progress bar, indicator shows it's above normal
+    // Progress bar goes from 0 to the actual value (longer)
+    // Indicator positioned at the value (right side, showing it's high)
+    progressBarWidth = (value / (range.high * 1.5)) * 100; // Extend range to show high values
+    indicatorPosition = progressBarWidth; // Indicator at the value position
+  } else if (status === 'Critical') {
+    // For critical values: very long progress bar to show severity
+    progressBarWidth = (value / (range.high * 2)) * 100;
+    indicatorPosition = progressBarWidth;
+  } else {
+    // For normal values: progress bar fills the normal range
+    progressBarWidth = 100; // Full width for normal range
+    indicatorPosition = ((value - range.low) / (range.high - range.low)) * 100; // Position within normal range
+  }
+  
+  // Clamp values to prevent overflow
+  const clampedProgressWidth = Math.min(Math.max(progressBarWidth, 0), 100);
+  const clampedIndicatorPosition = Math.min(Math.max(indicatorPosition, 0), 100);
+
   return (
-    <div className="relative h-6 sm:h-8">
-      {/* Background bar */}
-      <div className="absolute inset-x-4 h-full bg-slate-200 dark:bg-slate-700 rounded-full" />
-      
-      {/* Value indicator */}
-      <div 
-        className={`absolute h-full w-1.5 bg-slate-800 dark:bg-white rounded-full transition-all duration-1000 ${animate ? 'opacity-100' : 'opacity-0'}`}
-        style={{ left: `calc(${clampedPercentage}% + 1rem)`, transform: 'translateX(-50%)' }}
+    <div className="relative h-4 sm:h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      {/* Progress bar */}
+      <div
+        className={`h-full transition-all duration-1000 ease-out ${getStatusColors(status)} ${animate ? 'opacity-100' : 'opacity-0'}`}
+        style={{ width: animate ? `${clampedProgressWidth}%` : '0%' }}
       />
       
-      {/* Range labels */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-2">
-        <span>{min}</span>
-        <span>{max}</span>
-      </div>
+      {/* Value indicator */}
+      <div
+        className={`absolute top-1/2 -translate-y-1/2 w-1 h-full bg-slate-900 dark:bg-white rounded-full transition-all duration-1000 ${animate ? 'opacity-100' : 'opacity-0'}`}
+        style={{ left: `${clampedIndicatorPosition}%` }}
+      />
+      
+      {/* Normal range indicator (subtle line) */}
+      {status !== 'Normal' && (
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-0.5 h-full bg-slate-400 dark:bg-slate-500 opacity-50"
+          style={{ 
+            left: `${(range.low / (range.high * (status === 'High' ? 1.5 : status === 'Critical' ? 2 : 1))) * 100}%`,
+            width: `${((range.high - range.low) / (range.high * (status === 'High' ? 1.5 : status === 'Critical' ? 2 : 1))) * 100}%`
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -92,7 +123,7 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-200">
-                  {result.test}
+                  {result.name}
                 </h3>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">
@@ -109,7 +140,7 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
             </div>
             <div className="mt-3 sm:mt-4">
               <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 sm:p-5">
-                <QuantitativeBar result={result} animate={animate} />
+              <QuantitativeBar result={result} animate={animate} />
               </div>
             </div>
             <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">

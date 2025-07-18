@@ -120,35 +120,27 @@ const ClerkingScreen: React.FC = () => {
     try {
         const response = await getPatientResponse(updatedHistory, caseState.caseDetails);
         
-        // Handle both old format (string) and new format (object with speaker info)
-        let responseText: string;
-        let sender: 'patient' | 'parent' = 'patient';
-        let speakerLabel: string | undefined;
-        
-        if (typeof response === 'string') {
-            // Legacy format for backward compatibility
-            responseText = response;
+        // The API now always returns a messages array format
+        if (response.messages && Array.isArray(response.messages)) {
+            response.messages.forEach(msg => {
+                const message: Message = {
+                    sender: msg.sender,
+                    text: msg.response,
+                    timestamp: new Date().toISOString(),
+                    speakerLabel: msg.speakerLabel
+                };
+                addMessage(message);
+            });
         } else {
-            // New format with speaker information
-            responseText = response.response;
-            sender = response.sender || 'patient';
-            speakerLabel = response.speakerLabel;
+            throw new Error("Invalid response format from patient response API");
         }
-        
-        const patientMessage: Message = { 
-            sender, 
-            text: responseText, 
-            timestamp: new Date().toISOString(),
-            speakerLabel 
-        };
-        addMessage(patientMessage);
     } catch (error) {
         console.error(error);
         let errorText = 'Sorry, there was a connection issue.';
         if (error instanceof Error) {
             errorText = error.message.startsWith('QUOTA_EXCEEDED') ? error.message.split(': ')[1] : error.message;
         }
-        setApiError(errorText); // Set API error state to display to user
+        setApiError(errorText);
         const errorMessage: Message = { sender: 'system', text: `Error: ${errorText}`, timestamp: new Date().toISOString() };
         addMessage(errorMessage);
     } finally {
@@ -282,15 +274,15 @@ const ClerkingScreen: React.FC = () => {
                       {msg.speakerLabel}
                     </div>
                   )}
-                  <div className={`p-3 rounded-2xl whitespace-pre-wrap ${
-                    msg.sender === 'student' ? 'max-w-xs md:max-w-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
+                <div className={`p-3 rounded-2xl whitespace-pre-wrap ${
+                  msg.sender === 'student' ? 'max-w-xs md:max-w-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-br-lg' :
                     msg.sender === 'patient' || msg.sender === 'parent' ? `max-w-xs md:max-w-md text-slate-800 dark:text-white rounded-bl-lg ${
                       msg.sender === 'parent' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-slate-200 dark:bg-slate-700'
                     }` :
-                    isOpeningLine ? 'max-w-lg bg-transparent text-slate-500 dark:text-slate-400 text-center text-base' :
-                    'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
-                  }`}>
-                    {msg.text}
+                  isOpeningLine ? 'max-w-lg bg-transparent text-slate-500 dark:text-slate-400 text-center text-base' :
+                  'bg-transparent text-slate-500 dark:text-slate-400 text-center w-full text-sm'
+                }`}>
+                  {msg.text}
                   </div>
                 </div>
               </div>

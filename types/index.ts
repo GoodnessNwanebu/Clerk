@@ -119,3 +119,11 @@ export interface CaseState {
 
 export type Theme = 'light' | 'dark';
 export type ThemeSetting = Theme | 'system';
+
+export interface PatientResponse {
+    messages: {
+        response: string;
+        sender: 'patient' | 'parent';
+        speakerLabel: string;
+    }[];
+}
