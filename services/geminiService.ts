@@ -1,21 +1,56 @@
 import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile } from '../types';
 
 const handleApiError = async (response: Response, context: string) => {
-    // Attempt to parse error JSON from the serverless function
     try {
+        // First try to parse as JSON
         const errorData = await response.json();
         console.error(`Error in ${context}:`, errorData);
-        // Use the specific error message from the backend if available
-        const errorMessage = errorData.error || `An error occurred while trying to ${context}. Please try again.`;
-        // Propagate the custom quota error message
-        if (errorMessage.startsWith('QUOTA_EXCEEDED')) {
-            throw new Error(errorMessage);
+        
+        // If we have a specific error message from the backend, use it
+        if (errorData.error) {
+            // Handle quota exceeded errors specially
+            if (errorData.error.startsWith('QUOTA_EXCEEDED')) {
+                throw new Error(errorData.error);
+            }
+            throw new Error(errorData.error);
         }
-        throw new Error(errorMessage);
+        
+        // Fallback error message
+        throw new Error(`An error occurred while trying to ${context}. Please try again.`);
     } catch (e) {
-        // Fallback for non-JSON responses or other parsing errors
-        console.error(`An unexpected error occurred in ${context}. Status: ${response.status}`, e);
-        throw new Error(`A server error occurred. Please try again.`);
+        // If we can't parse the error response as JSON, try to get the text
+        if (e instanceof Error && e.message.startsWith('QUOTA_EXCEEDED')) {
+            throw e; // Re-throw quota errors
+        }
+        
+        // Try to get the response as text
+        let errorText = 'Unknown error';
+        try {
+            errorText = await response.text();
+        } catch (textError) {
+            console.error('Could not read response as text:', textError);
+        }
+        
+        // Log the raw response for debugging
+        console.error(`Failed to parse error response for ${context}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText,
+            originalError: e
+        });
+        
+        // Provide a user-friendly error message based on status code
+        if (response.status === 401) {
+            throw new Error('API authentication failed. Please check your API key configuration.');
+        } else if (response.status === 429) {
+            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        } else if (response.status === 500) {
+            throw new Error('Server error occurred. Please try again later.');
+        } else if (response.status >= 400 && response.status < 500) {
+            throw new Error(`Request error (${response.status}): ${errorText}`);
+        } else {
+            throw new Error(`Server error (${response.status}): Please try again later.`);
+        }
     }
 };
 
@@ -90,18 +125,12 @@ export const generatePracticeCase = async (departmentName: string, condition: st
     throw new Error("The server returned an invalid case format.");
 };
 
-export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<string | { response: string; sender: 'patient' | 'parent'; speakerLabel: string }> => {
+export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
     const responseData = await fetchFromApi('getPatientResponse', { history, caseDetails });
     
-    // Handle both old format (string) and new format (object with speaker info)
-    if (typeof responseData === 'string') {
+    // The API now always returns a messages array format
+    if (responseData && typeof responseData === 'object' && responseData.messages && Array.isArray(responseData.messages)) {
         return responseData;
-    } else if (responseData && typeof responseData === 'object') {
-        return {
-            response: responseData.response || '',
-            sender: responseData.sender || 'patient',
-            speakerLabel: responseData.speakerLabel || ''
-        };
     }
     
     throw new Error("Invalid response format from patient response API");

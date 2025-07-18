@@ -171,7 +171,7 @@ const FeedbackScreen: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col items-center gap-4 pt-6 max-w-lg mx-auto">
-                     <button
+                    <button
                         onClick={handleEmailButtonClick}
                         disabled={isSendingEmail || emailStatus === 'sent'}
                         className={`w-full py-3 px-6 border-2 font-semibold rounded-lg transition-colors flex items-center justify-center
@@ -181,30 +181,20 @@ const FeedbackScreen: React.FC = () => {
                          'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500'
                         }`}
                     >
-                       {getEmailButtonContent()}
+                        {getEmailButtonContent()}
                     </button>
                     {emailError && <p className="text-red-500 dark:text-red-400 text-sm text-center">{emailError}</p>}
-
-                    <button 
-                        onClick={handleDone}
-                        className="w-full py-3 px-6 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-transform"
+                    
+                    <button
+                        onClick={() => router.push('/')}
+                        className="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
                     >
-                        Done
+                        <span>Done</span>
+                        <Icon name="check" size={20} />
                     </button>
                 </div>
             </main>
         </div>
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-slate-900 pt-6 pb-8 sm:pb-10">
-  <div className="max-w-3xl mx-auto px-4">
-    <button
-      onClick={() => router.push('/')}
-      className="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
-    >
-      <span>Done</span>
-      <Icon name="check" size={20} />
-    </button>
-  </div>
-</div>
         </>
     );
 };
