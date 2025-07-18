@@ -125,8 +125,8 @@ export const generatePracticeCase = async (departmentName: string, condition: st
     throw new Error("The server returned an invalid case format.");
 };
 
-export const getPatientResponse = async (history: Message[], caseDetails: Case): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
-    const responseData = await fetchFromApi('getPatientResponse', { history, caseDetails });
+export const getPatientResponse = async (history: Message[], caseDetails: Case, userCountry?: string): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
+    const responseData = await fetchFromApi('getPatientResponse', { history, caseDetails, userCountry });
     
     // The API now always returns a messages array format
     if (responseData && typeof responseData === 'object' && responseData.messages && Array.isArray(responseData.messages)) {

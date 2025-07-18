@@ -26,7 +26,7 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 
 const ClerkingScreen: React.FC = () => {
   const router = useRouter();
-  const { caseState, addMessage } = useAppContext();
+  const { caseState, addMessage, userCountry } = useAppContext();
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
   
   const [isPatientThinking, setIsPatientThinking] = useState(false);
@@ -118,7 +118,7 @@ const ClerkingScreen: React.FC = () => {
     const updatedHistory = [...caseState.messages, studentMessage];
 
     try {
-        const response = await getPatientResponse(updatedHistory, caseState.caseDetails);
+        const response = await getPatientResponse(updatedHistory, caseState.caseDetails, userCountry || undefined);
         
         // The API now always returns a messages array format
         if (response.messages && Array.isArray(response.messages)) {
@@ -146,7 +146,7 @@ const ClerkingScreen: React.FC = () => {
     } finally {
         setIsPatientThinking(false);
     }
-  }, [addMessage, caseState.messages, caseState.caseDetails]);
+  }, [addMessage, caseState.messages, caseState.caseDetails, userCountry]);
 
   // Effect to handle sending transcript from speech recognition
   useEffect(() => {

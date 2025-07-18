@@ -193,12 +193,25 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     }
 }
 
-async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case }) {
-    const { history, caseDetails } = payload;
+async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case, userCountry?: string }) {
+    const { history, caseDetails, userCountry } = payload;
     const context = 'getPatientResponse';
+    
+    // Log location data for debugging
+    console.log(`[Patient Response] User Country: ${userCountry || 'Not set'}`);
     
     // Determine if this is a pediatric case
     const isPediatric = caseDetails.isPediatric || caseDetails.pediatricProfile;
+    
+    // Location context for patient responses
+    const locationContext = userCountry ? `
+    
+    🌍 LOCATION CONTEXT: ${userCountry}
+    - Ensure patient responses are culturally appropriate for ${userCountry}
+    - If patient mentions locations, use realistic places within ${userCountry}
+    - Consider local healthcare systems, cultural norms, and communication styles
+    - Use regionally appropriate names, addresses, and cultural references
+    - Maintain consistency with the patient's stated location throughout the conversation` : '';
     
     let systemInstruction = '';
     
@@ -218,6 +231,8 @@ PARENT PROFILE:
 - Health literacy: ${parentProfile.healthLiteracy}
 - Occupation: ${parentProfile.occupation}
 - Record keeping: ${parentProfile.recordKeeping}
+
+${locationContext}
 
 RESPONSE RULES:
 1. For EACH speaker's response, use this exact JSON format:
@@ -280,6 +295,8 @@ ${caseDetails.primaryInfo}`;
     - Respond naturally, as a real person would. Be concise.
     - Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals.
     - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon.
+
+    ${locationContext}
 
     PRIMARY_INFORMATION:
     ${caseDetails.primaryInfo}`;
