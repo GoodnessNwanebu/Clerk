@@ -7,6 +7,10 @@
   "background_color": "#ffffff",
   "theme_color": "#14b8a6",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["education", "medical", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
