@@ -24,9 +24,12 @@ export function createAIClient(apiKey: string) {
 
       const requestBody = {
         contents: formattedContents,
-        ...(config?.temperature && {
+        ...(config && {
           generationConfig: {
-            temperature: config.temperature,
+            ...(config.temperature !== undefined && { temperature: config.temperature }),
+            ...(config.topP !== undefined && { topP: config.topP }),
+            ...(config.topK !== undefined && { topK: config.topK }),
+            ...(config.maxOutputTokens !== undefined && { maxOutputTokens: config.maxOutputTokens }),
           }
         })
       };
@@ -73,6 +76,9 @@ export interface GenerateContentOptions {
   config?: {
     responseMimeType?: string;
     temperature?: number;
+    topP?: number;
+    topK?: number;
+    maxOutputTokens?: number;
     systemInstruction?: string;
     thinkingConfig?: { thinkingBudget: number };
   };

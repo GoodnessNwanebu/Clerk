@@ -49,12 +49,27 @@ const FeedbackScreen: React.FC = () => {
             }
 
         } catch (error) {
-            console.error(error);
-            if (error instanceof Error && error.message.startsWith('QUOTA_EXCEEDED')) {
-                setEmailError(error.message.split(': ')[1]);
-            } else {
-                setEmailError("An error occurred while preparing the report. Please try again.");
+            console.error('Error in handleSendEmailReport:', error);
+            
+            let errorMessage = "An error occurred while preparing the report. Please try again.";
+            
+            if (error instanceof Error) {
+                if (error.message.startsWith('QUOTA_EXCEEDED')) {
+                    errorMessage = error.message.split(': ')[1] || "API quota exceeded. Please try again tomorrow.";
+                } else if (error.message.includes('Missing required case data')) {
+                    errorMessage = "Case data is incomplete. Please restart the case.";
+                } else if (error.message.includes('Invalid response format')) {
+                    errorMessage = "There was an issue generating the report. Please try again.";
+                } else if (error.message.includes('Server error')) {
+                    errorMessage = "Server is temporarily unavailable. Please try again in a few minutes.";
+                } else if (error.message.includes('Network error')) {
+                    errorMessage = "Network connection issue. Please check your internet and try again.";
+                } else {
+                    errorMessage = error.message;
+                }
             }
+            
+            setEmailError(errorMessage);
             setEmailStatus('error');
         } finally {
             setIsSendingEmail(false);
