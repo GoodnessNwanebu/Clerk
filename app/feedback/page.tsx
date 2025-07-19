@@ -45,7 +45,7 @@ const FeedbackScreen: React.FC = () => {
             if (result.success) {
                 setEmailStatus('sent');
             } else {
-                throw new Error("Email sending service failed.");
+                throw new Error(result.error || "Email sending service failed.");
             }
 
         } catch (error) {

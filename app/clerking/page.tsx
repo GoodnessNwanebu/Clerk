@@ -40,21 +40,57 @@ const ClerkingScreen: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
+  const textareaContainerRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to ensure proper mobile focus
-  const focusTextarea = useCallback(() => {
+
+
+  // Robust focus management for mobile PWA
+  const ensureTextareaFocus = useCallback((event?: React.MouseEvent | React.TouchEvent) => {
     const textarea = textareaRef.current;
-    if (textarea) {
-      // Ensure textarea is visible and focusable
-      textarea.style.transform = 'translateZ(0)'; // Force hardware acceleration
-      textarea.focus();
-      
-      // For iOS Safari, sometimes we need a small delay
+    if (!textarea) return;
+
+    // Prevent default to avoid any interference
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Force hardware acceleration for iOS
+    textarea.style.transform = 'translateZ(0)';
+    
+    // Multiple focus attempts with different strategies
+    const focusStrategies = [
+      () => textarea.focus(),
+      () => textarea.click(),
+      () => {
+        textarea.focus();
+        // For iOS, sometimes we need to trigger a click event
+        textarea.dispatchEvent(new Event('click', { bubbles: true }));
+      },
+      () => {
+        // Force focus with selection
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    ];
+
+    // Try each strategy with delays
+    focusStrategies.forEach((strategy, index) => {
+      setTimeout(() => {
+        try {
+          strategy();
+        } catch (error) {
+          console.warn('Focus strategy failed:', error);
+        }
+      }, index * 50); // 50ms delay between attempts
+    });
+
+    // Additional iOS-specific handling
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
       setTimeout(() => {
         textarea.focus();
-        // Set cursor to end of text
-        const length = textarea.value.length;
-        textarea.setSelectionRange(length, length);
+        // Ensure the textarea is visible and scrollable
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
     }
   }, []);
@@ -87,6 +123,51 @@ const ClerkingScreen: React.FC = () => {
   useEffect(() => {
     adjustTextareaHeight();
   }, [inputText, adjustTextareaHeight]);
+
+  // PWA-specific initialization and focus handling
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Ensure textarea is properly initialized for PWA
+    const initializeTextarea = () => {
+      // Force hardware acceleration
+      textarea.style.transform = 'translateZ(0)';
+      
+      // Ensure proper styling for mobile
+      textarea.style.webkitAppearance = 'none';
+      (textarea.style as any).webkitTapHighlightColor = 'transparent';
+      
+      // Set proper input mode for mobile
+      textarea.setAttribute('inputmode', 'text');
+      textarea.setAttribute('enterkeyhint', 'send');
+    };
+
+    // Initialize immediately
+    initializeTextarea();
+
+    // Re-initialize on window focus (important for PWA)
+    const handleWindowFocus = () => {
+      setTimeout(initializeTextarea, 100);
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    
+    // Handle PWA-specific viewport issues
+    const handleViewportChange = () => {
+      // Force a reflow to ensure proper rendering
+      textarea.offsetHeight;
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', handleViewportChange);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
+    };
+  }, []);
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
@@ -327,12 +408,27 @@ const ClerkingScreen: React.FC = () => {
       <footer className="fixed bottom-0 left-0 right-0 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-md z-10 border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-8 transition-colors duration-300" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)'}}>
         <div className="flex items-center max-w-4xl mx-auto gap-3">
             <div 
+                ref={textareaContainerRef}
                 className="flex-grow relative"
                 onTouchStart={(e) => {
                     // Ensure touch events reach the textarea
                     e.stopPropagation();
                 }}
-                onClick={focusTextarea}
+                onTouchEnd={(e) => {
+                    // Handle touch end for better mobile focus
+                    e.stopPropagation();
+                    ensureTextareaFocus(e);
+                }}
+                onClick={(e) => {
+                    // Handle click events for desktop and mobile
+                    e.stopPropagation();
+                    ensureTextareaFocus(e);
+                }}
+                onMouseDown={(e) => {
+                    // Handle mouse down for better focus
+                    e.stopPropagation();
+                    ensureTextareaFocus(e);
+                }}
             >
                 <textarea
                     ref={textareaRef}
@@ -343,6 +439,18 @@ const ClerkingScreen: React.FC = () => {
                     onFocus={() => setIsTextareaFocused(true)}
                     onBlur={() => setIsTextareaFocused(false)}
                     onKeyDown={handleInputKeyDown}
+                    onTouchStart={(e) => {
+                        // Ensure touch events work properly
+                        e.stopPropagation();
+                    }}
+                    onTouchEnd={(e) => {
+                        // Additional touch handling for mobile
+                        e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                        // Ensure click events work
+                        e.stopPropagation();
+                    }}
                     placeholder="Type your message..."
                     rows={1}
                     autoComplete="off"
@@ -351,6 +459,8 @@ const ClerkingScreen: React.FC = () => {
                     spellCheck="true"
                     inputMode="text"
                     enterKeyHint="send"
+                    readOnly={false}
+                    tabIndex={0}
                     className="w-full bg-white/90 dark:bg-slate-700/90 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border-0 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:shadow-lg focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-0 backdrop-blur-sm touch-manipulation"
                     style={{
                         minHeight: '48px',
@@ -358,7 +468,10 @@ const ClerkingScreen: React.FC = () => {
                         lineHeight: '1.5',
                         WebkitUserSelect: 'text',
                         WebkitTouchCallout: 'default',
-                        touchAction: 'manipulation'
+                        touchAction: 'manipulation',
+                        WebkitAppearance: 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                        cursor: 'text'
                     }}
                 />
             </div>

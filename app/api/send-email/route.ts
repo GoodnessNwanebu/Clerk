@@ -8,12 +8,22 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate API key first
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not configured');
+      return NextResponse.json({ 
+        error: 'Email service is not configured. Please contact support.' 
+      }, { status: 500 });
+    }
+
     const { report, recipientEmail } = await request.json();
 
     console.log('Attempting to send email with Resend API');
     console.log('API Key present:', !!process.env.RESEND_API_KEY);
+    console.log('API Key length:', process.env.RESEND_API_KEY?.length);
     console.log('From email:', process.env.FROM_EMAIL || 'ClerkSmart <onboarding@resend.dev>');
     console.log('To email:', recipientEmail);
+    console.log('Report data:', JSON.stringify(report, null, 2));
 
     if (!report || !recipientEmail) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -39,7 +49,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error sending email:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      return NextResponse.json({ 
+        error: error.message || 'Failed to send email. Please try again.' 
+      }, { status: 500 });
     }
 
     console.log('Email sent successfully:', data);
