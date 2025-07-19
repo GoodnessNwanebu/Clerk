@@ -60,7 +60,13 @@ const handleApiError = async (response: Response, context: string) => {
 
 const fetchFromApi = async (type: string, payload: object) => {
     try {
-        const response = await fetch('/api/ai', {
+        // Ensure we have a proper base URL for server-side calls
+        const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
+        const url = `${baseUrl}/api/ai`;
+        
+        console.log(`Making API call to: ${url}`);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -31,9 +31,15 @@ const createHtmlBody = (notes: ConsultantTeachingNotes): string => {
     `;
 };
 
-export const sendFeedbackEmail = async (notes: ConsultantTeachingNotes, recipientEmail: string): Promise<{ success: boolean }> => {
+export const sendFeedbackEmail = async (notes: ConsultantTeachingNotes, recipientEmail: string): Promise<{ success: boolean; error?: string }> => {
     try {
-        const response = await fetch('/api/send-email', {
+        // Ensure we have a proper base URL for server-side calls
+        const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
+        const url = `${baseUrl}/api/send-email`;
+        
+        console.log(`Making email API call to: ${url}`);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -45,12 +51,12 @@ export const sendFeedbackEmail = async (notes: ConsultantTeachingNotes, recipien
         
         if (!response.ok) {
             console.error('Error sending email:', data.error);
-            return { success: false };
+            return { success: false, error: data.error || 'Failed to send email' };
         }
         
         return { success: true };
     } catch (error) {
         console.error('Error in sendFeedbackEmail:', error);
-        return { success: false };
+        return { success: false, error: error instanceof Error ? error.message : 'Network error occurred' };
     }
 };
