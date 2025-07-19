@@ -1,9 +1,12 @@
 import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile } from '../types';
 
 const handleApiError = async (response: Response, context: string) => {
+    let errorData: any = null;
+    let errorText = 'Unknown error';
+    
     try {
-        // First try to parse as JSON
-        const errorData = await response.json();
+        // Try to parse as JSON first
+        errorData = await response.json();
         console.error(`Error in ${context}:`, errorData);
         
         // If we have a specific error message from the backend, use it
@@ -18,17 +21,18 @@ const handleApiError = async (response: Response, context: string) => {
         // Fallback error message
         throw new Error(`An error occurred while trying to ${context}. Please try again.`);
     } catch (e) {
-        // If we can't parse the error response as JSON, try to get the text
+        // If JSON parsing failed, try to get the response as text
         if (e instanceof Error && e.message.startsWith('QUOTA_EXCEEDED')) {
             throw e; // Re-throw quota errors
         }
         
-        // Try to get the response as text
-        let errorText = 'Unknown error';
-        try {
-            errorText = await response.text();
-        } catch (textError) {
-            console.error('Could not read response as text:', textError);
+        // If JSON parsing failed, the response body is still available for text reading
+        if (!errorData) {
+            try {
+                errorText = await response.text();
+            } catch (textError) {
+                console.error('Could not read response as text:', textError);
+            }
         }
         
         // Log the raw response for debugging
@@ -55,19 +59,37 @@ const handleApiError = async (response: Response, context: string) => {
 };
 
 const fetchFromApi = async (type: string, payload: object) => {
-    const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ type, payload }),
-    });
+    try {
+        const response = await fetch('/api/ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ type, payload }),
+        });
 
-    if (!response.ok) {
-        // The handleApiError function will throw, so we don't need to return anything here.
-        await handleApiError(response, type);
+        if (!response.ok) {
+            // The handleApiError function will throw, so we don't need to return anything here.
+            await handleApiError(response, type);
+        }
+        
+        // Try to parse the response as JSON
+        try {
+            const data = await response.json();
+            return data;
+        } catch (jsonError) {
+            console.error(`Failed to parse JSON response for ${type}:`, jsonError);
+            throw new Error(`Invalid response format from ${type} API`);
+        }
+    } catch (error) {
+        // If it's already an Error object, re-throw it
+        if (error instanceof Error) {
+            throw error;
+        }
+        
+        // Otherwise, wrap it in an Error
+        throw new Error(`Network error while calling ${type} API`);
     }
-    return response.json();
 };
 
 export const generateClinicalCase = async (departmentName: string, userCountry?: string): Promise<Case> => {
@@ -147,6 +169,29 @@ export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | 
 };
 
 export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<ConsultantTeachingNotes | null> => {
-    const feedback = await fetchFromApi('getDetailedFeedback', { caseState });
-    return feedback;
+    try {
+        // Validate caseState before making the API call
+        if (!caseState.department || !caseState.caseDetails) {
+            throw new Error('Missing required case data for detailed feedback');
+        }
+        
+        const feedback = await fetchFromApi('getDetailedFeedback', { caseState });
+        
+        // Validate the response structure
+        if (!feedback || typeof feedback !== 'object') {
+            throw new Error('Invalid response format from detailed feedback API');
+        }
+        
+        const requiredFields = ['diagnosis', 'keyLearningPoint', 'clerkingStructure', 'missedOpportunities', 'clinicalReasoning', 'communicationNotes', 'clinicalPearls'];
+        const missingFields = requiredFields.filter(field => !(field in feedback));
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Response missing required fields: ${missingFields.join(', ')}`);
+        }
+        
+        return feedback as ConsultantTeachingNotes;
+    } catch (error) {
+        console.error('Error in getDetailedCaseFeedback:', error);
+        throw error;
+    }
 };

@@ -27,18 +27,41 @@ const MEDICAL_BUCKETS = [
 // --- Helper to safely parse JSON from Gemini response ---
 const parseJsonResponse = <T>(text: string, context: string): T => {
     let jsonStr = text.trim();
+    
+    // Remove markdown code blocks if present
     const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
     const match = jsonStr.match(fenceRegex);
     if (match && match[2]) {
         jsonStr = match[2].trim();
     }
+    
+    // Remove any leading/trailing non-JSON text
+    const jsonStart = jsonStr.indexOf('{');
+    const jsonEnd = jsonStr.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+    }
+    
     try {
         const parsedData = JSON.parse(jsonStr);
+        
+        // Validate that we got an object
+        if (typeof parsedData !== 'object' || parsedData === null) {
+            throw new Error('Response is not a valid JSON object');
+        }
+        
         return parsedData as T;
     } catch (e) {
         console.error(`Failed to parse JSON response for ${context}:`, e);
         console.error("Raw text from AI:", text);
-        throw new Error(`The AI returned an invalid format for ${context}.`);
+        console.error("Attempted to parse:", jsonStr);
+        
+        // Provide more specific error messages
+        if (e instanceof SyntaxError) {
+            throw new Error(`The AI returned malformed JSON for ${context}. Please try again.`);
+        }
+        
+        throw new Error(`The AI returned an invalid format for ${context}. Please try again.`);
     }
 };
 
@@ -411,6 +434,14 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
 async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     const { caseState } = payload;
     const context = 'getDetailedCaseFeedback';
+    
+    // Validate required data
+    if (!caseState.department || !caseState.caseDetails) {
+        return NextResponse.json({ 
+            error: 'Missing required case data for detailed feedback' 
+        }, { status: 400 });
+    }
+    
     const userMessage = `You are a senior consultant providing clinical teaching notes after observing a student's clerking. Write in a calm, non-judgmental, educational tone using direct address ("you" not "the student").
 
     Generate a JSON object with this exact structure: 
@@ -442,11 +473,13 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     - "clinicalPearls": 1-3 memorable clinical teaching points related to this case
 
     Case analysis:
-    - Department: ${caseState.department!.name}
-    - Correct Diagnosis: ${caseState.caseDetails!.diagnosis}
-    - Your Final Diagnosis: ${caseState.finalDiagnosis}
-    - Conversation Transcript: ${JSON.stringify(caseState.messages)}
-    - Your Management Plan: ${caseState.managementPlan}`;
+    - Department: ${caseState.department.name}
+    - Correct Diagnosis: ${caseState.caseDetails.diagnosis}
+    - Your Final Diagnosis: ${caseState.finalDiagnosis || 'Not provided'}
+    - Conversation Transcript: ${JSON.stringify(caseState.messages || [])}
+    - Your Management Plan: ${caseState.managementPlan || 'Not provided'}
+
+    IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object.`;
 
     try {
         const response = await ai.generateContent({
@@ -454,9 +487,23 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
             contents: [{ text: userMessage }],
         });
         
+        if (!response.text) {
+            throw new Error('AI response was empty');
+        }
+        
         const teachingNotes = parseJsonResponse<any>(response.text, context);
+        
+        // Validate the response structure
+        const requiredFields = ['diagnosis', 'keyLearningPoint', 'clerkingStructure', 'missedOpportunities', 'clinicalReasoning', 'communicationNotes', 'clinicalPearls'];
+        const missingFields = requiredFields.filter(field => !(field in teachingNotes));
+        
+        if (missingFields.length > 0) {
+            throw new Error(`AI response missing required fields: ${missingFields.join(', ')}`);
+        }
+        
         return NextResponse.json(teachingNotes);
     } catch (error) {
+        console.error(`Error in ${context}:`, error);
         return handleApiError(error, context);
     }
 }
@@ -497,7 +544,17 @@ async function handleGeneratePatientProfile(payload: { diagnosis: string; depart
 // --- Main Handler ---
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        // Validate request method
+        if (request.method !== 'POST') {
+            return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+        }
+        
+        let body;
+        try {
+            body = await request.json();
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+        }
         
         // Validate request body structure
         if (!body || typeof body !== 'object') {
@@ -530,6 +587,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: `Invalid request type: ${type}` }, { status: 400 });
         }
 
+        console.log(`Processing ${type} request`);
+
         switch (type) {
             case 'generateCase':
                 return handleGenerateCase(payload);
@@ -548,6 +607,12 @@ export async function POST(request: NextRequest) {
         }
     } catch (error) {
         console.error('Unhandled error in POST handler:', error);
+        
+        // If it's already a NextResponse, return it
+        if (error instanceof Response) {
+            return error;
+        }
+        
         return handleApiError(error, 'POST');
     }
 } 
