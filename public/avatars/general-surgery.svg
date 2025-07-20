@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="100" fill="#f8fafc" opacity="0.3"/>
+  
+  <!-- Surgical scissors -->
+  <g>
+    <!-- Left blade -->
+    <path d="M70 80L85 95L95 85L80 70L70 80Z" fill="#64748b"/>
+    <path d="M75 75L90 90" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Right blade -->
+    <path d="M130 80L115 95L105 85L120 70L130 80Z" fill="#64748b"/>
+    <path d="M125 75L110 90" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Scissors handle -->
+    <circle cx="100" cy="100" r="8" fill="#64748b"/>
+    <path d="M92 100C92 100 85 110 85 125" stroke="#64748b" stroke-width="4" stroke-linecap="round"/>
+    <path d="M108 100C108 100 115 110 115 125" stroke="#64748b" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Medical cross symbol -->
+  <g>
+    <rect x="95" y="130" width="10" height="25" rx="2" fill="#22c55e"/>
+    <rect x="85" y="140" width="30" height="5" rx="2" fill="#22c55e"/>
+  </g>
+  
+  <!-- Department indicator - green circle for general surgery -->
+  <circle cx="100" cy="110" r="20" stroke="#22c55e" stroke-width="2" stroke-dasharray="4 2" fill="none"/>
+</svg> 

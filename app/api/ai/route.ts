@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient } from '../../../services/ai-wrapper';
 import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse } from '../../../types';
+import { getTimeContext } from '../../../utils/timeContext';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {
@@ -101,8 +102,16 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     const { departmentName, userCountry } = payload;
     const context = 'generateClinicalCase';
     
+    // Get time context for the user's location
+    const timeContext = getTimeContext(userCountry);
+    
     // Check if this is a pediatric case
     const isPediatric = departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');
+    
+    // Check if this is a surgical department
+    const isSurgical = departmentName.toLowerCase().includes('surgery') || departmentName.toLowerCase().includes('surgical');
+    const isCardiothoracic = departmentName.toLowerCase().includes('cardiothoracic') || departmentName.toLowerCase().includes('cardiac');
+    const isGeneralSurgery = departmentName.toLowerCase().includes('general surgery');
     
     // Randomly select a medical bucket
     const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
@@ -140,6 +149,30 @@ CULTURAL CONSIDERATIONS:
 LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
         : `Use culturally diverse names and consider common global disease patterns.`;
 
+    // Surgical-specific prompt additions
+    const surgicalPrompt = isSurgical ? `
+    
+    🏥 SURGICAL CASE REQUIREMENTS:
+    - Focus on conditions that typically require surgical intervention
+    - Include relevant surgical history and previous operations
+    - Consider pre-operative assessment requirements
+    - Include surgical risk factors and contraindications
+    - Mention relevant surgical techniques and approaches
+    - Consider post-operative complications and follow-up
+    ${isCardiothoracic ? `
+    - For cardiothoracic cases, include cardiac/pulmonary function assessment
+    - Consider cardiac risk factors, ECG findings, and cardiac imaging
+    - Include respiratory function and pulmonary assessment
+    - Mention relevant cardiac/pulmonary surgical procedures
+    - Consider post-cardiac surgery complications and monitoring` : ''}
+    ${isGeneralSurgery ? `
+    - For general surgery cases, include abdominal examination findings
+    - Consider common general surgical conditions (hernias, appendicitis, etc.)
+    - Include relevant imaging findings (CT, ultrasound, etc.)
+    - Mention surgical approaches and techniques
+    - Consider post-operative care and complications` : ''}
+    ` : '';
+    
     // Pediatric-specific prompt additions
     const pediatricPrompt = isPediatric ? `
     
@@ -158,7 +191,10 @@ LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
     
     const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
     
+    ${timeContext.formattedContext}
+    
     ${locationPrompt}
+    ${surgicalPrompt}
     ${pediatricPrompt}
     
     REQUIREMENTS:
@@ -166,15 +202,16 @@ LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
     - The case should be solvable by a medical student
     - Balance regional authenticity with educational value
     ${isPediatric ? '- For pediatric cases, ensure age-appropriate presentation and include developmental context' : ''}
+    ${isSurgical ? '- For surgical cases, focus on conditions requiring surgical intervention and include relevant surgical context' : ''}
     
     EXAMPLES by pathophysiology category:
-    - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease
-    - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis
-    - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
-    - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease
+    - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease${isCardiothoracic ? ', Aortic Aneurysm, Coronary Artery Disease' : ''}
+    - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis${isGeneralSurgery ? ', Appendicitis, Cholecystitis, Diverticulitis' : ''}
+    - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma${isGeneralSurgery ? ', Colorectal Cancer, Pancreatic Cancer' : ''}${isCardiothoracic ? ', Lung Cancer, Mesothelioma' : ''}
+    - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease${isGeneralSurgery ? ', Hernias, Varicose Veins' : ''}
     - Autoimmune: Rheumatoid Arthritis, SLE, Multiple Sclerosis
-    - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction
-    - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
+    - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction${isGeneralSurgery ? ', Bowel Obstruction, Hernia Incarceration' : ''}${isCardiothoracic ? ', Chest Trauma, Cardiac Tamponade' : ''}
+    - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances${isGeneralSurgery ? ', Hyperparathyroidism, Adrenal Tumors' : ''}
     - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
     
     ${isPediatric ? 
@@ -187,11 +224,11 @@ LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
         - ## BIODATA ${isPediatric ? '(Include child age and accompanying parent)' : ''}
         - ## Presenting Complaint
         - ## History of Presenting Complaint
-        - ## Past Medical and Surgical History
+        - ## Past Medical and Surgical History${isSurgical ? ' (Include detailed surgical history, previous operations, complications)' : ''}
         - ## Drug History
         - ## Family History
         - ## Social History ${isPediatric ? '(Include family structure, school/daycare, developmental concerns)' : ''}
-        - ## Review of Systems
+        - ## Review of Systems${isSurgical ? ' (Include detailed examination findings relevant to surgical assessment)' : ''}
         ${isPediatric ? '- ## Developmental History (milestones, concerns, school performance if applicable)' : ''}
     - "openingLine": A natural, first-person statement ${isPediatric ? 'from the parent introducing the child or from the child (age-appropriate)' : 'from the patient'} that initiates the consultation.
     ${isPediatric ? `
@@ -222,24 +259,14 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
     const { history, caseDetails, userCountry } = payload;
     const context = 'getPatientResponse';
     
-    // Log location data for debugging
-    console.log(`[Patient Response] User Country: ${userCountry || 'Not set'}`);
-    
     // Determine if this is a pediatric case
     const isPediatric = caseDetails.isPediatric || caseDetails.pediatricProfile;
     
-    // Location context for patient responses
-    const locationContext = userCountry ? `
+    // Get time context for temporal awareness in patient responses
+    const timeContext = getTimeContext(userCountry);
     
-    🌍 LOCATION: ${userCountry}
-📍 CONTEXT: Patient is from ${userCountry}, uses ${userCountry} healthcare system, speaks with ${userCountry} cultural norms
-🎯 REQUIREMENT: Every response must reflect ${userCountry} context - names, places, healthcare systems, cultural references
-    
-    - Ensure patient responses are culturally appropriate for ${userCountry}
-    - If patient mentions locations, use realistic places within ${userCountry}
-    - Consider local healthcare systems, cultural norms, and communication styles
-    - Use regionally appropriate names, addresses, and cultural references
-    - Maintain consistency with the patient's stated location throughout the conversation` : '';
+    // Note: Location context is established during case generation and maintained through caseDetails.primaryInfo
+    // No need to repeat location context here to save tokens and maintain consistency
     
     let systemInstruction = '';
     
@@ -247,6 +274,8 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
         const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = caseDetails.pediatricProfile;
         
         systemInstruction = `You are managing a pediatric medical simulation with TWO speakers: the child patient and the ${respondingParent}.
+
+${timeContext.formattedContext}
 
 PATIENT DETAILS:
 - Child's age: ${patientAge} years old (${ageGroup})
@@ -259,8 +288,6 @@ PARENT PROFILE:
 - Health literacy: ${parentProfile.healthLiteracy}
 - Occupation: ${parentProfile.occupation}
 - Record keeping: ${parentProfile.recordKeeping}
-
-${locationContext}
 
 RESPONSE RULES:
 1. For EACH speaker's response, use this exact JSON format:
@@ -324,7 +351,7 @@ ${caseDetails.primaryInfo}`;
     - Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals.
     - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon.
 
-    ${locationContext}
+    ${timeContext.formattedContext}
 
     PRIMARY_INFORMATION:
     ${caseDetails.primaryInfo}`;
@@ -340,7 +367,7 @@ ${caseDetails.primaryInfo}`;
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ 
-                text: `${systemInstruction}\n\n${userCountry ? `🌍 LOCATION: ${userCountry} - Maintain ${userCountry} context throughout this response\n` : ''}CONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
+                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
             }],
         });
         
@@ -408,6 +435,32 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
 async function handleGetFeedback(payload: { caseState: CaseState }) {
     const { caseState } = payload;
     const context = 'getCaseFeedback';
+    
+    // Check if this is a surgical department
+    const isSurgical = caseState.department?.name.toLowerCase().includes('surgery') || caseState.department?.name.toLowerCase().includes('surgical');
+    const isCardiothoracic = caseState.department?.name.toLowerCase().includes('cardiothoracic') || caseState.department?.name.toLowerCase().includes('cardiac');
+    const isGeneralSurgery = caseState.department?.name.toLowerCase().includes('general surgery');
+    
+    const surgicalContext = isSurgical ? `
+    
+    SURGICAL ASSESSMENT FOCUS:
+    - Evaluate surgical history taking and risk assessment
+    - Consider pre-operative assessment completeness
+    - Assess understanding of surgical indications and contraindications
+    - Review knowledge of relevant surgical procedures
+    - Evaluate post-operative care planning
+    ${isCardiothoracic ? `
+    - For cardiothoracic cases, assess cardiac/pulmonary examination skills
+    - Evaluate understanding of cardiac risk factors and assessment
+    - Consider knowledge of cardiac/pulmonary surgical procedures
+    - Assess awareness of post-cardiac surgery complications` : ''}
+    ${isGeneralSurgery ? `
+    - For general surgery cases, assess abdominal examination skills
+    - Evaluate understanding of common surgical conditions
+    - Consider knowledge of surgical approaches and techniques
+    - Assess awareness of post-operative complications` : ''}
+    ` : '';
+    
     const userMessage = `You are a senior medical educator. Analyze the student's performance based on the provided case data.
     Provide concise, constructive feedback in a JSON object with this exact structure: {"diagnosis": string, "keyTakeaway": string, "whatYouDidWell": string[], "whatCouldBeImproved": string[], "clinicalTip": string}.
     - "diagnosis" should be the most likely correct diagnosis.
@@ -415,6 +468,8 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
     - "whatYouDidWell" should contain 2-3 positive points.
     - "whatCouldBeImproved" should contain 3-4 actionable suggestions.
     - "clinicalTip" should be a single, insightful educational takeaway.
+
+    ${surgicalContext}
 
     Case data:
     - Department: ${caseState.department!.name}
@@ -447,6 +502,31 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
         }, { status: 400 });
     }
     
+    // Check if this is a surgical department
+    const isSurgical = caseState.department.name.toLowerCase().includes('surgery') || caseState.department.name.toLowerCase().includes('surgical');
+    const isCardiothoracic = caseState.department.name.toLowerCase().includes('cardiothoracic') || caseState.department.name.toLowerCase().includes('cardiac');
+    const isGeneralSurgery = caseState.department.name.toLowerCase().includes('general surgery');
+    
+    const surgicalTeachingContext = isSurgical ? `
+    
+    SURGICAL TEACHING FOCUS:
+    - Emphasize surgical history taking and risk assessment
+    - Highlight pre-operative assessment requirements
+    - Focus on surgical indications and contraindications
+    - Include relevant surgical procedures and techniques
+    - Address post-operative care and complications
+    ${isCardiothoracic ? `
+    - For cardiothoracic cases, emphasize cardiac/pulmonary examination
+    - Include cardiac risk assessment and imaging interpretation
+    - Cover relevant cardiac/pulmonary surgical procedures
+    - Address post-cardiac surgery monitoring and complications` : ''}
+    ${isGeneralSurgery ? `
+    - For general surgery cases, emphasize abdominal examination
+    - Include common surgical conditions and presentations
+    - Cover surgical approaches and techniques
+    - Address post-operative care and complications` : ''}
+    ` : '';
+    
     const userMessage = `You are a senior consultant providing clinical teaching notes after observing a student's clerking. Write in a calm, non-judgmental, educational tone using direct address ("you" not "the student").
 
     Generate a JSON object with this exact structure: 
@@ -476,6 +556,8 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     - "clinicalReasoning": Assessment of how well you built and narrowed your differential diagnosis
     - "communicationNotes": Brief comment on your patient interaction style and empathy
     - "clinicalPearls": 1-3 memorable clinical teaching points related to this case
+
+    ${surgicalTeachingContext}
 
     Case analysis:
     - Department: ${caseState.department.name}
@@ -516,9 +598,14 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
 async function handleGeneratePatientProfile(payload: { diagnosis: string; departmentName: string; userCountry?: string }) {
     const { diagnosis, departmentName, userCountry } = payload;
     const context = 'generatePatientProfile';
+    
+    // Get time context for temporal awareness
+    const timeContext = getTimeContext(userCountry);
 
     const userMessage = `Generate a patient profile for a case of ${diagnosis} in the ${departmentName} department.
     ${userCountry ? `Consider cultural context of ${userCountry}.` : ''}
+    
+    ${timeContext.formattedContext}
 
     The output MUST be a single, perfectly valid JSON object with this structure:
     {
