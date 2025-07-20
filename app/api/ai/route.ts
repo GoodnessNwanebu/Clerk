@@ -126,16 +126,18 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
 
     const locationPrompt = userCountry 
         ? `🌍 LOCATION: ${userCountry}
+📍 CONTEXT: Patient is from ${userCountry}, uses ${userCountry} healthcare system, speaks with ${userCountry} cultural norms
+🎯 REQUIREMENT: Generate authentic ${userCountry} names, places, and cultural references naturally
         
-        CULTURAL CONSIDERATIONS:
-        - Use culturally authentic names and contexts appropriate to ${userCountry}
-        - Consider local healthcare systems and communication styles
-        - Be mindful of regional environmental and climatic factors
-        - Reflect diverse socioeconomic and cultural backgrounds within the region
-        - Consider regionally relevant health risks and lifestyle factors
-        - Maintain cultural sensitivity while avoiding stereotypes
+CULTURAL CONSIDERATIONS:
+- Use culturally authentic names and contexts appropriate to ${userCountry}
+- Consider local healthcare systems and communication styles
+- Be mindful of regional environmental and climatic factors
+- Reflect diverse socioeconomic and cultural backgrounds within the region
+- Consider regionally relevant health risks and lifestyle factors
+- Maintain cultural sensitivity while avoiding stereotypes
         
-        LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
+LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
         : `Use culturally diverse names and consider common global disease patterns.`;
 
     // Pediatric-specific prompt additions
@@ -229,7 +231,10 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
     // Location context for patient responses
     const locationContext = userCountry ? `
     
-    🌍 LOCATION CONTEXT: ${userCountry}
+    🌍 LOCATION: ${userCountry}
+📍 CONTEXT: Patient is from ${userCountry}, uses ${userCountry} healthcare system, speaks with ${userCountry} cultural norms
+🎯 REQUIREMENT: Every response must reflect ${userCountry} context - names, places, healthcare systems, cultural references
+    
     - Ensure patient responses are culturally appropriate for ${userCountry}
     - If patient mentions locations, use realistic places within ${userCountry}
     - Consider local healthcare systems, cultural norms, and communication styles
@@ -335,7 +340,7 @@ ${caseDetails.primaryInfo}`;
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ 
-                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
+                text: `${systemInstruction}\n\n${userCountry ? `🌍 LOCATION: ${userCountry} - Maintain ${userCountry} context throughout this response\n` : ''}CONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
             }],
         });
         
