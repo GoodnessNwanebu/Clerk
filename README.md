@@ -1,43 +1,60 @@
-# ClerkSmart Email Integration with Resend
+# ClerkSmart - Intelligent Clinical Reasoning Simulator
 
-This repository contains the implementation of email functionality for ClerkSmart, a medical education platform. The email integration allows students to receive detailed feedback reports about their clinical performance.
-
-## Implementation Overview
-
-We've implemented email functionality using [Resend](https://resend.com), a modern email API that works seamlessly with React and Next.js.
-
-### Key Components
-
-1. **React Email Template**: We've created a beautiful, responsive email template using React Email components.
-2. **Next.js API Route**: A serverless function that securely handles email sending with Resend.
-3. **Email Service**: A client-side service that communicates with the API route.
-4. **Email Capture Modal**: A user interface for collecting email addresses.
-
-## Setup Instructions
-
-For detailed setup instructions, see [RESEND_SETUP.md](./RESEND_SETUP.md).
+ClerkSmart is an advanced medical education platform that provides realistic clinical reasoning simulations for medical students. The platform offers interactive patient encounters with AI-powered responses, comprehensive feedback, and location-specific cultural context.
 
 ## Features
 
-- **Beautiful Email Templates**: Responsive, well-designed emails that look great on all devices.
-- **Secure API Key Handling**: API keys are stored securely as environment variables.
-- **Error Handling**: Comprehensive error handling for a smooth user experience.
-- **Email Validation**: Basic validation to ensure valid email addresses.
+### 🏥 **Available Departments**
+- **Obstetrics**: Care during pregnancy, childbirth, and postpartum
+- **Gynecology**: Health of the female reproductive system  
+- **Pediatrics**: Medical care of infants, children, and adolescents
+- **General Surgery**: Surgical treatment of various conditions and injuries
+- **Cardiothoracic Surgery**: Surgery of the heart, lungs, and chest cavity
 
-## Usage
+### 🎯 **Core Features**
+- **Interactive Patient Encounters**: Real-time conversation with AI patients
+- **Voice Recognition**: Natural speech-to-text for hands-free interaction
+- **Location-Specific Context**: Culturally relevant cases based on user location
+- **Comprehensive Feedback**: Detailed performance analysis and learning points
+- **Practice Mode**: Target specific conditions for focused learning
+- **Investigation Results**: Realistic lab values, imaging, and pathology reports
+- **Email Reports**: Detailed feedback sent directly to your email
 
-Students can receive detailed feedback reports by:
+### 🌍 **Global Context**
+The platform adapts to your location, providing:
+- Culturally appropriate patient names and contexts
+- Region-specific healthcare system references
+- Local environmental and lifestyle factors
+- Appropriate medical terminology and communication styles
 
-1. Completing a clinical case in ClerkSmart
-2. Viewing their feedback on the feedback page
-3. Clicking "Email Me the Full Report"
-4. Entering their email address (if not already provided)
+## Technical Implementation
 
-The system will then send a comprehensive report to their email address.
+### AI Integration
+- **Gemini 2.5 Flash**: Advanced AI model for realistic patient responses
+- **Surgical Context**: Specialized prompts for surgical departments
+- **Pediatric Support**: Age-appropriate interactions and parent involvement
+- **Location Anchoring**: Consistent cultural context throughout conversations
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### PWA Features
+- **Native App Feel**: Full-screen experience with no browser scrollbars
+- **iOS Optimization**: Specialized meta tags and CSS for iOS devices
+- **Offline Capability**: Service worker for offline functionality
+- **Responsive Design**: Optimized for all device sizes
 
-## Getting Started
+### Email Integration
+We've implemented email functionality using [Resend](https://resend.com), a modern email API that works seamlessly with React and Next.js.
+
+#### Key Components
+1. **React Email Template**: Beautiful, responsive email template using React Email components
+2. **Next.js API Route**: Serverless function that securely handles email sending with Resend
+3. **Email Service**: Client-side service that communicates with the API route
+4. **Email Capture Modal**: User interface for collecting email addresses
+
+## Setup Instructions
+
+For detailed email setup instructions, see [RESEND_SETUP.md](./RESEND_SETUP.md).
+
+### Getting Started
 
 First, run the development server:
 
@@ -53,9 +70,30 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### For Students
+1. **Choose a Department**: Select from Obstetrics, Gynecology, Pediatrics, General Surgery, or Cardiothoracic Surgery
+2. **Start a Case**: Begin with a random case or use Practice Mode for specific conditions
+3. **Interview the Patient**: Use voice or text to ask questions naturally
+4. **Order Investigations**: Request relevant tests and interpret results
+5. **Formulate Diagnosis**: Develop your clinical reasoning
+6. **Receive Feedback**: Get comprehensive performance analysis
+7. **Email Report**: Receive detailed feedback via email
+
+### For Educators
+- **Practice Mode**: Create targeted cases for specific learning objectives
+- **Location Context**: Cases adapt to different cultural and healthcare contexts
+- **Comprehensive Feedback**: Detailed analysis of student performance
+- **Clinical Pearls**: Educational insights and teaching points
+
+## Technical Stack
+
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **AI**: Google Gemini 2.5 Flash API
+- **Email**: Resend API with React Email
+- **PWA**: Service Worker, Web App Manifest
+- **Styling**: Tailwind CSS with custom design system
 
 ## Learn More
 
