@@ -62,6 +62,7 @@ const COUNTRIES = [
   { code: 'EG', name: 'Egypt' },
   { code: 'SA', name: 'Saudi Arabia' },
   { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'JO', name: 'Jordan' },
   { code: 'OTHER', name: 'Other' },
 ];
 

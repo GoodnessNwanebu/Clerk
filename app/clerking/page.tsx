@@ -342,7 +342,8 @@ const ClerkingScreen: React.FC = () => {
                         minHeight: '48px',
                         maxHeight: '120px',
                         lineHeight: '1.5',
-                        cursor: 'text'
+                        cursor: 'text',
+                        overflow: 'hidden'
                     }}
                 />
             </div>
