@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     'format-detection': 'telephone=no',
     'mobile-web-app-capable': 'yes',
     'msapplication-tap-highlight': 'no',
+    'theme-color': '#14b8a6',
+    'msapplication-TileColor': '#14b8a6',
+    'apple-mobile-web-app-title': 'ClerkSmart',
   },
 };
 

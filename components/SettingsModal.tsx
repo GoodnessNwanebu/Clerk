@@ -19,7 +19,8 @@ const COUNTRIES = [
   'Germany',
   'France',
   'Japan',
-  'Brazil'
+  'Brazil',
+  'Jordan'
 ];
 
 const ThemeOption: React.FC<{ 
