@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient } from '../../../services/ai-wrapper';
 import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse } from '../../../types';
+import { getTimeContext } from '../../../utils/timeContext';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {
@@ -101,6 +102,9 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     const { departmentName, userCountry } = payload;
     const context = 'generateClinicalCase';
     
+    // Get time context for the user's location
+    const timeContext = getTimeContext(userCountry);
+    
     // Check if this is a pediatric case
     const isPediatric = departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');
     
@@ -187,6 +191,8 @@ LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
     
     const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
     
+    ${timeContext.formattedContext}
+    
     ${locationPrompt}
     ${surgicalPrompt}
     ${pediatricPrompt}
@@ -256,6 +262,9 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
     // Determine if this is a pediatric case
     const isPediatric = caseDetails.isPediatric || caseDetails.pediatricProfile;
     
+    // Get time context for temporal awareness in patient responses
+    const timeContext = getTimeContext(userCountry);
+    
     // Note: Location context is established during case generation and maintained through caseDetails.primaryInfo
     // No need to repeat location context here to save tokens and maintain consistency
     
@@ -265,6 +274,8 @@ async function handleGetPatientResponse(payload: { history: Message[], caseDetai
         const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = caseDetails.pediatricProfile;
         
         systemInstruction = `You are managing a pediatric medical simulation with TWO speakers: the child patient and the ${respondingParent}.
+
+${timeContext.formattedContext}
 
 PATIENT DETAILS:
 - Child's age: ${patientAge} years old (${ageGroup})
@@ -339,6 +350,8 @@ ${caseDetails.primaryInfo}`;
     - Respond naturally, as a real person would. Be concise.
     - Use DIRECT DIALOGUE ONLY - no narrative descriptions, stage directions, or parentheticals.
     - NEVER break character. Do not mention that you are an AI. Do not offer a diagnosis. Do not use medical jargon.
+
+    ${timeContext.formattedContext}
 
     PRIMARY_INFORMATION:
     ${caseDetails.primaryInfo}`;
@@ -585,9 +598,14 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
 async function handleGeneratePatientProfile(payload: { diagnosis: string; departmentName: string; userCountry?: string }) {
     const { diagnosis, departmentName, userCountry } = payload;
     const context = 'generatePatientProfile';
+    
+    // Get time context for temporal awareness
+    const timeContext = getTimeContext(userCountry);
 
     const userMessage = `Generate a patient profile for a case of ${diagnosis} in the ${departmentName} department.
     ${userCountry ? `Consider cultural context of ${userCountry}.` : ''}
+    
+    ${timeContext.formattedContext}
 
     The output MUST be a single, perfectly valid JSON object with this structure:
     {
