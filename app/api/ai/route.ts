@@ -404,7 +404,10 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
 
     GUIDELINES:
     - Generate medically plausible, realistic results consistent with the diagnosis
-    - FBC breakdown: Hemoglobin, WBC, Platelets (quantitative)
+    - FBC breakdown: Hemoglobin, Packed Cell Volume (PCV), WBC, Platelets (quantitative)
+      * PCV is commonly used in many countries (especially Africa, Asia, Europe) alongside hemoglobin
+      * PCV normal range: 36-46% (females), 40-50% (males)
+      * Hemoglobin normal range: 12-16 g/dL (females), 13-17 g/dL (males)
     - U&E breakdown: Sodium, Potassium, Urea, Creatinine (quantitative) 
     - LFT breakdown: Bilirubin, ALT, AST (quantitative)
     - Imaging studies: Detailed radiology reports with structured findings and impressions
