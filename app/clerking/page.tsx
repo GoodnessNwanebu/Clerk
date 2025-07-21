@@ -213,16 +213,21 @@ const ClerkingScreen: React.FC = () => {
           : 'bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50'
       }`} style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)'}}>
         <div className="flex justify-between items-center max-w-4xl mx-auto">
-          <button onClick={() => router.push('/departments')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white">
+          <button onClick={() => router.push('/departments')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white flex-shrink-0">
             <Icon name="arrow-left" size={20} className="sm:w-6 sm:h-6" />
           </button>
-          <div className="text-center">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{caseState.department.name}</h1>
+          <div className="text-center flex-shrink-0">
+            <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white">
+              {caseState.department.name.length > 15 
+                ? `${caseState.department.name.substring(0, 15)}...` 
+                : caseState.department.name
+              }
+            </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
             <ClerkingTimer onTimeUp={handleTimeUp} />
-            <button onClick={() => router.push('/summary')} className="text-sm sm:text-base font-semibold text-teal-500 hover:text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+            <button onClick={() => router.push('/summary')} className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg">
               Finish
             </button>
           </div>

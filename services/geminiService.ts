@@ -1,4 +1,4 @@
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile } from '../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile, ExaminationResult } from '../types';
 
 const handleApiError = async (response: Response, context: string) => {
     let errorData: any = null;
@@ -166,6 +166,11 @@ export const getPatientResponse = async (history: Message[], caseDetails: Case, 
 
 export const getInvestigationResults = async (plan: string, caseDetails: Case): Promise<InvestigationResult[]> => {
     const results = await fetchFromApi('getInvestigationResults', { plan, caseDetails });
+    return results;
+};
+
+export const getExaminationResults = async (plan: string, caseDetails: Case): Promise<ExaminationResult[]> => {
+    const results = await fetchFromApi('getExaminationResults', { plan, caseDetails });
     return results;
 };
 
