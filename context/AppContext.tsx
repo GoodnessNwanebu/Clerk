@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { CaseState, Department, Feedback, InvestigationResult, Message, Case } from '../types';
+import { CaseState, Department, Feedback, InvestigationResult, Message, Case, ExaminationResult } from '../types';
 import { generateClinicalCase, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
 
 interface AppContextType {
@@ -14,8 +14,9 @@ interface AppContextType {
   generateNewCase: (department: Department) => Promise<void>;
   generatePracticeCase: (department: Department, condition: string) => Promise<void>;
   addMessage: (message: Message) => void;
-  setPreliminaryData: (diagnosis: string, plan: string) => void;
+  setPreliminaryData: (diagnosis: string, examinationPlan: string, investigationPlan: string) => void;
   setInvestigationResults: (results: InvestigationResult[]) => void;
+  setExaminationResults: (results: ExaminationResult[]) => void;
   setFinalData: (diagnosis: string, plan: string) => void;
   setFeedback: (feedback: Feedback) => void;
   resetCase: () => void;
@@ -26,7 +27,9 @@ const initialCaseState: CaseState = {
   caseDetails: null,
   messages: [],
   preliminaryDiagnosis: '',
+  examinationPlan: '',
   investigationPlan: '',
+  examinationResults: [],
   investigationResults: [],
   finalDiagnosis: '',
   managementPlan: '',
@@ -128,12 +131,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCaseState((prev: CaseState) => ({ ...prev, messages: [...prev.messages, message] }));
   }, []);
 
-  const setPreliminaryData = useCallback((diagnosis: string, plan: string) => {
-    setCaseState((prev: CaseState) => ({ ...prev, preliminaryDiagnosis: diagnosis, investigationPlan: plan }));
+  const setPreliminaryData = useCallback((diagnosis: string, examinationPlan: string, investigationPlan: string) => {
+    setCaseState((prev: CaseState) => ({ ...prev, preliminaryDiagnosis: diagnosis, examinationPlan, investigationPlan }));
   }, []);
 
   const setInvestigationResults = useCallback((results: InvestigationResult[]) => {
     setCaseState((prev: CaseState) => ({ ...prev, investigationResults: results }));
+  }, []);
+
+  const setExaminationResults = useCallback((results: ExaminationResult[]) => {
+    setCaseState((prev: CaseState) => ({ ...prev, examinationResults: results }));
   }, []);
 
   const setFinalData = useCallback((diagnosis: string, plan: string) => {
@@ -148,7 +155,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCaseState(initialCaseState);
   }, []);
 
-  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback, resetCase };
+  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, resetCase };
 
   return (
     <AppContext.Provider value={value}>

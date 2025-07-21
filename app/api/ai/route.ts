@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient } from '../../../services/ai-wrapper';
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse } from '../../../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse, ExaminationResult } from '../../../types';
 import { getTimeContext } from '../../../utils/timeContext';
 
 // Ensure the API key is available in the server environment
@@ -432,6 +432,63 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
     }
 }
 
+async function handleGetExaminationResults(payload: { plan: string, caseDetails: Case }) {
+    const { plan, caseDetails } = payload;
+    const context = 'getExaminationResults';
+    const userMessage = `A medical student has requested to examine a patient with a likely diagnosis of '${caseDetails.diagnosis}'.
+    Parse their free-text examination plan and return consolidated examination reports as a JSON array. Use two different result formats:
+
+    QUANTITATIVE RESULTS (for vital signs, measurements): 
+    {"name": string, "type": "quantitative", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
+
+    DESCRIPTIVE RESULTS (for system examinations, findings):
+    {"name": string, "type": "descriptive", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "cardiovascular"|"respiratory"|"abdominal"|"neurological"|"musculoskeletal"|"general"|"obstetric"|"pediatric"}
+
+    CRITICAL GUIDELINES:
+    - CONSOLIDATE examinations into comprehensive reports - do NOT break down into sub-components
+    - Each examination type should be ONE comprehensive report containing ALL findings
+    - For system examinations, include inspection, palpation, percussion, and auscultation findings in ONE report
+    - ALWAYS generate vital signs as separate quantitative results with proper ranges:
+      * Blood Pressure: systolic/diastolic (e.g., 120/80 mmHg, range 90-140/60-90)
+      * Heart Rate: beats per minute (e.g., 72 bpm, range 60-100)
+      * Temperature: Celsius (e.g., 37.2°C, range 36.5-37.5)
+      * Respiratory Rate: breaths per minute (e.g., 16 bpm, range 12-20)
+      * Oxygen Saturation: percentage (e.g., 98%, range 95-100)
+    - Make some vital signs abnormal to create educational value
+    - Use professional medical terminology in descriptive reports
+    - Consider the patient's age, gender, and underlying condition when generating findings
+
+    EXAMPLES of CONSOLIDATED REPORTS:
+    - "cardiovascular examination" → ONE report with ALL cardiac findings (inspection, palpation, auscultation)
+    - "respiratory examination" → ONE report with ALL respiratory findings (inspection, palpation, percussion, auscultation)
+    - "abdominal examination" → ONE report with ALL abdominal findings (inspection, palpation, percussion, auscultation)
+    - "obstetric examination" → ONE report with ALL obstetric findings (inspection, palpation, percussion, auscultation)
+    - "neurological examination" → ONE report with ALL neurological findings (cranial nerves, motor, sensory, reflexes)
+    - "general examination" → ONE report with general appearance and basic observations
+
+    FORMAT for DESCRIPTIVE RESULTS:
+    - "findings": Comprehensive findings including ALL aspects of the examination (inspection, palpation, percussion, auscultation where applicable)
+    - "impression": Clinical interpretation of the findings
+    - "recommendation": Clinical recommendations based on findings
+    - "abnormalFlags": Array of abnormal findings for educational emphasis
+
+    Respond ONLY with JSON: {"results": [...]}
+
+    The student's examination plan: "${plan}"`;
+
+    try {
+        const response = await ai.generateContent({
+            model: MODEL,
+            contents: [{ text: userMessage }],
+        });
+        
+        const jsonResponse = parseJsonResponse<{results: ExaminationResult[]}>(response.text, context);
+        return NextResponse.json(jsonResponse.results || []);
+    } catch (error) {
+        return handleApiError(error, context);
+    }
+}
+
 async function handleGetFeedback(payload: { caseState: CaseState }) {
     const { caseState } = payload;
     const context = 'getCaseFeedback';
@@ -670,6 +727,7 @@ export async function POST(request: NextRequest) {
             'generateCase',
             'getPatientResponse',
             'getInvestigationResults',
+            'getExaminationResults',
             'getFeedback',
             'getDetailedFeedback',
             'generatePatientProfile'
@@ -688,6 +746,8 @@ export async function POST(request: NextRequest) {
                 return handleGetPatientResponse(payload);
             case 'getInvestigationResults':
                 return handleGetInvestigationResults(payload);
+            case 'getExaminationResults':
+                return handleGetExaminationResults(payload);
             case 'getFeedback':
                 return handleGetFeedback(payload);
             case 'getDetailedFeedback':

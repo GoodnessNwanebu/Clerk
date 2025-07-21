@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { getInvestigationResults, getCaseFeedback } from '../../services/geminiService';
+import { getInvestigationResults, getExaminationResults, getCaseFeedback } from '../../services/geminiService';
 import { Icon } from '../../components/Icon';
 import { InvestigationResults } from '../../components/InvestigationResults';
-import { InvestigationResult, Feedback } from '../../types';
+import { ExaminationResults } from '../../components/ExaminationResults';
+import { InvestigationResult, ExaminationResult, Feedback } from '../../types';
 
 const ProgressIndicator: React.FC<{ step: number }> = ({ step }) => (
     <div className="flex items-center justify-center space-x-4 my-8">
@@ -30,12 +31,13 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 
 const SummaryScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, setPreliminaryData, setInvestigationResults, setFinalData, setFeedback } = useAppContext();
+    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback } = useAppContext();
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
     const [prelimDiagnosis, setPrelimDiagnosis] = useState(caseState.preliminaryDiagnosis);
+    const [examinationPlan, setExaminationPlan] = useState(caseState.examinationPlan);
     const [investigationPlan, setInvestigationPlan] = useState(caseState.investigationPlan);
     const [finalDiagnosis, setFinalDiagnosis] = useState(caseState.finalDiagnosis || prelimDiagnosis);
     const [managementPlan, setManagementPlan] = useState(caseState.managementPlan);
@@ -55,8 +57,8 @@ const SummaryScreen: React.FC = () => {
     };
 
     const handleRequestResults = async () => {
-        if (!investigationPlan.trim()) {
-            setError("Please enter an investigation plan.");
+        if (!examinationPlan.trim() && !investigationPlan.trim()) {
+            setError("Please enter an examination plan and/or investigation plan.");
             return;
         }
         if (!caseState.caseDetails) {
@@ -67,9 +69,22 @@ const SummaryScreen: React.FC = () => {
         setIsLoading(true);
 
         try {
-            setPreliminaryData(prelimDiagnosis, investigationPlan);
-            const results: InvestigationResult[] = await getInvestigationResults(investigationPlan, caseState.caseDetails);
-            setInvestigationResults(results);
+            setPreliminaryData(prelimDiagnosis, examinationPlan, investigationPlan);
+            
+            // Get examination results if examination plan is provided
+            let examinationResults: ExaminationResult[] = [];
+            if (examinationPlan.trim()) {
+                examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
+                setExaminationResults(examinationResults);
+            }
+            
+            // Get investigation results if investigation plan is provided
+            let investigationResults: InvestigationResult[] = [];
+            if (investigationPlan.trim()) {
+                investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
+                setInvestigationResults(investigationResults);
+            }
+            
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
         } catch (err) {
@@ -128,12 +143,16 @@ const SummaryScreen: React.FC = () => {
                             <textarea value={prelimDiagnosis} onChange={(e) => setPrelimDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
                         </div>
                         <div>
+                            <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Examinations</label>
+                            <textarea value={examinationPlan} onChange={(e) => setExaminationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., General examination, Cardiovascular examination, Respiratory examination..."></textarea>
+                        </div>
+                        <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Investigation Plan</label>
-                            <textarea value={investigationPlan} onChange={(e) => setInvestigationPlan(e.target.value)} rows={6} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
+                            <textarea value={investigationPlan} onChange={(e) => setInvestigationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleRequestResults} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
-                                {isLoading ? <span>Generating Results...</span> : <><span>Request Investigation Results</span><Icon name="chevrons-right" size={20} /></>}
+                                {isLoading ? <span>Generating Results...</span> : <><span>Request Results</span><Icon name="chevrons-right" size={20} /></>}
                             </button>
                              {error && <ErrorDisplay message={error} />}
                         </div>
@@ -142,7 +161,12 @@ const SummaryScreen: React.FC = () => {
 
                 {phase === 'results' && (
                     <>
-                        <InvestigationResults results={caseState.investigationResults} />
+                        {caseState.examinationResults.length > 0 && (
+                            <ExaminationResults results={caseState.examinationResults} />
+                        )}
+                        {caseState.investigationResults.length > 0 && (
+                            <InvestigationResults results={caseState.investigationResults} />
+                        )}
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Final Diagnosis</label>
                             <textarea value={finalDiagnosis} onChange={(e) => setFinalDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Confirm or update your diagnosis..."></textarea>

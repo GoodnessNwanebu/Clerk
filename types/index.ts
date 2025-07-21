@@ -51,6 +51,39 @@ export type InvestigationResult = QuantitativeResult | DescriptiveResult;
 // Legacy type alias for backward compatibility
 export type LegacyInvestigationResult = QuantitativeResult;
 
+// Base interface for all examination results
+export interface BaseExaminationResult {
+  name: string;
+  type: 'quantitative' | 'descriptive';
+  category: 'vital_signs' | 'system_examination' | 'special_tests';
+  urgency: 'routine' | 'urgent' | 'critical';
+}
+
+// Quantitative examination results (for vitals, measurements)
+export interface QuantitativeExaminationResult extends BaseExaminationResult {
+  type: 'quantitative';
+  value: number;
+  unit: string;
+  range: {
+    low: number;
+    high: number;
+  };
+  status: 'Normal' | 'High' | 'Low' | 'Critical';
+}
+
+// Descriptive examination results (for system examinations, findings)
+export interface DescriptiveExaminationResult extends BaseExaminationResult {
+  type: 'descriptive';
+  findings: string;
+  impression: string;
+  recommendation?: string;
+  abnormalFlags: string[];
+  reportType: 'cardiovascular' | 'respiratory' | 'abdominal' | 'neurological' | 'musculoskeletal' | 'general' | 'obstetric' | 'pediatric';
+}
+
+// Union type for all examination results
+export type ExaminationResult = QuantitativeExaminationResult | DescriptiveExaminationResult;
+
 export interface Feedback {
     diagnosis: string;
     keyTakeaway: string;
@@ -110,7 +143,9 @@ export interface CaseState {
   caseDetails: Case | null;
   messages: Message[];
   preliminaryDiagnosis: string;
+  examinationPlan: string;
   investigationPlan: string;
+  examinationResults: ExaminationResult[];
   investigationResults: InvestigationResult[];
   finalDiagnosis: string;
   managementPlan: string;
