@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stethoscope, MessageSquare, Users, Award, Play, Book, History, Settings, ArrowRight, ArrowLeft, ArrowDown, Mic, MicOff, Check, AlertTriangle, Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2, Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw, Scissors, Venus } from 'lucide-react';
+import { Stethoscope, MessageSquare, Users, Award, Play, Book, History, Settings, ArrowRight, ArrowLeft, ArrowDown, Mic, MicOff, Check, AlertTriangle, Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2, Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw, Scissors, Venus, MapPin } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
 // than managing SVG paths manually.
@@ -43,6 +43,7 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'rotate-ccw': return <RotateCcw {...iconProps} />;
     case 'scissors': return <Scissors {...iconProps} />;
     case 'venus': return <Venus {...iconProps} />;
+    case 'map-pin': return <MapPin {...iconProps} />;
     default: return null;
   }
 };

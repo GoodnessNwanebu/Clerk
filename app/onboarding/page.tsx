@@ -43,12 +43,12 @@ const onboardingSteps = [
   {
     title: 'Welcome to ClerkSmart',
     description: 'Your intelligent clinical reasoning simulator for medical education.',
-    icon: 'graduation-cap'
+    icon: 'award'
   },
   {
     title: 'Personalized Learning',
     description: 'Get culturally relevant cases tailored to your location and learning needs.',
-    icon: 'globe'
+    icon: 'target'
   },
   {
     title: 'Interactive Practice',
