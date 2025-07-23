@@ -25,6 +25,180 @@ const MEDICAL_BUCKETS = [
     'Psychiatric/Functional'
 ];
 
+// Optimized location contexts (cached)
+const LOCATION_CONTEXTS: { [key: string]: string } = {
+    'United States': 'Diverse multicultural society, insurance-based healthcare',
+    'United Kingdom': 'NHS universal healthcare, British cultural norms',
+    'Canada': 'Multicultural society, universal healthcare, cold climate',
+    'Australia': 'Multicultural society, Medicare system, sun exposure risks',
+    'India': 'Diverse regional cultures, tropical climate, family-oriented',
+    'Nigeria': 'Diverse ethnic groups, tropical diseases, mixed healthcare approaches',
+    'Germany': 'Universal healthcare, strong social support, temperate climate',
+    'France': 'Social healthcare system, Mediterranean influences',
+    'Japan': 'Aging population, respectful cultural norms, modern lifestyle',
+    'Brazil': 'Diverse cultural heritage, tropical climate, socioeconomic diversity'
+};
+
+// Optimized prompt templates
+const PROMPT_TEMPLATES = {
+    generateCase: (departmentName: string, randomBucket: string, timeContext: string, locationPrompt: string, surgicalPrompt: string, pediatricPrompt: string, isPediatric: boolean, isSurgical: boolean) => 
+`Generate a clinical case for medical students in '${departmentName}' department.
+
+${timeContext}
+${locationPrompt}
+${surgicalPrompt}
+${pediatricPrompt}
+
+REQUIREMENTS:
+- Pathophysiology category: "${randomBucket}"
+- Solvable by medical students
+- Balance authenticity with educational value
+${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
+${isSurgical ? '- Focus on surgical intervention and context' : ''}
+
+EXAMPLES by category:
+- Vascular: MI, Stroke, PVD${departmentName.toLowerCase().includes('cardiothoracic') ? ', Aortic Aneurysm, CAD' : ''}
+- Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis${departmentName.toLowerCase().includes('surgery') ? ', Appendicitis, Cholecystitis' : ''}
+- Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
+- Degenerative: Osteoarthritis, Alzheimer's, Parkinson's
+- Autoimmune: RA, SLE, Multiple Sclerosis
+- Trauma/Mechanical: Fractures, Head Trauma${departmentName.toLowerCase().includes('surgery') ? ', Bowel Obstruction' : ''}
+- Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
+- Psychiatric/Functional: Depression, Anxiety, Functional Disorders
+
+OUTPUT: ${isPediatric ? 
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}}` :
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string}`}
+
+- "diagnosis": Most likely diagnosis fitting ${randomBucket} category
+- "primaryInfo": Detailed clinical history with markdown headings:
+  * ## BIODATA ${isPediatric ? '(child age, parent)' : ''}
+  * ## Presenting Complaint
+  * ## History of Presenting Complaint
+  * ## Past Medical/Surgical History
+  * ## Drug History
+  * ## Family History
+  * ## Social History
+  * ## Review of Systems
+  ${isPediatric ? '* ## Developmental History' : ''}
+- "openingLine": Natural first-person statement ${isPediatric ? 'from parent/child' : 'from patient'}
+${isPediatric ? `
+- "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}` : ''}
+
+Generate case fitting "${randomBucket}" category in ${departmentName}.`,
+
+    patientResponse: (systemInstruction: string, conversation: string, isPediatric: boolean) =>
+`${systemInstruction}
+
+CONVERSATION:
+${conversation}
+
+${isPediatric ? 'Response (JSON):' : 'Patient response:'}`,
+
+    investigationResults: (plan: string, diagnosis: string) =>
+`Parse investigation plan for patient with diagnosis '${diagnosis}'.
+Return JSON array with two formats:
+
+QUANTITATIVE: {"name": string, "type": "quantitative", "category": "laboratory"|"specialized", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
+
+DESCRIPTIVE: {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
+
+GUIDELINES:
+- Medically plausible results consistent with diagnosis
+- FBC: Hemoglobin, PCV, WBC, Platelets (quantitative)
+  * PCV range: 36-46% (females), 40-50% (males)
+  * Hemoglobin range: 12-16 g/dL (females), 13-17 g/dL (males)
+- U&E: Sodium, Potassium, Urea, Creatinine (quantitative)
+- LFT: Bilirubin, ALT, AST (quantitative)
+- Imaging: Detailed reports with findings and impressions
+- ECGs: Professional interpretation with rhythm, axis, intervals
+- Echo: Structured cardiac findings with measurements
+- Include ALL requested tests
+- Make some results abnormal for educational value
+- Use professional medical terminology
+
+OUTPUT: {"results": [...]}
+
+Plan: "${plan}"`,
+
+    examinationResults: (plan: string, diagnosis: string) =>
+`Parse examination plan for patient with diagnosis '${diagnosis}'.
+Return consolidated examination reports as JSON array:
+
+QUANTITATIVE: {"name": string, "type": "quantitative", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
+
+DESCRIPTIVE: {"name": string, "type": "descriptive", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "cardiovascular"|"respiratory"|"abdominal"|"neurological"|"musculoskeletal"|"general"|"obstetric"|"pediatric"}
+
+GUIDELINES:
+- CONSOLIDATE examinations into comprehensive reports
+- Each examination type = ONE comprehensive report
+- Include inspection, palpation, percussion, auscultation in ONE report
+- ALWAYS generate vital signs as separate quantitative results:
+  * BP: systolic/diastolic (120/80 mmHg, range 90-140/60-90)
+  * HR: bpm (72 bpm, range 60-100)
+  * Temp: Celsius (37.2°C, range 36.5-37.5)
+  * RR: bpm (16 bpm, range 12-20)
+  * O2 Sat: % (98%, range 95-100)
+- Make some vital signs abnormal for educational value
+- Use professional medical terminology
+- Consider patient age, gender, underlying condition
+
+EXAMPLES:
+- "cardiovascular examination" → ONE report with ALL cardiac findings
+- "respiratory examination" → ONE report with ALL respiratory findings
+- "abdominal examination" → ONE report with ALL abdominal findings
+- "neurological examination" → ONE report with ALL neurological findings
+
+OUTPUT: {"results": [...]}
+
+Plan: "${plan}"`,
+
+    feedback: (caseState: CaseState, surgicalContext: string) =>
+`Analyze student performance. Provide JSON: {"diagnosis": string, "keyTakeaway": string, "whatYouDidWell": string[], "whatCouldBeImproved": string[], "clinicalTip": string}.
+
+${surgicalContext}
+
+Case: ${caseState.department?.name || 'Unknown'}
+Correct Diagnosis: ${caseState.caseDetails?.diagnosis || 'Unknown'}
+Conversation: ${JSON.stringify(caseState.messages)}
+Student Diagnosis: ${caseState.finalDiagnosis}
+Management Plan: ${caseState.managementPlan}`,
+
+    detailedFeedback: (caseState: CaseState, surgicalContext: string) =>
+`Provide clinical teaching notes. JSON: {
+    "diagnosis": string, 
+    "keyLearningPoint": string, 
+    "clerkingStructure": string,
+    "missedOpportunities": [{"opportunity": string, "clinicalSignificance": string}],
+    "clinicalReasoning": string,
+    "communicationNotes": string,
+    "clinicalPearls": string[]
+}
+
+Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities. Explain clinical significance.
+
+${surgicalContext}
+
+Case: ${caseState.department?.name || 'Unknown'}
+Correct Diagnosis: ${caseState.caseDetails?.diagnosis || 'Unknown'}
+Your Diagnosis: ${caseState.finalDiagnosis || 'Not provided'}
+Conversation: ${JSON.stringify(caseState.messages || [])}
+Management Plan: ${caseState.managementPlan || 'Not provided'}`,
+
+    patientProfile: (diagnosis: string, departmentName: string, timeContext: string) =>
+`Generate patient profile for ${diagnosis} in ${departmentName}.
+${timeContext}
+
+OUTPUT: {
+    "educationLevel": "basic" | "moderate" | "well-informed",
+    "healthLiteracy": "minimal" | "average" | "high", 
+    "occupation": string,
+    "recordKeeping": "detailed" | "basic" | "minimal"
+}
+
+Ensure natural diversity in profiles.`
+};
+
 // --- Helper to safely parse JSON from Gemini response ---
 const parseJsonResponse = <T>(text: string, context: string): T => {
     let jsonStr = text.trim();
@@ -116,131 +290,52 @@ async function handleGenerateCase(payload: { departmentName: string; userCountry
     // Randomly select a medical bucket
     const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
     
-    // Handle location with general cultural guidance
-    const getLocationContext = (country: string) => {
-        const contexts: { [key: string]: string } = {
-            'United States': 'Diverse multicultural society with insurance-based healthcare system. Consider varied ethnic backgrounds and socioeconomic factors.',
-            'United Kingdom': 'NHS universal healthcare system. Consider British cultural norms and temperate climate factors.',
-            'Canada': 'Multicultural society with universal healthcare. Consider cold climate and diverse cultural backgrounds.',
-            'Australia': 'Multicultural society with Medicare system. Consider sun exposure risks and outdoor lifestyle factors.',
-            'India': 'Diverse regional cultures with family-oriented social structures. Consider tropical climate and varied socioeconomic conditions.',
-            'Nigeria': 'Diverse ethnic groups with extended family structures. Consider tropical diseases and mixed traditional/modern healthcare approaches.',
-            'Germany': 'Universal healthcare system with strong social support. Consider temperate climate and industrial society factors.',
-            'France': 'Social healthcare system with strong cultural traditions. Consider Mediterranean influences and lifestyle factors.',
-            'Japan': 'Aging population with respectful cultural norms. Consider island nation factors and modern lifestyle stresses.',
-            'Brazil': 'Diverse cultural heritage with tropical climate. Consider socioeconomic diversity and regional health variations.'
-        };
-        return contexts[country] || 'local cultural context';
-    };
-
+    // Optimized location prompt
     const locationPrompt = userCountry 
-        ? `🌍 LOCATION: ${userCountry}
-📍 CONTEXT: Patient is from ${userCountry}, uses ${userCountry} healthcare system, speaks with ${userCountry} cultural norms
-🎯 REQUIREMENT: Generate authentic ${userCountry} names, places, and cultural references naturally
-        
-CULTURAL CONSIDERATIONS:
-- Use culturally authentic names and contexts appropriate to ${userCountry}
-- Consider local healthcare systems and communication styles
-- Be mindful of regional environmental and climatic factors
-- Reflect diverse socioeconomic and cultural backgrounds within the region
-- Consider regionally relevant health risks and lifestyle factors
-- Maintain cultural sensitivity while avoiding stereotypes
-        
-LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
+        ? `LOCATION: ${userCountry}
+CONTEXT: Patient from ${userCountry}, uses ${userCountry} healthcare system
+REQUIREMENT: Generate authentic ${userCountry} names and cultural references
+CULTURAL CONSIDERATIONS: Use culturally authentic names, consider local healthcare systems, regional factors, socioeconomic diversity
+LOCATION CONTEXT: ${LOCATION_CONTEXTS[userCountry] || 'local cultural context'}`
         : `Use culturally diverse names and consider common global disease patterns.`;
 
-    // Surgical-specific prompt additions
+    // Optimized surgical prompt
     const surgicalPrompt = isSurgical ? `
-    
-    🏥 SURGICAL CASE REQUIREMENTS:
-    - Focus on conditions that typically require surgical intervention
-    - Include relevant surgical history and previous operations
-    - Consider pre-operative assessment requirements
-    - Include surgical risk factors and contraindications
-    - Mention relevant surgical techniques and approaches
-    - Consider post-operative complications and follow-up
-    ${isCardiothoracic ? `
-    - For cardiothoracic cases, include cardiac/pulmonary function assessment
-    - Consider cardiac risk factors, ECG findings, and cardiac imaging
-    - Include respiratory function and pulmonary assessment
-    - Mention relevant cardiac/pulmonary surgical procedures
-    - Consider post-cardiac surgery complications and monitoring` : ''}
-    ${isGeneralSurgery ? `
-    - For general surgery cases, include abdominal examination findings
-    - Consider common general surgical conditions (hernias, appendicitis, etc.)
-    - Include relevant imaging findings (CT, ultrasound, etc.)
-    - Mention surgical approaches and techniques
-    - Consider post-operative care and complications` : ''}
-    ` : '';
-    
-    // Pediatric-specific prompt additions
+SURGICAL CASE REQUIREMENTS:
+- Focus on conditions requiring surgical intervention
+- Include surgical history and previous operations
+- Consider pre-operative assessment and risk factors
+- Mention surgical techniques and post-operative care
+${isCardiothoracic ? `
+- For cardiothoracic: cardiac/pulmonary function assessment, risk factors, ECG findings, cardiac imaging, surgical procedures, post-operative monitoring` : ''}
+${isGeneralSurgery ? `
+- For general surgery: abdominal examination, common conditions (hernias, appendicitis), imaging findings, surgical approaches, post-operative care` : ''}
+` : '';
+
+    // Optimized pediatric prompt
     const pediatricPrompt = isPediatric ? `
+PEDIATRIC CASE REQUIREMENTS:
+- Include patient age (months for infants <2 years, years for older children)
+- Specify accompanying parent (mother or father)
+- Age-appropriate communication levels:
+  * Infants (0-12 months): Non-verbal, parent provides history
+  * Toddlers (1-3 years): Basic words, mainly parent
+  * Preschool (3-5 years): Simple sentences, parent supplements
+  * School-age (6-12 years): Good communication, some direct interaction
+  * Adolescents (13+ years): Adult-like communication, may want privacy
+- Include developmental milestones and family dynamics
+` : '';
     
-    🧒 PEDIATRIC CASE REQUIREMENTS:
-    - Include patient age (specify in months for infants <2 years, years for older children)
-    - Specify which parent is accompanying (mother or father)
-    - Consider age-appropriate communication levels:
-      * Infants (0-12 months): Non-verbal, all history from parent
-      * Toddlers (1-3 years): Basic words, mainly parent provides history
-      * Preschool (3-5 years): Simple sentences, parent supplements
-      * School-age (6-12 years): Good communication, some direct interaction
-      * Adolescents (13+ years): Adult-like communication, may want privacy from parents
-    - Include developmental milestones relevant to the case
-    - Consider family dynamics and parental concerns
-    ` : '';
-    
-    const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
-    
-    ${timeContext.formattedContext}
-    
-    ${locationPrompt}
-    ${surgicalPrompt}
-    ${pediatricPrompt}
-    
-    REQUIREMENTS:
-    - The case MUST fit the pathophysiology category: "${randomBucket}"
-    - The case should be solvable by a medical student
-    - Balance regional authenticity with educational value
-    ${isPediatric ? '- For pediatric cases, ensure age-appropriate presentation and include developmental context' : ''}
-    ${isSurgical ? '- For surgical cases, focus on conditions requiring surgical intervention and include relevant surgical context' : ''}
-    
-    EXAMPLES by pathophysiology category:
-    - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease${isCardiothoracic ? ', Aortic Aneurysm, Coronary Artery Disease' : ''}
-    - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis${isGeneralSurgery ? ', Appendicitis, Cholecystitis, Diverticulitis' : ''}
-    - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma${isGeneralSurgery ? ', Colorectal Cancer, Pancreatic Cancer' : ''}${isCardiothoracic ? ', Lung Cancer, Mesothelioma' : ''}
-    - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease${isGeneralSurgery ? ', Hernias, Varicose Veins' : ''}
-    - Autoimmune: Rheumatoid Arthritis, SLE, Multiple Sclerosis
-    - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction${isGeneralSurgery ? ', Bowel Obstruction, Hernia Incarceration' : ''}${isCardiothoracic ? ', Chest Trauma, Cardiac Tamponade' : ''}
-    - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances${isGeneralSurgery ? ', Hyperparathyroidism, Adrenal Tumors' : ''}
-    - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
-    
-    ${isPediatric ? 
-    `The output MUST be a single, perfectly valid JSON object with this structure: 
-    {"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}}.` :
-    `The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.`}
-
-    - "diagnosis": The most likely diagnosis for the case that fits the ${randomBucket} category
-    - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-        - ## BIODATA ${isPediatric ? '(Include child age and accompanying parent)' : ''}
-        - ## Presenting Complaint
-        - ## History of Presenting Complaint
-        - ## Past Medical and Surgical History${isSurgical ? ' (Include detailed surgical history, previous operations, complications)' : ''}
-        - ## Drug History
-        - ## Family History
-        - ## Social History ${isPediatric ? '(Include family structure, school/daycare, developmental concerns)' : ''}
-        - ## Review of Systems${isSurgical ? ' (Include detailed examination findings relevant to surgical assessment)' : ''}
-        ${isPediatric ? '- ## Developmental History (milestones, concerns, school performance if applicable)' : ''}
-    - "openingLine": A natural, first-person statement ${isPediatric ? 'from the parent introducing the child or from the child (age-appropriate)' : 'from the patient'} that initiates the consultation.
-    ${isPediatric ? `
-    - "pediatricProfile": Object containing:
-        - "patientAge": Age in years (use decimals for infants, e.g., 0.5 for 6 months)
-        - "ageGroup": One of "infant", "toddler", "preschool", "school-age", "adolescent"
-        - "respondingParent": "mother" or "father"
-        - "parentProfile": Parent's education/health literacy profile
-        - "developmentalStage": Brief description of child's developmental level
-        - "communicationLevel": Child's ability to communicate ("non-verbal", "basic", "conversational", "adult-like")` : ''}
-
-            Generate a case that fits the "${randomBucket}" pathophysiology category within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+    const userMessage = PROMPT_TEMPLATES.generateCase(
+        departmentName, 
+        randomBucket, 
+        timeContext.formattedContext, 
+        locationPrompt, 
+        surgicalPrompt, 
+        pediatricPrompt, 
+        isPediatric, 
+        isSurgical
+    );
 
     try {
         const response = await ai.generateContent({
@@ -367,7 +462,7 @@ ${caseDetails.primaryInfo}`;
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ 
-                text: `${systemInstruction}\n\nCONVERSATION SO FAR:\n${conversation}\n\n${isPediatric ? 'Response (in JSON format):' : 'Patient response:'}` 
+                text: PROMPT_TEMPLATES.patientResponse(systemInstruction, conversation, !!isPediatric)
             }],
         });
         
@@ -393,34 +488,7 @@ ${caseDetails.primaryInfo}`;
 async function handleGetInvestigationResults(payload: { plan: string, caseDetails: Case }) {
     const { plan, caseDetails } = payload;
     const context = 'getInvestigationResults';
-    const userMessage = `A medical student has requested investigations for a patient with a likely diagnosis of '${caseDetails.diagnosis}'.
-    Parse their free-text plan and return ALL requested tests as a JSON array. Use two different result formats:
-
-    QUANTITATIVE RESULTS (for lab values, vitals): 
-    {"name": string, "type": "quantitative", "category": "laboratory"|"specialized", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
-
-    DESCRIPTIVE RESULTS (for imaging, pathology, specialized tests):
-    {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
-
-    GUIDELINES:
-    - Generate medically plausible, realistic results consistent with the diagnosis
-    - FBC breakdown: Hemoglobin, Packed Cell Volume (PCV), WBC, Platelets (quantitative)
-      * PCV is commonly used in many countries (especially Africa, Asia, Europe) alongside hemoglobin
-      * PCV normal range: 36-46% (females), 40-50% (males)
-      * Hemoglobin normal range: 12-16 g/dL (females), 13-17 g/dL (males)
-    - U&E breakdown: Sodium, Potassium, Urea, Creatinine (quantitative) 
-    - LFT breakdown: Bilirubin, ALT, AST (quantitative)
-    - Imaging studies: Detailed radiology reports with structured findings and impressions
-    - ECGs: Professional interpretation with rhythm, axis, intervals, abnormalities
-    - Echo: Structured cardiac findings with measurements and function assessment
-    - Include ALL tests mentioned - do not omit any tests
-    - Make some results abnormal to create educational value
-    - Use professional medical terminology in descriptive reports
-    - For imaging, format as: FINDINGS: [detailed observations] IMPRESSION: [clinical interpretation]
-
-    Respond ONLY with JSON: {"results": [...]}
-
-    The student's plan: "${plan}"`;
+    const userMessage = PROMPT_TEMPLATES.investigationResults(plan, caseDetails.diagnosis);
 
     try {
         const response = await ai.generateContent({
@@ -438,46 +506,7 @@ async function handleGetInvestigationResults(payload: { plan: string, caseDetail
 async function handleGetExaminationResults(payload: { plan: string, caseDetails: Case }) {
     const { plan, caseDetails } = payload;
     const context = 'getExaminationResults';
-    const userMessage = `A medical student has requested to examine a patient with a likely diagnosis of '${caseDetails.diagnosis}'.
-    Parse their free-text examination plan and return consolidated examination reports as a JSON array. Use two different result formats:
-
-    QUANTITATIVE RESULTS (for vital signs, measurements): 
-    {"name": string, "type": "quantitative", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "value": number, "unit": string, "range": {"low": number, "high": number}, "status": "Normal"|"High"|"Low"|"Critical"}
-
-    DESCRIPTIVE RESULTS (for system examinations, findings):
-    {"name": string, "type": "descriptive", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "cardiovascular"|"respiratory"|"abdominal"|"neurological"|"musculoskeletal"|"general"|"obstetric"|"pediatric"}
-
-    CRITICAL GUIDELINES:
-    - CONSOLIDATE examinations into comprehensive reports - do NOT break down into sub-components
-    - Each examination type should be ONE comprehensive report containing ALL findings
-    - For system examinations, include inspection, palpation, percussion, and auscultation findings in ONE report
-    - ALWAYS generate vital signs as separate quantitative results with proper ranges:
-      * Blood Pressure: systolic/diastolic (e.g., 120/80 mmHg, range 90-140/60-90)
-      * Heart Rate: beats per minute (e.g., 72 bpm, range 60-100)
-      * Temperature: Celsius (e.g., 37.2°C, range 36.5-37.5)
-      * Respiratory Rate: breaths per minute (e.g., 16 bpm, range 12-20)
-      * Oxygen Saturation: percentage (e.g., 98%, range 95-100)
-    - Make some vital signs abnormal to create educational value
-    - Use professional medical terminology in descriptive reports
-    - Consider the patient's age, gender, and underlying condition when generating findings
-
-    EXAMPLES of CONSOLIDATED REPORTS:
-    - "cardiovascular examination" → ONE report with ALL cardiac findings (inspection, palpation, auscultation)
-    - "respiratory examination" → ONE report with ALL respiratory findings (inspection, palpation, percussion, auscultation)
-    - "abdominal examination" → ONE report with ALL abdominal findings (inspection, palpation, percussion, auscultation)
-    - "obstetric examination" → ONE report with ALL obstetric findings (inspection, palpation, percussion, auscultation)
-    - "neurological examination" → ONE report with ALL neurological findings (cranial nerves, motor, sensory, reflexes)
-    - "general examination" → ONE report with general appearance and basic observations
-
-    FORMAT for DESCRIPTIVE RESULTS:
-    - "findings": Comprehensive findings including ALL aspects of the examination (inspection, palpation, percussion, auscultation where applicable)
-    - "impression": Clinical interpretation of the findings
-    - "recommendation": Clinical recommendations based on findings
-    - "abnormalFlags": Array of abnormal findings for educational emphasis
-
-    Respond ONLY with JSON: {"results": [...]}
-
-    The student's examination plan: "${plan}"`;
+    const userMessage = PROMPT_TEMPLATES.examinationResults(plan, caseDetails.diagnosis);
 
     try {
         const response = await ai.generateContent({
@@ -521,22 +550,7 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
     - Assess awareness of post-operative complications` : ''}
     ` : '';
     
-    const userMessage = `You are a senior medical educator. Analyze the student's performance based on the provided case data.
-    Provide concise, constructive feedback in a JSON object with this exact structure: {"diagnosis": string, "keyTakeaway": string, "whatYouDidWell": string[], "whatCouldBeImproved": string[], "clinicalTip": string}.
-    - "diagnosis" should be the most likely correct diagnosis.
-    - "keyTakeaway" should be a single, concise sentence summarizing the most critical point from "whatCouldBeImproved".
-    - "whatYouDidWell" should contain 2-3 positive points.
-    - "whatCouldBeImproved" should contain 3-4 actionable suggestions.
-    - "clinicalTip" should be a single, insightful educational takeaway.
-
-    ${surgicalContext}
-
-    Case data:
-    - Department: ${caseState.department!.name}
-    - Correct Diagnosis: ${caseState.caseDetails!.diagnosis}
-    - Conversation: ${JSON.stringify(caseState.messages)}
-    - Student's Final Diagnosis: ${caseState.finalDiagnosis}
-    - Student's Management Plan: ${caseState.managementPlan}`;
+    const userMessage = PROMPT_TEMPLATES.feedback(caseState, surgicalContext);
 
     try {
         const response = await ai.generateContent({
@@ -587,46 +601,7 @@ async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
     - Address post-operative care and complications` : ''}
     ` : '';
     
-    const userMessage = `You are a senior consultant providing clinical teaching notes after observing a student's clerking. Write in a calm, non-judgmental, educational tone using direct address ("you" not "the student").
-
-    Generate a JSON object with this exact structure: 
-    {
-        "diagnosis": string, 
-        "keyLearningPoint": string, 
-        "clerkingStructure": string,
-        "missedOpportunities": [{"opportunity": string, "clinicalSignificance": string}],
-        "clinicalReasoning": string,
-        "communicationNotes": string,
-        "clinicalPearls": string[]
-    }
-
-    TEACHING APPROACH:
-    - Use direct address: "You asked about chest pain, but missed..." not "The student asked..."
-    - Be encouraging and educational, not critical
-    - Focus on learning opportunities rather than mistakes
-    - Explain WHY things matter clinically
-    - Include ALL clinically relevant missed opportunities (no artificial limits)
-    - Sound like a consultant sharing clinical wisdom
-
-    CONTENT GUIDELINES:
-    - "diagnosis": The correct diagnosis for this case
-    - "keyLearningPoint": One major teaching moment from this case (single sentence)
-    - "clerkingStructure": Comment on whether you followed a systematic approach vs scattered questioning
-    - "missedOpportunities": ALL significant questions/areas you didn't explore, with clinical significance explained
-    - "clinicalReasoning": Assessment of how well you built and narrowed your differential diagnosis
-    - "communicationNotes": Brief comment on your patient interaction style and empathy
-    - "clinicalPearls": 1-3 memorable clinical teaching points related to this case
-
-    ${surgicalTeachingContext}
-
-    Case analysis:
-    - Department: ${caseState.department.name}
-    - Correct Diagnosis: ${caseState.caseDetails.diagnosis}
-    - Your Final Diagnosis: ${caseState.finalDiagnosis || 'Not provided'}
-    - Conversation Transcript: ${JSON.stringify(caseState.messages || [])}
-    - Your Management Plan: ${caseState.managementPlan || 'Not provided'}
-
-    IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object.`;
+    const userMessage = PROMPT_TEMPLATES.detailedFeedback(caseState, surgicalTeachingContext);
 
     try {
         const response = await ai.generateContent({
@@ -662,23 +637,7 @@ async function handleGeneratePatientProfile(payload: { diagnosis: string; depart
     // Get time context for temporal awareness
     const timeContext = getTimeContext(userCountry);
 
-    const userMessage = `Generate a patient profile for a case of ${diagnosis} in the ${departmentName} department.
-    ${userCountry ? `Consider cultural context of ${userCountry}.` : ''}
-    
-    ${timeContext.formattedContext}
-
-    The output MUST be a single, perfectly valid JSON object with this structure:
-    {
-        "educationLevel": "basic" | "moderate" | "well-informed",
-        "healthLiteracy": "minimal" | "average" | "high",
-        "occupation": string,
-        "recordKeeping": "detailed" | "basic" | "minimal"
-    }
-
-    Ensure natural diversity in profiles:
-    - Education and health literacy should vary independently
-    - Occupations should reflect real demographics
-    - Record keeping habits should vary regardless of other attributes`;
+    const userMessage = PROMPT_TEMPLATES.patientProfile(diagnosis, departmentName, timeContext.formattedContext);
 
     try {
         const response = await ai.generateContent({

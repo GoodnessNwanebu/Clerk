@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { DEPARTMENTS } from '../../constants';
-import { Department } from '../../types';
+import { Department, Subspecialty } from '../../types';
 import { Icon } from '../../components/Icon';
+import { SubspecialtyModal } from '../../components/SubspecialtyModal';
 
 const LoadingOverlay: React.FC<{ message: string }> = ({ message }) => (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
@@ -29,8 +30,10 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
       <p className="text-white mt-2">{department.description}</p>
       <div className="flex-grow" />
       <div className="mt-6 flex items-center justify-end text-white/80 group-hover:text-white transition-colors">
-        <span>Start Case</span>
-        <Icon name="arrow-right" size={20} className="ml-2" />
+        <span className={department.subspecialties ? 'underline' : ''}>
+          {department.subspecialties ? 'Choose Subspecialty' : 'Start Case'}
+        </span>
+        <Icon name={department.subspecialties ? "chevron-right" : "arrow-right"} size={20} className="ml-2" />
       </div>
     </div>
     <div className={`absolute inset-0 bg-black/20 ${!disabled && 'group-hover:bg-black/10'} transition-colors duration-300`}></div>
@@ -41,15 +44,16 @@ const DepartmentSelectionScreen: React.FC = () => {
   const router = useRouter();
   const { generateNewCase, isGeneratingCase } = useAppContext();
   const [error, setError] = useState<string | null>(null);
+  const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
 
-  const handleSelect = async (department: Department) => {
+  const handleDirectSelect = async (department: Department) => {
     setError(null);
     try {
       await generateNewCase(department);
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {
-        // Check for our custom quota error message
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
             setError(err.message.split(': ')[1]);
         } else {
@@ -62,9 +66,37 @@ const DepartmentSelectionScreen: React.FC = () => {
     }
   };
 
+  const handleDepartmentSelect = (department: Department) => {
+    if (department.subspecialties) {
+      setSelectedDepartment(department);
+      setShowSubspecialtyModal(true);
+    } else {
+      handleDirectSelect(department);
+    }
+  };
+
+  const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+    const departmentFromSubspecialty: Department = {
+      name: subspecialty.name,
+      icon: subspecialty.icon,
+      gradient: subspecialty.gradient,
+      description: subspecialty.description,
+      avatar: subspecialty.avatar
+    };
+    
+    handleDirectSelect(departmentFromSubspecialty);
+  };
+
   return (
     <>
       {isGeneratingCase && <LoadingOverlay message="Creating new case..." />}
+      <SubspecialtyModal
+        isOpen={showSubspecialtyModal}
+        onClose={() => setShowSubspecialtyModal(false)}
+        department={selectedDepartment!}
+        onSelectSubspecialty={handleSubspecialtySelect}
+        disabled={isGeneratingCase}
+      />
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
         <header className="flex items-center justify-between mb-8">
           <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
@@ -75,7 +107,7 @@ const DepartmentSelectionScreen: React.FC = () => {
         </header>
         <main className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 max-w-5xl mx-auto">
           {DEPARTMENTS.map((dept) => (
-            <DepartmentCard key={dept.name} department={dept} onClick={() => handleSelect(dept)} disabled={isGeneratingCase} />
+            <DepartmentCard key={dept.name} department={dept} onClick={() => handleDepartmentSelect(dept)} disabled={isGeneratingCase} />
           ))}
         </main>
         {error && (

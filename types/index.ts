@@ -1,11 +1,20 @@
 import React from 'react';
 
+export interface Subspecialty {
+  name: string;
+  icon: string;
+  gradient: string;
+  description: string;
+  avatar: string;
+}
+
 export interface Department {
   name: string;
   icon: string;
   gradient: string;
   description: string;
   avatar: string;
+  subspecialties?: Subspecialty[];
 }
 
 export interface Message {

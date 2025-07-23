@@ -2,36 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Icon } from '../../components/Icon';
 import Head from 'next/head';
-
-const onboardingSteps = [
-  {
-    icon: 'stethoscope',
-    title: 'Welcome to ClerkSmart',
-    description: 'Your personal clinical reasoning simulator. Sharpen your skills with realistic patient encounters.',
-  },
-  {
-    icon: 'message-square',
-    title: 'Natural Conversations',
-    description: 'Interact with patients using your voice. Ask questions just like you would in a real clinic.',
-  },
-  {
-    icon: 'users',
-    title: 'Live Transcription',
-    description: 'See your conversation transcribed in real-time, helping you keep track of the patient history.',
-  },
-  {
-    icon: 'award',
-    title: 'Clinical Assessment',
-    description: 'Formulate a diagnosis, order investigations, and receive instant, educational feedback on your performance.',
-  },
-  {
-    icon: 'globe',
-    title: 'Your Location',
-    description: 'Help us personalize your cases with culturally relevant patients and regional medical patterns.',
-  },
-];
+import { Icon } from '../../components/Icon';
+import { useAppContext } from '../../context/AppContext';
 
 const COUNTRIES = [
   { code: 'US', name: 'United States' },
@@ -66,13 +39,36 @@ const COUNTRIES = [
   { code: 'OTHER', name: 'Other' },
 ];
 
-const OnboardingScreen: React.FC = () => {
-  const [step, setStep] = useState(0);
-  const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<string>('');
+const onboardingSteps = [
+  {
+    title: 'Welcome to ClerkSmart',
+    description: 'Your intelligent clinical reasoning simulator for medical education.',
+    icon: 'graduation-cap'
+  },
+  {
+    title: 'Personalized Learning',
+    description: 'Get culturally relevant cases tailored to your location and learning needs.',
+    icon: 'globe'
+  },
+  {
+    title: 'Interactive Practice',
+    description: 'Practice with AI patients, receive detailed feedback, and improve your clinical skills.',
+    icon: 'users'
+  },
+  {
+    title: 'Choose Your Location',
+    description: 'Select your country to get culturally appropriate cases and patient contexts.',
+    icon: 'map-pin'
+  }
+];
 
-  // Ensure the component is fully mounted before animations start
+const OnboardingScreen: React.FC = () => {
+  const router = useRouter();
+  const { setUserCountry } = useAppContext();
+  const [step, setStep] = useState(0);
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     setIsReady(true);
   }, []);
@@ -86,7 +82,7 @@ const OnboardingScreen: React.FC = () => {
     } else {
       // Save country selection and onboarding completion
       if (typeof window !== 'undefined') {
-        localStorage.setItem('userCountry', selectedCountry);
+        setUserCountry(selectedCountry);
         localStorage.setItem('hasOnboarded', 'true');
       }
       router.push('/');
