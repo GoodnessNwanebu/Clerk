@@ -30,7 +30,16 @@ export default function HomePage() {
   return (
     <>
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
+        {/* Settings Button - Top Right */}
+        <button 
+          onClick={() => setIsSettingsOpen(true)} 
+          className="absolute top-6 right-6 p-3 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/50 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-all duration-200 shadow-lg dark:shadow-slate-900/20 hover:shadow-xl dark:hover:shadow-slate-900/30"
+          aria-label="Settings"
+        >
+          <Icon name="settings" size={20} />
+        </button>
+
         <header className="text-center my-12">
           <h1 className="text-5xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-500 text-transparent bg-clip-text">
             ClerkSmart
@@ -59,11 +68,28 @@ export default function HomePage() {
           />
         </main>
 
+        {/* Disclaimer Section */}
+        <div className="mt-8 mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 max-w-lg mx-auto">
+            <div className="flex items-start space-x-3">
+              <Icon name="info" size={20} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="font-medium mb-2">Important Disclaimer</p>
+                <p className="leading-relaxed">
+                  All patients are AI-generated to help medical students build confidence and clinical reasoning skills. This tool bridges theory and practice but should never replace real patient interactions or clinical training.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <footer className="text-center mt-12">
-          <button onClick={() => setIsSettingsOpen(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center space-x-2 mx-auto">
-            <Icon name="settings" size={16} />
-            <span>Settings</span>
-          </button>
+          {/* Made with love tag */}
+          <div className="flex items-center justify-center space-x-2 text-slate-400 dark:text-slate-500 text-sm">
+            <span>Made with</span>
+            <Icon name="heart" size={14} className="text-red-500 fill-current animate-pulse" />
+            <span>for med students</span>
+          </div>
         </footer>
       </div>
     </>
