@@ -28,11 +28,19 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleWhatsAppClick = () => {
-    // Replace with your actual WhatsApp number
-    const phoneNumber = '07014573520'; // Change this to your WhatsApp number
-    const message = encodeURIComponent('Hi! I have feedback about ClerkSmart...');
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
-    window.open(whatsappUrl, '_blank');
+    try {
+      // Format: Remove any spaces, dashes, or special characters, add country code if needed
+      const phoneNumber = '2347014573520'; // Nigerian number with country code
+      const message = encodeURIComponent('Hi! I have feedback about ClerkSmart...');
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+      
+      console.log('Opening WhatsApp URL:', whatsappUrl); // Debug log
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      // Fallback: try to open WhatsApp app directly
+      window.open('https://wa.me/2347014573520', '_blank');
+    }
   };
 
   return (
