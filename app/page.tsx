@@ -34,20 +34,20 @@ export default function HomePage() {
         {/* Settings Button - Top Right */}
         <button 
           onClick={() => setIsSettingsOpen(true)} 
-          className="absolute top-6 right-6 p-3 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/50 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-all duration-200 shadow-lg dark:shadow-slate-900/20 hover:shadow-xl dark:hover:shadow-slate-900/30"
+          className="absolute top-5 right-8 p-3 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/50 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-all duration-200 shadow-lg dark:shadow-slate-900/20 hover:shadow-xl dark:hover:shadow-slate-900/30"
           aria-label="Settings"
         >
           <Icon name="settings" size={20} />
         </button>
 
-        <header className="text-center my-12">
+        <header className="text-center my-16">
           <h1 className="text-5xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-500 text-transparent bg-clip-text">
             ClerkSmart
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">The intelligent clinical reasoning simulator.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-3">The intelligent clinical reasoning simulator.</p>
         </header>
 
-        <main className="flex-grow flex flex-col justify-center space-y-6 max-w-lg mx-auto w-full">
+        <main className="flex-grow flex flex-col justify-center space-y-8 max-w-lg mx-auto w-full">
           <ActionCard
             icon="play"
             title="Start Simulation"
@@ -69,7 +69,7 @@ export default function HomePage() {
         </main>
 
         {/* Disclaimer Section */}
-        <div className="mt-8 mb-6">
+        <div className="mt-12 mb-8">
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 max-w-lg mx-auto">
             <div className="flex items-start space-x-3">
               <Icon name="info" size={20} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -83,7 +83,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <footer className="text-center mt-12">
+        <footer className="text-center mt-16">
           {/* Made with love tag */}
           <div className="flex items-center justify-center space-x-2 text-slate-400 dark:text-slate-500 text-sm">
             <span>Made with</span>
