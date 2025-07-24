@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { DEPARTMENTS } from '../../constants';
-import { Department } from '../../types';
+import { Department, Subspecialty } from '../../types';
 import { Icon } from '../../components/Icon';
+import { SubspecialtyModal } from '../../components/SubspecialtyModal';
 
 const LoadingOverlay: React.FC<{ message: string }> = ({ message }) => (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
@@ -20,20 +21,21 @@ const PracticeModeScreen: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
+  const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
 
-  const handleStartPractice = async () => {
-    if (!selectedDepartment || !condition.trim()) {
-      setError('Please select a department and enter a condition.');
+  const handleDirectStartPractice = async (department: Department) => {
+    if (!condition.trim()) {
+      setError('Please enter a condition.');
       return;
     }
 
     setError(null);
     try {
-      await generatePracticeCase(selectedDepartment, condition.trim());
+      await generatePracticeCase(department, condition.trim());
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {
-        // Check for our custom quota error message
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
             setError(err.message.split(': ')[1]);
         } else {
@@ -46,6 +48,38 @@ const PracticeModeScreen: React.FC = () => {
     }
   };
 
+  const handleDepartmentSelect = (department: Department) => {
+    if (department.subspecialties) {
+      setSelectedMainDepartment(department);
+      setShowSubspecialtyModal(true);
+    } else {
+      // For direct departments, set both the main department and selected department
+      setSelectedMainDepartment(department);
+      setSelectedDepartment(department);
+    }
+  };
+
+  const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+    const departmentFromSubspecialty: Department = {
+      name: subspecialty.name,
+      icon: subspecialty.icon,
+      gradient: subspecialty.gradient,
+      description: subspecialty.description,
+      avatar: subspecialty.avatar
+    };
+    
+    setSelectedDepartment(departmentFromSubspecialty);
+  };
+
+  const handleStartPractice = async () => {
+    if (!selectedDepartment || !condition.trim()) {
+      setError('Please select a department and enter a condition.');
+      return;
+    }
+
+    await handleDirectStartPractice(selectedDepartment);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleStartPractice();
@@ -55,21 +89,23 @@ const PracticeModeScreen: React.FC = () => {
   return (
     <>
       {isGeneratingCase && <LoadingOverlay message="Creating practice case..." />}
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <div className="container mx-auto px-4 py-6 max-w-2xl">
-          {/* Header */}
+      <SubspecialtyModal
+        isOpen={showSubspecialtyModal}
+        onClose={() => setShowSubspecialtyModal(false)}
+        department={selectedMainDepartment!}
+        onSelectSubspecialty={handleSubspecialtySelect}
+        disabled={isGeneratingCase}
+      />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
+        <div className="max-w-4xl mx-auto">
           <header className="flex items-center justify-between mb-8">
-            <button 
-              onClick={() => router.push('/')} 
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-            >
-              <Icon name="arrow-left" size={24} className="text-slate-600 dark:text-slate-400" />
+            <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+              <Icon name="arrow-left" size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Practice Mode</h1>
+            <h1 className="text-2xl font-bold text-center">Practice Mode</h1>
             <div className="w-8"></div>
           </header>
 
-          {/* Main Content */}
           <main className="space-y-8">
             {/* Introduction */}
             <div className="text-center space-y-2">
@@ -86,25 +122,69 @@ const PracticeModeScreen: React.FC = () => {
               <label className="block text-lg font-medium text-slate-700 dark:text-slate-300">
                 Select Department
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {DEPARTMENTS.map((dept) => (
-                  <button
-                    key={dept.name}
-                    onClick={() => setSelectedDepartment(dept)}
-                    disabled={isGeneratingCase}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      selectedDepartment?.name === dept.name
-                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                    } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Icon name={dept.icon} size={24} />
-                      <span className="font-medium">{dept.name}</span>
-                    </div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {DEPARTMENTS.map((dept) => {
+                  // Only highlight the button if it's the main department that was used for selection
+                  const isSelected = selectedMainDepartment?.name === dept.name;
+                  
+                  return (
+                    <button
+                      key={dept.name}
+                      onClick={() => handleDepartmentSelect(dept)}
+                      disabled={isGeneratingCase}
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                        isSelected
+                          ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                      } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Icon name={dept.icon} size={24} />
+                          <div className="text-left">
+                            <span className="font-medium">{dept.name}</span>
+                            {isSelected && selectedDepartment && selectedDepartment.name !== dept.name && (
+                              <div className="text-sm text-teal-600 dark:text-teal-400">
+                                → {selectedDepartment.name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {dept.subspecialties && (
+                          <Icon name="chevron-right" size={16} className="ml-auto" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+              
+              {/* Selected Subspecialty Display */}
+              {selectedDepartment && selectedDepartment.name !== selectedMainDepartment?.name && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="check-circle" size={20} className="text-green-600 dark:text-green-400" />
+                      <div>
+                        <span className="font-medium text-green-800 dark:text-green-200">Selected:</span>
+                        <span className="ml-2 font-semibold text-green-900 dark:text-green-100">
+                          {selectedDepartment.name}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSelectedDepartment(null);
+                        setSelectedMainDepartment(null);
+                      }} 
+                      className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors"
+                      disabled={isGeneratingCase}
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Condition Input */}

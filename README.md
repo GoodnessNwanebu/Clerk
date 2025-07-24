@@ -8,8 +8,8 @@ ClerkSmart is an advanced medical education platform that provides realistic cli
 - **Obstetrics**: Care during pregnancy, childbirth, and postpartum
 - **Gynecology**: Health of the female reproductive system  
 - **Pediatrics**: Medical care of infants, children, and adolescents
-- **General Surgery**: Surgical treatment of various conditions and injuries
-- **Cardiothoracic Surgery**: Surgery of the heart, lungs, and chest cavity
+- **Internal Medicine**: Comprehensive medical care with 11 subspecialties including Cardiology, Endocrinology, Neurology, and more
+- **Surgery**: Surgical treatment with 9 subspecialties including General Surgery, ENT, Ophthalmology, and more
 
 ### 🎯 **Core Features**
 - **Interactive Patient Encounters**: Real-time conversation with AI patients
@@ -73,7 +73,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Usage
 
 ### For Students
-1. **Choose a Department**: Select from Obstetrics, Gynecology, Pediatrics, General Surgery, or Cardiothoracic Surgery
+1. **Choose a Department**: Select from 5 main departments, with Internal Medicine and Surgery offering subspecialty options
 2. **Start a Case**: Begin with a random case or use Practice Mode for specific conditions
 3. **Interview the Patient**: Use voice or text to ask questions naturally
 4. **Order Investigations**: Request relevant tests and interpret results
