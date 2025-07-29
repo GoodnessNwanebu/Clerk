@@ -106,15 +106,16 @@ const OnboardingScreen: React.FC = () => {
       <Head>
         <title>Welcome to ClerkSmart</title>
       </Head>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 transition-colors duration-300">
-        <div className="flex-grow flex flex-col items-center justify-center text-center">
-          <div className="bg-teal-500/10 p-6 rounded-full mb-8">
-              <div className="bg-teal-500/20 p-5 rounded-full">
-                  <Icon name={currentStep.icon} size={48} className="text-teal-400" />
+      <div className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col p-4 transition-colors duration-300 overflow-hidden">
+        {/* Main content area - takes up available space */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
+          <div className="bg-teal-500/10 p-4 rounded-full mb-6">
+              <div className="bg-teal-500/20 p-4 rounded-full">
+                  <Icon name={currentStep.icon} size={40} className="text-teal-400" />
               </div>
           </div>
-          <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
+          <h1 className="text-2xl font-bold mb-3">{currentStep.title}</h1>
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6 text-sm leading-relaxed">{currentStep.description}</p>
           
           {isCountryStep && (
             <div className="w-full max-w-sm">
@@ -137,9 +138,10 @@ const OnboardingScreen: React.FC = () => {
           )}
         </div>
 
-        <div className="flex-shrink-0 w-full max-w-sm mx-auto pb-8 mb-4">
-          <div className="flex justify-center items-center mb-6 space-x-2">
-              {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Back</button>}
+        {/* Bottom section - fixed height */}
+        <div className="flex-shrink-0 w-full max-w-sm mx-auto pb-4">
+          <div className="flex justify-center items-center mb-4 space-x-2">
+              {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-sm">Back</button>}
               <div className="flex-grow flex justify-center items-center space-x-2">
                   {onboardingSteps.map((_, index) => (
                   <div
@@ -155,12 +157,12 @@ const OnboardingScreen: React.FC = () => {
           <button
             onClick={handleNext}
             disabled={!canContinue}
-            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
+            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
               !canContinue ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
             }`}
           >
             <span>{step === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}</span>
-            <Icon name="arrow-right" size={20} />
+            <Icon name="arrow-right" size={18} />
           </button>
         </div>
       </div>
