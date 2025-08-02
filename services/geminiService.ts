@@ -1,5 +1,81 @@
 import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile, ExaminationResult } from '../types';
 
+// Utility functions for context optimization
+const containsMedicalTerms = (text: string): boolean => {
+    const medicalTerms = [
+        'pain', 'symptom', 'diagnosis', 'treatment', 'medication', 'history', 'examination',
+        'test', 'result', 'blood', 'pressure', 'temperature', 'heart', 'lung', 'chest',
+        'abdomen', 'head', 'neck', 'back', 'fever', 'cough', 'breath', 'nausea', 'vomit',
+        'diarrhea', 'constipation', 'urine', 'bleeding', 'swelling', 'rash', 'infection'
+    ];
+    const lowerText = text.toLowerCase();
+    return medicalTerms.some(term => lowerText.includes(term));
+};
+
+const optimizeContext = (history: Message[], caseDetails: Case) => {
+    // For very long conversations, create a summary
+    const conversationSummary = summarizeConversation(history);
+    
+    // Keep last 15 messages for immediate context
+    const recentMessages = history.slice(-15);
+    
+    const essentialInfo = {
+        diagnosis: caseDetails.diagnosis,
+        keySymptoms: caseDetails.primaryInfo?.split('\n').slice(0, 3).join('\n') || '',
+        patientAge: caseDetails.pediatricProfile?.patientAge || 'adult',
+        department: '', // Will be passed separately from caseState
+        conversationSummary
+    };
+    
+    // Filter messages to keep important ones, but prioritize recent ones
+    const filteredMessages = history.filter(msg => {
+        if (msg.sender === 'system') return true;
+        if (history.indexOf(msg) >= history.length - 10) return true;
+        return containsMedicalTerms(msg.text);
+    });
+    
+    return { 
+        recentMessages: filteredMessages.length > 15 ? filteredMessages.slice(-15) : filteredMessages,
+        essentialInfo
+    };
+};
+
+const retryWithBackoff = async <T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error instanceof Error && 
+                (error.message.includes('429') || error.message.includes('rate limit')) && 
+                i < maxRetries - 1) {
+                const delay = Math.pow(2, i) * 1000;
+                console.log(`Rate limited, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+};
+
+// Simple conversation summarization for very long sessions
+const summarizeConversation = (messages: Message[]): string => {
+    if (messages.length <= 20) return '';
+    
+    const medicalMessages = messages
+        .filter(msg => msg.sender !== 'system' && containsMedicalTerms(msg.text))
+        .slice(0, 10); // Take first 10 medical messages
+    
+    if (medicalMessages.length === 0) return '';
+    
+    const summary = medicalMessages
+        .map(msg => `${msg.sender}: ${msg.text.substring(0, 100)}...`)
+        .join('\n');
+    
+    return `Previous conversation summary:\n${summary}\n\n--- Current conversation continues ---\n`;
+};
+
 const handleApiError = async (response: Response, context: string) => {
     let errorData: any = null;
     let errorText = 'Unknown error';
@@ -59,7 +135,7 @@ const handleApiError = async (response: Response, context: string) => {
 };
 
 const fetchFromApi = async (type: string, payload: object) => {
-    try {
+    const apiCall = async () => {
         // Ensure we have a proper base URL for server-side calls
         const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
         const url = `${baseUrl}/api/ai`;
@@ -75,7 +151,6 @@ const fetchFromApi = async (type: string, payload: object) => {
         });
 
         if (!response.ok) {
-            // The handleApiError function will throw, so we don't need to return anything here.
             await handleApiError(response, type);
         }
         
@@ -87,15 +162,9 @@ const fetchFromApi = async (type: string, payload: object) => {
             console.error(`Failed to parse JSON response for ${type}:`, jsonError);
             throw new Error(`Invalid response format from ${type} API`);
         }
-    } catch (error) {
-        // If it's already an Error object, re-throw it
-        if (error instanceof Error) {
-            throw error;
-        }
-        
-        // Otherwise, wrap it in an Error
-        throw new Error(`Network error while calling ${type} API`);
-    }
+    };
+
+    return retryWithBackoff(apiCall);
 };
 
 export const generateClinicalCase = async (departmentName: string, userCountry?: string): Promise<Case> => {
@@ -154,7 +223,15 @@ export const generatePracticeCase = async (departmentName: string, condition: st
 };
 
 export const getPatientResponse = async (history: Message[], caseDetails: Case, userCountry?: string): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
-    const responseData = await fetchFromApi('getPatientResponse', { history, caseDetails, userCountry });
+    // Optimize context for better performance and reliability
+    const { recentMessages, essentialInfo } = optimizeContext(history, caseDetails);
+    
+    const responseData = await fetchFromApi('getPatientResponse', { 
+        history: recentMessages, 
+        caseDetails, 
+        userCountry,
+        essentialInfo 
+    });
     
     // The API now always returns a messages array format
     if (responseData && typeof responseData === 'object' && responseData.messages && Array.isArray(responseData.messages)) {
@@ -175,7 +252,16 @@ export const getExaminationResults = async (plan: string, caseDetails: Case): Pr
 };
 
 export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | null> => {
-    const feedback = await fetchFromApi('getFeedback', { caseState });
+    // Optimize context for feedback generation
+    const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails!);
+    
+    const feedback = await fetchFromApi('getFeedback', { 
+        caseState: {
+            ...caseState,
+            messages: recentMessages
+        },
+        essentialInfo
+    });
     return feedback;
 };
 
@@ -186,7 +272,16 @@ export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<Con
             throw new Error('Missing required case data for detailed feedback');
         }
         
-        const feedback = await fetchFromApi('getDetailedFeedback', { caseState });
+        // Optimize context for detailed feedback generation
+        const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails);
+        
+        const feedback = await fetchFromApi('getDetailedFeedback', { 
+            caseState: {
+                ...caseState,
+                messages: recentMessages
+            },
+            essentialInfo
+        });
         
         // Validate the response structure
         if (!feedback || typeof feedback !== 'object') {

@@ -350,8 +350,8 @@ PEDIATRIC CASE REQUIREMENTS:
     }
 }
 
-async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case, userCountry?: string }) {
-    const { history, caseDetails, userCountry } = payload;
+async function handleGetPatientResponse(payload: { history: Message[], caseDetails: Case, userCountry?: string, essentialInfo?: any }) {
+    const { history, caseDetails, userCountry, essentialInfo } = payload;
     const context = 'getPatientResponse';
     
     // Determine if this is a pediatric case
@@ -521,8 +521,8 @@ async function handleGetExaminationResults(payload: { plan: string, caseDetails:
     }
 }
 
-async function handleGetFeedback(payload: { caseState: CaseState }) {
-    const { caseState } = payload;
+async function handleGetFeedback(payload: { caseState: CaseState, essentialInfo?: any }) {
+    const { caseState, essentialInfo } = payload;
     const context = 'getCaseFeedback';
     
     // Check if this is a surgical department
@@ -565,8 +565,8 @@ async function handleGetFeedback(payload: { caseState: CaseState }) {
     }
 }
 
-async function handleGetDetailedFeedback(payload: { caseState: CaseState }) {
-    const { caseState } = payload;
+async function handleGetDetailedFeedback(payload: { caseState: CaseState, essentialInfo?: any }) {
+    const { caseState, essentialInfo } = payload;
     const context = 'getDetailedCaseFeedback';
     
     // Validate required data

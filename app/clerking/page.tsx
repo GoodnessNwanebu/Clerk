@@ -26,6 +26,7 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 
 const ClerkingScreen: React.FC = () => {
   const router = useRouter();
+  const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
   const { caseState, addMessage, userCountry } = useAppContext();
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
   
@@ -203,6 +204,10 @@ const ClerkingScreen: React.FC = () => {
     console.log('Time is up for this patient session');
   };
 
+  const handleModalStateChange = (isOpen: boolean) => {
+    setIsTimeUpModalOpen(isOpen);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
       {showPermissionModal && <PermissionModal onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />}
@@ -226,7 +231,7 @@ const ClerkingScreen: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
-            <ClerkingTimer onTimeUp={handleTimeUp} />
+            <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
             <button onClick={() => router.push('/summary')} className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg">
               Finish
             </button>
@@ -332,7 +337,7 @@ const ClerkingScreen: React.FC = () => {
                     onFocus={() => setIsTextareaFocused(true)}
                     onBlur={() => setIsTextareaFocused(false)}
                     onKeyDown={handleInputKeyDown}
-                    placeholder="Type your message..."
+                    placeholder={isTimeUpModalOpen ? "Session ended - timer expired" : "Type your message..."}
                     rows={1}
                     autoComplete="off"
                     autoCapitalize="sentences"
@@ -340,14 +345,14 @@ const ClerkingScreen: React.FC = () => {
                     spellCheck="true"
                     inputMode="text"
                     enterKeyHint="send"
-                    readOnly={false}
+                    readOnly={isTimeUpModalOpen}
                     tabIndex={0}
-                    className="w-full bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                    className={`w-full bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 resize-none outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 ${isTimeUpModalOpen ? 'opacity-50 cursor-not-allowed' : ''}`}
                     style={{
                         minHeight: '48px',
                         maxHeight: '120px',
                         lineHeight: '1.5',
-                        cursor: 'text',
+                        cursor: isTimeUpModalOpen ? 'not-allowed' : 'text',
                         overflow: 'hidden'
                     }}
                 />
@@ -355,10 +360,10 @@ const ClerkingScreen: React.FC = () => {
             <div className="flex-shrink-0 flex items-center">
                 <button
                     onClick={inputText.trim() ? () => handleSendMessage(inputText) : handleMicClick}
-                    disabled={!hasRecognitionSupport || isPatientThinking}
+                    disabled={!hasRecognitionSupport || isPatientThinking || isTimeUpModalOpen}
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all duration-300 shadow-lg
                     ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700'}
-                    ${isPatientThinking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 hover:shadow-xl active:scale-95'}
+                    ${(isPatientThinking || isTimeUpModalOpen) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 hover:shadow-xl active:scale-95'}
                     `}
                 >
                     {inputText.trim() ? <Icon name="send" size={20} /> : <Icon name={isListening ? 'mic-off' : 'mic'} size={20} />}
