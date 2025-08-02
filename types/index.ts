@@ -163,6 +163,7 @@ export interface CaseState {
 
 export type Theme = 'light' | 'dark';
 export type ThemeSetting = Theme | 'system';
+export type DifficultyLevel = 'standard' | 'intermediate' | 'difficult';
 
 export interface PatientResponse {
     messages: {

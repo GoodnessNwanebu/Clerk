@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { DEPARTMENTS } from '../../constants';
-import { Department, Subspecialty } from '../../types';
+import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/SubspecialtyModal';
 
@@ -42,15 +42,16 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
 
 const DepartmentSelectionScreen: React.FC = () => {
   const router = useRouter();
-  const { generateNewCase, isGeneratingCase } = useAppContext();
+  const { generateNewCaseWithDifficulty, isGeneratingCase } = useAppContext();
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
 
   const handleDirectSelect = async (department: Department) => {
     setError(null);
     try {
-      await generateNewCase(department);
+      await generateNewCaseWithDifficulty(department, difficulty);
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {
@@ -105,6 +106,51 @@ const DepartmentSelectionScreen: React.FC = () => {
           <h1 className="text-2xl font-bold text-center">Choose a Department</h1>
           <div className="w-8"></div>
         </header>
+        
+        {/* Difficulty Selector */}
+        <div className="mb-8 max-w-md mx-auto">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
+            Case Difficulty Level
+          </label>
+          <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+            <button
+              onClick={() => setDifficulty('standard')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                difficulty === 'standard'
+                  ? 'bg-teal-500 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Standard
+            </button>
+            <button
+              onClick={() => setDifficulty('intermediate')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                difficulty === 'intermediate'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Intermediate
+            </button>
+            <button
+              onClick={() => setDifficulty('difficult')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                difficulty === 'difficult'
+                  ? 'bg-red-500 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Difficult
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+            {difficulty === 'standard' && 'Classic textbook presentations'}
+            {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
+            {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
+          </p>
+        </div>
+        
         <main className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 max-w-5xl mx-auto">
           {DEPARTMENTS.map((dept) => (
             <DepartmentCard key={dept.name} department={dept} onClick={() => handleDepartmentSelect(dept)} disabled={isGeneratingCase} />

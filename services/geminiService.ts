@@ -1,4 +1,4 @@
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile, ExaminationResult } from '../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile, ExaminationResult, DifficultyLevel } from '../types';
 
 // Utility functions for context optimization
 const containsMedicalTerms = (text: string): boolean => {
@@ -168,7 +168,12 @@ const fetchFromApi = async (type: string, payload: object) => {
 };
 
 export const generateClinicalCase = async (departmentName: string, userCountry?: string): Promise<Case> => {
-    const clinicalCase = await fetchFromApi('generateCase', { departmentName, userCountry });
+    // Default to standard difficulty for backward compatibility
+    return generateClinicalCaseWithDifficulty(departmentName, 'standard', userCountry);
+};
+
+export const generateClinicalCaseWithDifficulty = async (departmentName: string, difficulty: DifficultyLevel, userCountry?: string): Promise<Case> => {
+    const clinicalCase = await fetchFromApi('generateCase', { departmentName, difficulty, userCountry });
     if (clinicalCase && typeof clinicalCase.primaryInfo === 'string') {
         // Check if this is a pediatric case that doesn't already have profiles
         const isPediatric = clinicalCase.isPediatric || departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');

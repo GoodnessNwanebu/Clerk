@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient } from '../../../services/ai-wrapper';
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse, ExaminationResult } from '../../../types';
+import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, PatientProfile, PatientResponse, ExaminationResult, DifficultyLevel } from '../../../types';
 import { getTimeContext } from '../../../utils/timeContext';
 
 // Ensure the API key is available in the server environment
@@ -37,6 +37,44 @@ const LOCATION_CONTEXTS: { [key: string]: string } = {
     'France': 'Social healthcare system, Mediterranean influences',
     'Japan': 'Aging population, respectful cultural norms, modern lifestyle',
     'Brazil': 'Diverse cultural heritage, tropical climate, socioeconomic diversity'
+};
+
+// Difficulty-specific prompt functions
+const getDifficultyPrompt = (difficulty: DifficultyLevel): string => {
+    switch (difficulty) {
+        case 'standard':
+            return ''; // Use existing logic (no additional requirements)
+            
+        case 'intermediate':
+            return `
+INTERMEDIATE DIFFICULTY REQUIREMENTS:
+- Include 1-2 relevant comorbidities
+- Slightly atypical presentation of the primary diagnosis
+- Some conflicting or unclear information
+- Multiple possible diagnoses to consider
+- Age-related factors affecting presentation
+- Medication interactions or side effects
+- Social factors influencing care
+- Require more detailed history taking and examination
+`;
+            
+        case 'difficult':
+            return `
+DIFFICULT DIFFICULTY REQUIREMENTS:
+- Multiple comorbidities (3+ relevant conditions)
+- Highly atypical presentation of the primary diagnosis
+- Red herrings and confounding factors
+- Complex social determinants of health
+- Multiple organ system involvement
+- Rare disease presentations or complications
+- Complex medication interactions
+- Cultural or language barriers
+- Require comprehensive assessment and differential diagnosis
+`;
+            
+        default:
+            return '';
+    }
 };
 
 // Optimized prompt templates
@@ -156,6 +194,8 @@ Plan: "${plan}"`,
     feedback: (caseState: CaseState, surgicalContext: string) =>
 `Analyze student performance. Provide JSON: {"diagnosis": string, "keyTakeaway": string, "whatYouDidWell": string[], "whatCouldBeImproved": string[], "clinicalTip": string}.
 
+IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
+
 ${surgicalContext}
 
 Case: ${caseState.department?.name || 'Unknown'}
@@ -174,6 +214,8 @@ Management Plan: ${caseState.managementPlan}`,
     "communicationNotes": string,
     "clinicalPearls": string[]
 }
+
+IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities. Explain clinical significance.
 
@@ -272,8 +314,8 @@ const handleApiError = (error: unknown, context: string) => {
 
 // --- Handler Functions using Gemini ---
 
-async function handleGenerateCase(payload: { departmentName: string; userCountry?: string }) {
-    const { departmentName, userCountry } = payload;
+async function handleGenerateCase(payload: { departmentName: string; difficulty?: DifficultyLevel; userCountry?: string }) {
+    const { departmentName, difficulty = 'standard', userCountry } = payload;
     const context = 'generateClinicalCase';
     
     // Get time context for the user's location
@@ -326,6 +368,9 @@ PEDIATRIC CASE REQUIREMENTS:
 - Include developmental milestones and family dynamics
 ` : '';
     
+    // Get difficulty-specific requirements
+    const difficultyPrompt = getDifficultyPrompt(difficulty);
+    
     const userMessage = PROMPT_TEMPLATES.generateCase(
         departmentName, 
         randomBucket, 
@@ -335,7 +380,7 @@ PEDIATRIC CASE REQUIREMENTS:
         pediatricPrompt, 
         isPediatric, 
         isSurgical
-    );
+    ) + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
 
     try {
         const response = await ai.generateContent({

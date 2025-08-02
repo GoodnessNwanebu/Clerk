@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { CaseState, Department, Feedback, InvestigationResult, Message, Case, ExaminationResult } from '../types';
-import { generateClinicalCase, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
+import { CaseState, Department, Feedback, InvestigationResult, Message, Case, ExaminationResult, DifficultyLevel } from '../types';
+import { generateClinicalCase, generateClinicalCaseWithDifficulty, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
 
 interface AppContextType {
   caseState: CaseState;
@@ -12,6 +12,7 @@ interface AppContextType {
   setUserEmail: (email: string) => void;
   setUserCountry: (country: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
+  generateNewCaseWithDifficulty: (department: Department, difficulty: DifficultyLevel) => Promise<void>;
   generatePracticeCase: (department: Department, condition: string) => Promise<void>;
   addMessage: (message: Message) => void;
   setPreliminaryData: (diagnosis: string, examinationPlan: string, investigationPlan: string) => void;
@@ -74,9 +75,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
   
   const generateNewCase = useCallback(async (department: Department) => {
+    // Default to standard difficulty for backward compatibility
+    return generateNewCaseWithDifficulty(department, 'standard');
+  }, []);
+
+  const generateNewCaseWithDifficulty = useCallback(async (department: Department, difficulty: DifficultyLevel) => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await generateClinicalCase(department.name, userCountry || undefined);
+      const newCase = await generateClinicalCaseWithDifficulty(department.name, difficulty, userCountry || undefined);
       if (!newCase) {
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
@@ -155,7 +161,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCaseState(initialCaseState);
   }, []);
 
-  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, resetCase };
+  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generateNewCaseWithDifficulty, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, resetCase };
 
   return (
     <AppContext.Provider value={value}>
