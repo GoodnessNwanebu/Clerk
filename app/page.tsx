@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../components/Icon';
 import { SettingsModal } from '../components/SettingsModal';
+import { ResumeCaseModal } from '../components/ResumeCaseModal';
+import { ConversationStorageUtils } from '../lib/localStorage';
 
 const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onClick?: () => void; disabled?: boolean }> = ({ icon, title, subtitle, onClick, disabled }) => {
   const cardClasses = `
@@ -26,6 +28,27 @@ const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onCl
 export default function HomePage() {
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string } | null>(null);
+
+  // Check for saved case on mount
+  useEffect(() => {
+    const conversations = ConversationStorageUtils.getAllConversations();
+    if (conversations.length > 0) {
+      // Find the most recent saved case
+      const mostRecent = conversations.sort((a, b) => 
+        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+      )[0];
+      
+      if (mostRecent && mostRecent.caseState.department) {
+        setSavedCaseInfo({
+          department: mostRecent.caseState.department.name,
+          lastUpdated: mostRecent.lastUpdated
+        });
+        setShowResumeModal(true);
+      }
+    }
+  }, []);
 
   const handleWhatsAppClick = () => {
     try {
@@ -43,9 +66,30 @@ export default function HomePage() {
     }
   };
 
+  const handleResumeCase = () => {
+    setShowResumeModal(false);
+    router.push('/clerking');
+  };
+
+  const handleDismissCase = () => {
+    setShowResumeModal(false);
+    // Clear localStorage to start fresh
+    ConversationStorageUtils.clearAll();
+  };
+
+  const handleSavedCases = () => {
+    router.push('/saved-cases');
+  };
+
   return (
     <>
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <ResumeCaseModal
+        isOpen={showResumeModal}
+        onResume={handleResumeCase}
+        onDismiss={handleDismissCase}
+        caseInfo={savedCaseInfo!}
+      />
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
         {/* Settings Button - Top Right */}
         <button 
@@ -96,9 +140,9 @@ export default function HomePage() {
           />
           <ActionCard
             icon="book"
-            title="Case History"
-            subtitle="Review your past performance"
-            disabled
+            title="Saved Cases"
+            subtitle="View your saved cases"
+            onClick={handleSavedCases}
           />
         </main>
 

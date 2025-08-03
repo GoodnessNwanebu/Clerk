@@ -31,7 +31,7 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 
 const SummaryScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback } = useAppContext();
+    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, saveCaseStateToDatabase, saveResultsToDatabase } = useAppContext();
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -87,6 +87,10 @@ const SummaryScreen: React.FC = () => {
             
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
+            
+            // Save case state and results to database in background
+            saveCaseStateToDatabase();
+            saveResultsToDatabase();
         } catch (err) {
             handleApiError(err);
         } finally {

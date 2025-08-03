@@ -10,7 +10,7 @@ import { sendFeedbackEmail } from '../../services/emailService';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, resetCase, userEmail, setUserEmail } = useAppContext();
+    const { caseState, resetCase, userEmail, setUserEmail, saveFeedbackToDatabase } = useAppContext();
     const { feedback, department } = caseState;
     
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -95,7 +95,9 @@ const FeedbackScreen: React.FC = () => {
         handleSendEmailReport(email);
     };
 
-    const handleDone = () => {
+    const handleDone = async () => {
+        // Save feedback to database in background
+        await saveFeedbackToDatabase();
         resetCase();
         router.push('/');
     };

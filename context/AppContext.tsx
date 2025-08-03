@@ -3,6 +3,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { CaseState, Department, Feedback, InvestigationResult, Message, Case, ExaminationResult, DifficultyLevel } from '../types';
 import { generateClinicalCase, generateClinicalCaseWithDifficulty, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
+import { ConversationStorage } from '../lib/localStorage';
 
 interface AppContextType {
   caseState: CaseState;
@@ -21,6 +22,11 @@ interface AppContextType {
   setFinalData: (diagnosis: string, plan: string) => void;
   setFeedback: (feedback: Feedback) => void;
   resetCase: () => void;
+  saveConversationToDatabase: () => Promise<void>;
+  saveCaseStateToDatabase: () => Promise<void>;
+  saveResultsToDatabase: () => Promise<void>;
+  saveFeedbackToDatabase: () => Promise<void>;
+  savePatientInfoToDatabase: () => Promise<void>;
 }
 
 const initialCaseState: CaseState = {
@@ -44,7 +50,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [userEmail, setUserEmailState] = useState<string | null>(null);
   const [userCountry, setUserCountryState] = useState<string | null>(null);
+  const [conversationStorage, setConversationStorage] = useState<ConversationStorage | null>(null);
   const isBrowser = typeof window !== 'undefined';
+
+  // Restore case state from localStorage on mount
+  useEffect(() => {
+    if (!isBrowser) return;
+    
+    // Try to find the most recent case in localStorage
+    const keys = Object.keys(localStorage);
+    const caseKeys = keys.filter(key => key.startsWith('clerksmart_case_'));
+    
+    if (caseKeys.length > 0) {
+      // Get the most recent case
+      const mostRecentKey = caseKeys.sort().pop()!;
+      const storage = new ConversationStorage(mostRecentKey.replace('clerksmart_case_', ''));
+      const savedData = storage.loadConversation();
+      
+      if (savedData && savedData.caseState.department) {
+        setConversationStorage(storage);
+        setCaseState(prev => ({
+          ...prev,
+          ...savedData.caseState,
+          messages: savedData.conversation
+        }));
+      }
+    }
+  }, [isBrowser]);
 
   useEffect(() => {
     if (!isBrowser) return;
@@ -87,16 +119,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
       
-      setCaseState({
+      // Generate a unique case ID
+      const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Initialize localStorage for this case
+      const storage = new ConversationStorage(caseId);
+      setConversationStorage(storage);
+      
+      const newCaseState = {
         ...initialCaseState,
         department,
         caseDetails: newCase,
         messages: [{
-            sender: 'system',
+            sender: 'system' as const,
             text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
             timestamp: new Date().toISOString()
         }]
-      });
+      };
+      
+      setCaseState(newCaseState);
+      
+      // Save initial state to localStorage
+      storage.saveConversation(newCaseState.messages, newCaseState);
+      
     } catch (error) {
         console.error("Error in generateNewCase:", error);
         // Rethrow the error to be caught by the caller UI
@@ -119,7 +164,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         department,
         caseDetails: newCase,
         messages: [{
-            sender: 'system',
+            sender: 'system' as const,
             text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
             timestamp: new Date().toISOString()
         }]
@@ -134,34 +179,248 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [userCountry]);
   
   const addMessage = useCallback((message: Message) => {
-    setCaseState((prev: CaseState) => ({ ...prev, messages: [...prev.messages, message] }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, messages: [...prev.messages, message] };
+      
+      // Save to localStorage in background
+      if (conversationStorage && caseState.department) {
+        conversationStorage.saveConversation(newState.messages, newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage, caseState.department]);
 
   const setPreliminaryData = useCallback((diagnosis: string, examinationPlan: string, investigationPlan: string) => {
-    setCaseState((prev: CaseState) => ({ ...prev, preliminaryDiagnosis: diagnosis, examinationPlan, investigationPlan }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, preliminaryDiagnosis: diagnosis, examinationPlan, investigationPlan };
+      
+      // Save to localStorage in background
+      if (conversationStorage) {
+        conversationStorage.updateCaseState(newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage]);
 
   const setInvestigationResults = useCallback((results: InvestigationResult[]) => {
-    setCaseState((prev: CaseState) => ({ ...prev, investigationResults: results }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, investigationResults: results };
+      
+      // Save to localStorage in background
+      if (conversationStorage) {
+        conversationStorage.updateCaseState(newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage]);
 
   const setExaminationResults = useCallback((results: ExaminationResult[]) => {
-    setCaseState((prev: CaseState) => ({ ...prev, examinationResults: results }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, examinationResults: results };
+      
+      // Save to localStorage in background
+      if (conversationStorage) {
+        conversationStorage.updateCaseState(newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage]);
 
   const setFinalData = useCallback((diagnosis: string, plan: string) => {
-    setCaseState((prev: CaseState) => ({ ...prev, finalDiagnosis: diagnosis, managementPlan: plan }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, finalDiagnosis: diagnosis, managementPlan: plan };
+      
+      // Save to localStorage in background
+      if (conversationStorage) {
+        conversationStorage.updateCaseState(newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage]);
 
   const setFeedback = useCallback((feedback: Feedback) => {
-    setCaseState((prev: CaseState) => ({ ...prev, feedback }));
-  }, []);
+    setCaseState((prev: CaseState) => {
+      const newState = { ...prev, feedback };
+      
+      // Save to localStorage in background
+      if (conversationStorage) {
+        conversationStorage.updateCaseState(newState);
+      }
+      
+      return newState;
+    });
+  }, [conversationStorage]);
 
   const resetCase = useCallback(() => {
     setCaseState(initialCaseState);
+    setConversationStorage(null);
   }, []);
 
-  const value = { caseState, isGeneratingCase, userEmail, userCountry, setUserEmail, setUserCountry, generateNewCase, generateNewCaseWithDifficulty, generatePracticeCase, addMessage, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, resetCase };
+  // Background save functions
+  const saveConversationToDatabase = useCallback(async () => {
+    if (!conversationStorage || !userEmail || !caseState.messages.length) return;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveConversation',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          messages: caseState.messages
+        })
+      });
+
+      if (response.ok) {
+        console.log('Conversation saved to database');
+      }
+    } catch (error) {
+      console.error('Failed to save conversation to database:', error);
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState.messages]);
+
+  const saveCaseStateToDatabase = useCallback(async () => {
+    if (!conversationStorage || !userEmail) return;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveCaseState',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          caseState: {
+            preliminaryDiagnosis: caseState.preliminaryDiagnosis,
+            examinationPlan: caseState.examinationPlan,
+            investigationPlan: caseState.investigationPlan,
+            finalDiagnosis: caseState.finalDiagnosis,
+            managementPlan: caseState.managementPlan
+          }
+        })
+      });
+
+      if (response.ok) {
+        console.log('Case state saved to database');
+      }
+    } catch (error) {
+      console.error('Failed to save case state to database:', error);
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState]);
+
+  const saveResultsToDatabase = useCallback(async () => {
+    if (!conversationStorage || !userEmail) return;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveResults',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          examinationResults: caseState.examinationResults,
+          investigationResults: caseState.investigationResults
+        })
+      });
+
+      if (response.ok) {
+        console.log('Results saved to database');
+      }
+    } catch (error) {
+      console.error('Failed to save results to database:', error);
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState.examinationResults, caseState.investigationResults]);
+
+  const saveFeedbackToDatabase = useCallback(async () => {
+    if (!conversationStorage || !userEmail || !caseState.feedback) return;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveFeedback',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          feedback: caseState.feedback
+        })
+      });
+
+      if (response.ok) {
+        console.log('Feedback saved to database');
+        // Clear localStorage after successful save
+        conversationStorage.clear();
+      }
+    } catch (error) {
+      console.error('Failed to save feedback to database:', error);
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState.feedback]);
+
+  const savePatientInfoToDatabase = useCallback(async () => {
+    if (!conversationStorage || !userEmail || !caseState.caseDetails) return;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'savePatientInfo',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          patientInfo: {
+            diagnosis: caseState.caseDetails.diagnosis,
+            primaryInfo: caseState.caseDetails.primaryInfo,
+            openingLine: caseState.caseDetails.openingLine,
+            patientProfile: caseState.caseDetails.patientProfile,
+            pediatricProfile: caseState.caseDetails.pediatricProfile,
+            isPediatric: caseState.caseDetails.isPediatric
+          }
+        })
+      });
+
+      if (response.ok) {
+        console.log('Patient info saved to database');
+      }
+    } catch (error) {
+      console.error('Failed to save patient info to database:', error);
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState.caseDetails]);
+
+  const value = { 
+    caseState, 
+    isGeneratingCase, 
+          userEmail,
+          userCountry,
+    setUserEmail, 
+    setUserCountry, 
+    generateNewCase, 
+    generateNewCaseWithDifficulty, 
+    generatePracticeCase, 
+    addMessage, 
+    setPreliminaryData, 
+    setInvestigationResults, 
+    setExaminationResults, 
+    setFinalData, 
+    setFeedback, 
+    resetCase,
+    saveConversationToDatabase,
+    saveCaseStateToDatabase,
+    saveResultsToDatabase,
+    saveFeedbackToDatabase,
+    savePatientInfoToDatabase
+  };
 
   return (
     <AppContext.Provider value={value}>

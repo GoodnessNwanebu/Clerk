@@ -176,8 +176,32 @@ export const DEPARTMENTS: Department[] = [
         icon: "heart",
         gradient: "from-red-500 to-red-700",
         description: "Heart, lung, and chest surgery",
-        avatar: "/avatars/cardiothoracic.svg"
+        avatar: "/avatars/cardiothoracic-surgery.svg"
       }
     ]
   }
+];
+
+// Medical pearls for loading screens
+export const MEDICAL_PEARLS = [
+  "Always listen to the patient - they're telling you the diagnosis.",
+  "Common things are common, but don't forget the zebras.",
+  "When you hear hoofbeats, think horses, not zebras.",
+  "The patient is the most important person in the room.",
+  "A good history is 80% of the diagnosis.",
+  "If you don't take a temperature, you can't find a fever.",
+  "The eyes don't see what the mind doesn't know.",
+  "Treat the patient, not the numbers.",
+  "Time is the great diagnostician.",
+  "The best test is the one you know how to interpret.",
+  "When in doubt, examine the patient again.",
+  "The most expensive test is the one you don't need.",
+  "Listen to the patient's story - it's the most important diagnostic tool.",
+  "Physical examination is the most cost-effective diagnostic test.",
+  "The patient's own words are often the most revealing.",
+  "Don't let the perfect be the enemy of the good.",
+  "The best medicine is prevention.",
+  "Trust your clinical instincts, but verify with evidence.",
+  "Every patient is a teacher.",
+  "The art of medicine is in the details."
 ]; 

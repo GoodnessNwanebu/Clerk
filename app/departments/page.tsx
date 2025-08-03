@@ -7,13 +7,7 @@ import { DEPARTMENTS } from '../../constants';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/SubspecialtyModal';
-
-const LoadingOverlay: React.FC<{ message: string }> = ({ message }) => (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
-        <Icon name="loader-2" size={48} className="animate-spin mb-4" />
-        <p className="text-lg font-semibold">{message}</p>
-    </div>
-);
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const DepartmentCard: React.FC<{ department: Department; onClick: () => void; disabled: boolean }> = ({ department, onClick, disabled }) => (
   <div

@@ -1,0 +1,263 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  country   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sessions Session[]
+  cases    Case[]
+
+  @@map("users")
+}
+
+// User sessions for tracking active sessions
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+// Medical departments and subspecialties
+model Department {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  subspecialties Subspecialty[]
+  cases          Case[]
+
+  @@map("departments")
+}
+
+model Subspecialty {
+  id           String     @id @default(cuid())
+  name         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([name, departmentId])
+  @@map("subspecialties")
+}
+
+// Patient profiles for different types of patients
+model PatientProfile {
+  id             String   @id @default(cuid())
+  educationLevel String   // 'basic' | 'moderate' | 'well-informed'
+  healthLiteracy String   // 'minimal' | 'average' | 'high'
+  occupation     String
+  recordKeeping  String   // 'detailed' | 'basic' | 'minimal'
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  pediatricProfiles PediatricProfile[]
+  cases             Case[]
+
+  @@map("patient_profiles")
+}
+
+// Pediatric-specific patient profiles
+model PediatricProfile {
+  id                String         @id @default(cuid())
+  patientAge        Int
+  ageGroup          String         // 'infant' | 'toddler' | 'preschool' | 'school-age' | 'adolescent'
+  respondingParent  String         // 'mother' | 'father'
+  developmentalStage String
+  communicationLevel String         // 'non-verbal' | 'basic' | 'conversational' | 'adult-like'
+  parentProfileId   String
+  parentProfile     PatientProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  cases Case[]
+
+  @@map("pediatric_profiles")
+}
+
+// Main case model
+model Case {
+  id                    String   @id @default(cuid())
+  diagnosis             String
+  primaryInfo           String   @db.Text
+  openingLine           String
+  isPediatric           Boolean  @default(false)
+  difficultyLevel       String   @default("standard") // 'standard' | 'intermediate' | 'difficult'
+  timeContext           String?
+  location              String?
+  isSurgical            Boolean  @default(false)
+  pathophysiologyCategory String?
+  
+  // User and department relations
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  // Patient profile relations
+  patientProfileId    String?
+  patientProfile      PatientProfile? @relation(fields: [patientProfileId], references: [id])
+  pediatricProfileId  String?
+  pediatricProfile    PediatricProfile? @relation(fields: [pediatricProfileId], references: [id])
+  
+  // Case state
+  preliminaryDiagnosis String?
+  examinationPlan      String?
+  investigationPlan    String?
+  finalDiagnosis       String?
+  managementPlan       String?
+  
+  // Timestamps
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  messages              Message[]
+  examinationResults    ExaminationResult[]
+  investigationResults  InvestigationResult[]
+  feedback              Feedback?
+  emailReports          EmailReport[]
+
+  @@map("cases")
+}
+
+// Messages in the conversation
+model Message {
+  id          String   @id @default(cuid())
+  sender      String   // 'student' | 'patient' | 'parent' | 'system'
+  text        String   @db.Text
+  speakerLabel String? // For pediatric cases: "Mother", "Father", "Child"
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Examination results (both quantitative and descriptive)
+model ExaminationResult {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'quantitative' | 'descriptive'
+  category    String   // 'vital_signs' | 'system_examination' | 'special_tests'
+  urgency     String   // 'routine' | 'urgent' | 'critical'
+  
+  // Quantitative fields
+  value       Float?
+  unit        String?
+  rangeLow    Float?
+  rangeHigh   Float?
+  status      String?  // 'Normal' | 'High' | 'Low' | 'Critical'
+  
+  // Descriptive fields
+  findings        String? @db.Text
+  impression      String? @db.Text
+  recommendation  String? @db.Text
+  abnormalFlags   String[] // Array of abnormal flags
+  reportType      String?  // 'cardiovascular' | 'respiratory' | 'abdominal' | 'neurological' | 'musculoskeletal' | 'general' | 'obstetric' | 'pediatric'
+  
+  // Relations
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("examination_results")
+}
+
+// Investigation results (both quantitative and descriptive)
+model InvestigationResult {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'quantitative' | 'descriptive'
+  category    String   // 'laboratory' | 'imaging' | 'pathology' | 'specialized'
+  urgency     String   // 'routine' | 'urgent' | 'critical'
+  
+  // Quantitative fields
+  value       Float?
+  unit        String?
+  rangeLow    Float?
+  rangeHigh   Float?
+  status      String?  // 'Normal' | 'High' | 'Low' | 'Critical'
+  
+  // Descriptive fields
+  findings        String? @db.Text
+  impression      String? @db.Text
+  recommendation  String? @db.Text
+  abnormalFlags   String[] // Array of abnormal flags
+  reportType      String?  // 'radiology' | 'pathology' | 'ecg' | 'echo' | 'specialist'
+  
+  // Relations
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("investigation_results")
+}
+
+// Feedback for completed cases
+model Feedback {
+  id                String   @id @default(cuid())
+  diagnosis         String
+  keyTakeaway       String   @db.Text
+  whatYouDidWell    String[] // Array of positive points
+  whatCouldBeImproved String[] // Array of improvement points
+  clinicalTip       String   @db.Text
+  
+  // Detailed feedback fields
+  positiveQuotes    Json?    // Array of {quote: string, explanation: string}
+  improvementQuotes Json?    // Array of {quote: string, explanation: string}
+  
+  // Consultant teaching notes
+  keyLearningPoint    String? @db.Text
+  clerkingStructure    String? @db.Text
+  missedOpportunities  Json?   // Array of {opportunity: string, clinicalSignificance: string}
+  clinicalReasoning    String? @db.Text
+  communicationNotes   String? @db.Text
+  clinicalPearls       String[] // Array of clinical pearls
+  
+  // Relations
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feedback")
+}
+
+// Email tracking for reports
+model EmailReport {
+  id        String   @id @default(cuid())
+  email     String
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sentAt    DateTime @default(now())
+  status    String   @default("sent") // 'sent' | 'delivered' | 'failed'
+  
+  @@map("email_reports")
+}

@@ -9,6 +9,7 @@ import { getPatientResponse } from '../../services/geminiService';
 import { Icon } from '../../components/Icon';
 import { ClerkingTimer } from '../../components/ClerkingTimer';
 import { Message } from '../../types';
+import { getDepartmentConfig } from '../../lib/department-utils';
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -27,8 +28,14 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 const ClerkingScreen: React.FC = () => {
   const router = useRouter();
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
-  const { caseState, addMessage, userCountry } = useAppContext();
+  const { caseState, addMessage, userCountry, saveConversationToDatabase, savePatientInfoToDatabase } = useAppContext();
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
+  
+  // Client-side safe function to get department config
+  const getDepartmentAvatar = (departmentName: string) => {
+    if (typeof window === 'undefined') return '/avatars/default.svg';
+    return getDepartmentConfig(departmentName)?.avatar || '/avatars/default.svg';
+  };
   
   const [isPatientThinking, setIsPatientThinking] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -232,7 +239,18 @@ const ClerkingScreen: React.FC = () => {
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
             <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
-            <button onClick={() => router.push('/summary')} className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg">
+            <button 
+              onClick={async () => {
+                // Save conversation and patient info to database in background
+                await Promise.all([
+                  saveConversationToDatabase(),
+                  savePatientInfoToDatabase()
+                ]);
+                // Navigate immediately (user doesn't see the save)
+                router.push('/summary');
+              }} 
+              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg"
+            >
               Finish
             </button>
           </div>
@@ -243,7 +261,7 @@ const ClerkingScreen: React.FC = () => {
         <div className="flex flex-col items-center mb-8 px-4">
             <div className="relative">
                 <Image 
-                  src={caseState.department.avatar} 
+                  src={caseState.department ? getDepartmentAvatar(caseState.department.name) : '/avatars/default.svg'} 
                   alt="Patient Avatar" 
                   width={96} 
                   height={96}

@@ -1,5 +1,12 @@
 import React from 'react';
-import { Stethoscope, MessageSquare, Users, Award, Play, Book, History, Settings, ArrowRight, ArrowLeft, ArrowDown, Mic, MicOff, Check, AlertTriangle, Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2, Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw, Scissors, Venus, MapPin } from 'lucide-react';
+import {
+  Stethoscope, MessageSquare, Users, Award, Play, Book, History, Settings,
+  ArrowRight, ArrowLeft, ArrowDown, Mic, MicOff, Check, AlertTriangle,
+  Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2,
+  Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
+  Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
+  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet
+} from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
 // than managing SVG paths manually.
@@ -44,6 +51,24 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'scissors': return <Scissors {...iconProps} />;
     case 'venus': return <Venus {...iconProps} />;
     case 'map-pin': return <MapPin {...iconProps} />;
+    // Department and subspecialty icons
+    case 'activity': return <Activity {...iconProps} />;
+    case 'zap': return <Zap {...iconProps} />;
+    case 'brain': return <Brain {...iconProps} />;
+    case 'droplets': return <Droplets {...iconProps} />;
+    case 'wind': return <Wind {...iconProps} />;
+    case 'scan': return <Scan {...iconProps} />;
+    case 'shield': return <Shield {...iconProps} />;
+    case 'bug': return <Bug {...iconProps} />;
+    case 'ear': return <Ear {...iconProps} />;
+    case 'eye': return <Eye {...iconProps} />;
+    case 'zap-off': return <ZapOff {...iconProps} />;
+    case 'bone': return <Bone {...iconProps} />;
+    case 'sparkles': return <Sparkles {...iconProps} />;
+    case 'droplet': return <Droplet {...iconProps} />;
+    // Fallback for missing icons (like 'stomach')
+    case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
+    case 'mind': return <Brain {...iconProps} />; // Using brain as fallback
     default: return null;
   }
 };
