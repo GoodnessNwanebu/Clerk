@@ -133,6 +133,8 @@ model Case {
   // Timestamps
   startedAt    DateTime @default(now())
   completedAt  DateTime?
+  savedAt      DateTime? // When user clicked "Save This Case"
+  isCompleted  Boolean   @default(false) // Whether this is a completed case saved from feedback
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

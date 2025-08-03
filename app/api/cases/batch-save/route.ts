@@ -9,6 +9,7 @@ import {
   saveFeedback,
   saveDetailedFeedback
 } from '../../../../lib/database'
+import { prisma } from '../../../../lib/prisma'
 import { Message } from '../../../../types'
 
 export async function POST(request: NextRequest) {
@@ -188,6 +189,104 @@ export async function POST(request: NextRequest) {
           success: true, 
           operations 
         })
+
+      case 'saveCompletedCase':
+        // Save completed case from feedback page
+        if (body.completedCase) {
+          const { completedCase } = body;
+          
+          // Get or create department
+          let department = await prisma.department.findFirst({
+            where: { name: completedCase.department || 'Unknown' }
+          });
+          
+          if (!department) {
+            department = await prisma.department.create({
+              data: { name: completedCase.department || 'Unknown' }
+            });
+          }
+
+          // Create a new case record for the completed case
+          const newCase = await prisma.case.create({
+            data: {
+              userId: user.id,
+              departmentId: department.id,
+              diagnosis: completedCase.condition,
+              primaryInfo: completedCase.patientInfo.primaryInfo,
+              openingLine: completedCase.patientInfo.openingLine,
+              isPediatric: completedCase.patientInfo.isPediatric,
+              completedAt: new Date(completedCase.completedAt),
+              savedAt: new Date(), // When user clicked "Save This Case"
+              isCompleted: true, // Mark as completed case
+              // Add patient profile if exists
+              ...(completedCase.patientInfo.patientProfile && {
+                patientProfile: {
+                  create: {
+                    educationLevel: completedCase.patientInfo.patientProfile.educationLevel,
+                    healthLiteracy: completedCase.patientInfo.patientProfile.healthLiteracy,
+                    occupation: completedCase.patientInfo.patientProfile.occupation,
+                    recordKeeping: completedCase.patientInfo.patientProfile.recordKeeping
+                  }
+                }
+              }),
+              // Add pediatric profile if exists
+              ...(completedCase.patientInfo.pediatricProfile && completedCase.patientInfo.patientProfile && {
+                pediatricProfile: {
+                  create: {
+                    patientAge: completedCase.patientInfo.pediatricProfile.patientAge,
+                    ageGroup: completedCase.patientInfo.pediatricProfile.ageGroup,
+                    respondingParent: completedCase.patientInfo.pediatricProfile.respondingParent,
+                    developmentalStage: completedCase.patientInfo.pediatricProfile.developmentalStage,
+                    communicationLevel: completedCase.patientInfo.pediatricProfile.communicationLevel
+                  }
+                }
+              })
+            }
+          });
+
+          // Save conversation messages
+          if (completedCase.messages && Array.isArray(completedCase.messages)) {
+            for (const message of completedCase.messages) {
+              await addMessage({
+                sender: message.sender,
+                text: message.text,
+                speakerLabel: message.speakerLabel,
+                caseId: newCase.id
+              });
+            }
+          }
+
+          // Save case state
+          await updateCaseState(newCase.id, {
+            preliminaryDiagnosis: completedCase.preliminaryDiagnosis,
+            examinationPlan: completedCase.examinationPlan,
+            investigationPlan: completedCase.investigationPlan,
+            finalDiagnosis: completedCase.finalDiagnosis,
+            managementPlan: completedCase.managementPlan,
+            completedAt: new Date(completedCase.completedAt)
+          });
+
+          // Save examination results
+          if (completedCase.examinationResults && Array.isArray(completedCase.examinationResults)) {
+            await saveExaminationResults(newCase.id, completedCase.examinationResults);
+          }
+
+          // Save investigation results
+          if (completedCase.investigationResults && Array.isArray(completedCase.investigationResults)) {
+            await saveInvestigationResults(newCase.id, completedCase.investigationResults);
+          }
+
+          // Save feedback
+          if (completedCase.feedback) {
+            await saveFeedback(newCase.id, completedCase.feedback);
+          }
+
+          return NextResponse.json({ 
+            success: true, 
+            caseId: newCase.id 
+          });
+        }
+        break;
 
       default:
         return NextResponse.json({ 

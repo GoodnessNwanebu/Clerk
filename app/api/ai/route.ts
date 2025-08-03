@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
             'getExaminationResults',
             'getFeedback',
             'getDetailedFeedback',
+            'getComprehensiveFeedback',
             'generatePatientProfile',
             'addStudentMessage'
         ];

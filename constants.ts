@@ -182,8 +182,9 @@ export const DEPARTMENTS: Department[] = [
   }
 ];
 
-// Medical pearls for loading screens
-export const MEDICAL_PEARLS = [
+// Medical pearls for loading screens - organized by department
+export const MEDICAL_PEARLS = {
+  general: [
   "Always listen to the patient - they're telling you the diagnosis.",
   "Common things are common, but don't forget the zebras.",
   "When you hear hoofbeats, think horses, not zebras.",
@@ -204,4 +205,83 @@ export const MEDICAL_PEARLS = [
   "Trust your clinical instincts, but verify with evidence.",
   "Every patient is a teacher.",
   "The art of medicine is in the details."
-]; 
+  ],
+  cardiology: [
+    "In chest pain, always ask about radiation to the arm, jaw, or back.",
+    "Check for JVP with patient at 45 degrees - look for the double waveform.",
+    "Listen for S3/S4 gallops - they're subtle but important signs of heart failure.",
+    "Don't forget to check peripheral pulses - weak pulses suggest poor cardiac output.",
+    "Ask about exertional symptoms - what stops them from their usual activities?",
+    "Check for ankle edema and ask about orthopnea - classic heart failure symptoms.",
+    "Listen to the heart in multiple positions - mitral murmurs are best heard in lateral decubitus.",
+    "Ask about family history of sudden cardiac death - crucial for risk assessment.",
+    "Check blood pressure in both arms - significant difference suggests aortic dissection.",
+    "Look for signs of endocarditis - splinter hemorrhages, Janeway lesions, Osler nodes."
+  ],
+  neurology: [
+    "Always check pupils - size, shape, and reactivity can localize the lesion.",
+    "Test cranial nerves systematically - start with II, then III, IV, VI.",
+    "Look for facial asymmetry - subtle weakness can be the only sign of stroke.",
+    "Check for pronator drift - a sensitive test for upper motor neuron lesions.",
+    "Test sensation with a pin - start distally and work proximally.",
+    "Check reflexes - hyperreflexia suggests upper motor neuron disease.",
+    "Look for nystagmus - direction and type help localize the lesion.",
+    "Test coordination with finger-nose-finger - cerebellar signs are often subtle.",
+    "Check for Romberg sign - positive suggests proprioceptive loss.",
+    "Look for tremor - rest vs. intention helps differentiate Parkinson's from cerebellar disease."
+  ],
+  pediatrics: [
+    "Always assess the child's developmental stage - expectations change with age.",
+    "Check vital signs against age-appropriate norms - different from adults.",
+    "Look at the child's behavior - are they playing normally?",
+    "Check fontanelles in infants - bulging suggests increased intracranial pressure.",
+    "Assess hydration status - capillary refill and tears are key indicators.",
+    "Look for signs of respiratory distress - nasal flaring, grunting, retractions.",
+    "Check for rashes - distribution and characteristics matter.",
+    "Assess growth parameters - plot on growth charts.",
+    "Look for signs of abuse - unexplained bruises, burns, or fractures.",
+    "Check immunization status - crucial for preventing serious infections."
+  ],
+  surgery: [
+    "Always check for signs of peritonitis - rebound tenderness is a red flag.",
+    "Look for surgical scars - they tell the patient's history.",
+    "Check for hernias - have the patient cough while you palpate.",
+    "Assess bowel sounds - absent sounds suggest ileus or obstruction.",
+    "Check for Murphy's sign in RUQ pain - suggests cholecystitis.",
+    "Look for signs of appendicitis - McBurney's point tenderness.",
+    "Check for signs of obstruction - distension, high-pitched bowel sounds.",
+    "Assess for signs of bleeding - look for pallor, tachycardia, hypotension.",
+    "Check for signs of infection - fever, leukocytosis, local signs.",
+    "Look for signs of ischemia - pain out of proportion to exam."
+  ],
+  internal_medicine: [
+    "Always check for signs of systemic disease - look beyond the obvious.",
+    "Assess functional status - what can they do vs. what they used to do?",
+    "Check for signs of infection - fever, leukocytosis, local signs.",
+    "Look for signs of malignancy - weight loss, night sweats, fatigue.",
+    "Check for signs of endocrine disease - thyroid, diabetes, adrenal.",
+    "Assess for signs of autoimmune disease - joint pain, rash, fatigue.",
+    "Look for signs of liver disease - jaundice, ascites, asterixis.",
+    "Check for signs of kidney disease - edema, hypertension, proteinuria.",
+    "Assess for signs of lung disease - dyspnea, cough, sputum.",
+    "Look for signs of heart disease - chest pain, dyspnea, edema."
+  ],
+  emergency: [
+    "Always think ABCDE - Airway, Breathing, Circulation, Disability, Exposure.",
+    "Check vital signs first - they guide your entire assessment.",
+    "Look for signs of shock - tachycardia, hypotension, altered mental status.",
+    "Assess for signs of trauma - mechanism of injury matters.",
+    "Check for signs of poisoning - altered mental status, unusual odors.",
+    "Look for signs of infection - fever, leukocytosis, local signs.",
+    "Assess for signs of cardiac disease - chest pain, dyspnea, syncope.",
+    "Check for signs of neurological emergency - headache, weakness, altered mental status.",
+    "Look for signs of respiratory distress - dyspnea, hypoxia, accessory muscle use.",
+    "Assess for signs of bleeding - pallor, tachycardia, hypotension."
+  ]
+};
+
+// Helper function to get pearls for a specific department
+export const getPearlsForDepartment = (department: string): string[] => {
+  const deptKey = department.toLowerCase().replace(/\s+/g, '_');
+  return MEDICAL_PEARLS[deptKey as keyof typeof MEDICAL_PEARLS] || MEDICAL_PEARLS.general;
+}; 

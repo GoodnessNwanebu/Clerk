@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
 import { ComprehensiveFeedback, Feedback } from '../../types';
+import ReactMarkdown from 'react-markdown';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, resetCase, saveFeedbackToDatabase } = useAppContext();
+    const { caseState, resetCase, saveFeedbackToDatabase, saveCompletedCaseToDatabase } = useAppContext();
     const { feedback, department } = caseState;
     
     const [expandedSections, setExpandedSections] = useState<{
@@ -33,14 +34,29 @@ const FeedbackScreen: React.FC = () => {
     };
 
     const handleSaveCase = async () => {
-        // TODO: Implement save case functionality
-        console.log('Save case functionality to be implemented');
+        try {
+            const success = await saveCompletedCaseToDatabase();
+            if (success) {
+                alert('Case saved successfully!');
+            } else {
+                alert('Failed to save case. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error saving case:', error);
+            alert('Error saving case. Please try again.');
+        }
     };
 
     const handleDone = async () => {
-        // Save feedback to database in background
         await saveFeedbackToDatabase();
         resetCase();
+        
+        // Clear localStorage to prevent resume modal from appearing
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('clerkSmartConversation');
+            localStorage.removeItem('clerkSmartCaseState');
+        }
+        
         router.push('/');
     };
     
@@ -61,79 +77,126 @@ const FeedbackScreen: React.FC = () => {
     const basicFeedback = isBasicFeedback(feedback) ? feedback : null;
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 sm:p-8 transition-colors duration-300">
-            <header className="text-center mb-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold">Case Report & Feedback</h1>
-                <p className="text-lg text-slate-500 dark:text-slate-400 mt-1">
-                    Final Diagnosis: <span className="font-semibold text-teal-500 dark:text-teal-400">{feedback.diagnosis}</span> ({department.name})
-                </p>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
+            {/* Header */}
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+                <div className="px-4 py-6 sm:px-6">
+                    <div className="text-left sm:text-center">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                            Case Report & Feedback
+                        </h1>
+                        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-2">
+                            Final Diagnosis: <span className="font-semibold text-teal-600 dark:text-teal-400">{feedback.diagnosis}</span>
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                            {department.name}
+                        </p>
+                    </div>
+                </div>
             </header>
 
-            <main className="max-w-4xl mx-auto space-y-8">
+            {/* Main Content */}
+            <main className="px-4 py-6 sm:px-6 sm:py-8 max-w-4xl mx-auto space-y-6">
                 {/* Key Learning Point */}
-                <div className="bg-white dark:bg-slate-800/70 border border-teal-500/10 dark:border-teal-500/30 p-5 rounded-xl shadow-md dark:shadow-none">
-                    <div className="flex items-start">
-                        <Icon name="chevrons-right" className="text-teal-500 dark:text-teal-400 mr-4 flex-shrink-0 mt-1" size={24}/>
-                        <div>
-                            <h3 className="text-xl font-bold">Key Learning Point</h3>
-                            <p className="text-slate-600 dark:text-slate-300 mt-1">{feedback.keyLearningPoint}</p>
-                        </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                        <Icon name="chevrons-right" className="text-teal-600 dark:text-teal-400 mr-3" size={20}/>
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                            Key Learning Point
+                        </h3>
+                    </div>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <ReactMarkdown>
+                            {feedback.keyLearningPoint}
+                        </ReactMarkdown>
                     </div>
                 </div>
 
                 {/* What You Did Well */}
-                <div className="space-y-4">
-                    <div className="flex items-center">
-                        <Icon name="check" className="text-green-500 dark:text-green-400 mr-3" size={24}/>
-                        <h3 className="text-xl font-bold">What You Did Well</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mr-4">
+                            <Icon name="check" className="text-green-600 dark:text-green-400" size={20}/>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                            What You Did Well
+                        </h3>
                     </div>
                     <ul className="space-y-3">
                         {feedback.whatYouDidWell.map((point, index) => (
-                            <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg text-slate-700 dark:text-slate-300">{point}</li>
+                            <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <div className="flex items-start space-x-3">
+                                    <Icon name="check-circle" className="text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" size={16}/>
+                                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                        <ReactMarkdown>
+                                            {point}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
+                            </li>
                         ))}
                     </ul>
                 </div>
 
                 {/* Clinical Reasoning */}
                 {comprehensiveFeedback && (
-                    <div className="bg-white dark:bg-slate-800/70 border border-blue-500/10 dark:border-blue-500/30 p-5 rounded-xl shadow-md dark:shadow-none">
-                        <div className="flex items-start">
-                            <Icon name="brain" className="text-blue-500 dark:text-blue-400 mr-4 flex-shrink-0 mt-1" size={24}/>
-                            <div>
-                                <h3 className="text-xl font-bold">Clinical Reasoning</h3>
-                                <p className="text-slate-600 dark:text-slate-300 mt-1">{comprehensiveFeedback.clinicalReasoning}</p>
-                            </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center mb-4">
+                            <Icon name="brain" className="text-blue-600 dark:text-blue-400 mr-3" size={20}/>
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                Clinical Reasoning
+                            </h3>
+                        </div>
+                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <ReactMarkdown>
+                                {comprehensiveFeedback.clinicalReasoning}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 )}
 
                 {/* Clinical Opportunities - Collapsible */}
                 {comprehensiveFeedback && (
-                    <div className="bg-white dark:bg-slate-800/70 border border-amber-500/10 dark:border-amber-500/30 rounded-xl shadow-md dark:shadow-none overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <button
                             onClick={() => toggleSection('clinicalOpportunities')}
-                            className="w-full p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            className="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                         >
-                            <div className="flex items-center">
-                                <Icon name="alert-triangle" className="text-amber-500 dark:text-amber-400 mr-3" size={24}/>
-                                <h3 className="text-xl font-bold">Clinical Opportunities</h3>
+                            <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
+                                    <Icon name="alert-triangle" className="text-amber-600 dark:text-amber-400" size={20}/>
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                    Clinical Opportunities
+                                </h3>
                             </div>
                             <Icon 
                                 name={expandedSections.clinicalOpportunities ? "chevron-up" : "chevron-down"} 
                                 className="text-slate-500 dark:text-slate-400" 
-                                size={20}
+                                size={24}
                             />
                         </button>
                         
                         {expandedSections.clinicalOpportunities && (
-                            <div className="px-5 pb-5 space-y-4">
+                            <div className="px-6 pb-6 space-y-6">
                                 {/* Areas for Improvement */}
                                 {comprehensiveFeedback.clinicalOpportunities.areasForImprovement.length > 0 && (
                                     <div>
-                                        <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Areas for Improvement</h4>
-                                        <ul className="space-y-2">
+                                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base">
+                                            Areas for Improvement
+                                        </h4>
+                                        <ul className="space-y-3">
                                             {comprehensiveFeedback.clinicalOpportunities.areasForImprovement.map((point, index) => (
-                                                <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg text-slate-700 dark:text-slate-300">{point}</li>
+                                                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                                    <div className="flex items-start space-x-3">
+                                                        <Icon name="x-circle" className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" size={16}/>
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {point}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    </div>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>
@@ -142,12 +205,24 @@ const FeedbackScreen: React.FC = () => {
                                 {/* Missed Opportunities */}
                                 {comprehensiveFeedback.clinicalOpportunities.missedOpportunities.length > 0 && (
                                     <div>
-                                        <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Missed Opportunities</h4>
-                                        <ul className="space-y-3">
+                                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base">
+                                            Missed Opportunities
+                                        </h4>
+                                        <ul className="space-y-4">
                                             {comprehensiveFeedback.clinicalOpportunities.missedOpportunities.map((opportunity, index) => (
-                                                <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg">
-                                                    <p className="text-slate-700 dark:text-slate-300 font-medium">{opportunity.opportunity}</p>
-                                                    <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">{opportunity.clinicalSignificance}</p>
+                                                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                                    <div className="space-y-2">
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-900 dark:text-white font-medium leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {opportunity.opportunity}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {`**Clinical significance:** ${opportunity.clinicalSignificance}`}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>
@@ -160,27 +235,40 @@ const FeedbackScreen: React.FC = () => {
 
                 {/* Clinical Pearls - Collapsible */}
                 {comprehensiveFeedback && (
-                    <div className="bg-white dark:bg-slate-800/70 border border-purple-500/10 dark:border-purple-500/30 rounded-xl shadow-md dark:shadow-none overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <button
                             onClick={() => toggleSection('clinicalPearls')}
-                            className="w-full p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            className="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                         >
-                            <div className="flex items-center">
-                                <Icon name="lightbulb" className="text-purple-500 dark:text-purple-400 mr-3" size={24}/>
-                                <h3 className="text-xl font-bold">Clinical Pearls</h3>
+                            <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+                                    <Icon name="lightbulb" className="text-emerald-600 dark:text-emerald-400" size={20}/>
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                    Clinical Pearls
+                                </h3>
                             </div>
                             <Icon 
                                 name={expandedSections.clinicalPearls ? "chevron-up" : "chevron-down"} 
                                 className="text-slate-500 dark:text-slate-400" 
-                                size={20}
+                                size={24}
                             />
                         </button>
                         
                         {expandedSections.clinicalPearls && (
-                            <div className="px-5 pb-5">
+                            <div className="px-6 pb-6">
                                 <ul className="space-y-3">
                                     {comprehensiveFeedback.clinicalPearls.map((pearl, index) => (
-                                        <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg text-slate-700 dark:text-slate-300">{pearl}</li>
+                                        <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                            <div className="flex items-start space-x-3">
+                                                <Icon name="star" className="text-emerald-500 dark:text-emerald-400 flex-shrink-0 mt-0.5" size={16}/>
+                                                <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                    <ReactMarkdown>
+                                                        {pearl}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            </div>
+                                        </li>
                                     ))}
                                 </ul>
                             </div>
@@ -190,32 +278,41 @@ const FeedbackScreen: React.FC = () => {
 
                 {/* Fallback Clinical Tip for non-comprehensive feedback */}
                 {!comprehensiveFeedback && basicFeedback && basicFeedback.clinicalTip && (
-                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 p-5 rounded-xl">
-                        <div className="flex items-start">
-                            <Icon name="lightbulb" className="text-blue-500 dark:text-blue-400 mr-4 flex-shrink-0 mt-1" size={24}/>
-                            <div>
-                                <h3 className="text-xl font-bold">Clinical Tip</h3>
-                                <p className="text-slate-600 dark:text-slate-300 mt-1">{basicFeedback.clinicalTip}</p>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-xl p-6">
+                        <div className="flex items-start space-x-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                <Icon name="lightbulb" className="text-blue-600 dark:text-blue-400" size={20}/>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                    Clinical Tip
+                                </h3>
+                                <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                    <ReactMarkdown>
+                                        {basicFeedback.clinicalTip}
+                                    </ReactMarkdown>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-col items-center gap-4 pt-6 max-w-lg mx-auto">
+                <div className="space-y-4 pt-6">
                     <button
                         onClick={handleSaveCase}
-                        className="w-full py-3 px-6 border-2 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 font-semibold rounded-lg transition-colors flex items-center justify-center"
+                        className="w-full py-4 px-6 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold rounded-xl transition-colors flex items-center justify-center space-x-3 text-base"
                     >
-                        <Icon name="bookmark" size={20} className="mr-2"/> Save This Case
+                        <Icon name="bookmark" size={20}/>
+                        <span>Save This Case</span>
                     </button>
                     
                     <button
                         onClick={handleDone}
-                        className="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center space-x-3 text-base"
                     >
                         <span>Done</span>
-                        <Icon name="check" size={20} />
+                        <Icon name="check" size={20}/>
                     </button>
                 </div>
             </main>

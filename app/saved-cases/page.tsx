@@ -3,133 +3,95 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../../components/Icon';
-import { ConversationStorageUtils, ConversationStorage } from '../../lib/localStorage';
+import { useAppContext } from '../../context/AppContext';
 
-interface SavedCase {
-  caseId: string;
-  department: string;
-  lastUpdated: string;
-  messageCount: number;
+interface CompletedCase {
+  id: string;
+  diagnosis: string;
+  department: { name: string };
+  savedAt: string;
+  completedAt: string;
 }
 
 export default function SavedCasesPage() {
   const router = useRouter();
-  const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { userEmail } = useAppContext();
+  const [completedCases, setCompletedCases] = useState<CompletedCase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadSavedCases = () => {
+    const fetchCompletedCases = async () => {
+      if (!userEmail) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Ensure we're on the client side
-        if (typeof window === 'undefined') return;
+        setIsLoading(true);
+        setError(null);
         
-        const conversations = ConversationStorageUtils.getAllConversations();
-        const cases: SavedCase[] = conversations
-          .filter(conv => conv.caseState?.department)
-          .map(conv => ({
-            caseId: conv.caseId,
-            department: conv.caseState.department!.name,
-            lastUpdated: conv.lastUpdated,
-            messageCount: conv.conversation?.length || 0
-          }))
-          .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+        const response = await fetch(`/api/cases/completed?userEmail=${encodeURIComponent(userEmail)}`);
         
-        setSavedCases(cases);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error loading saved cases:', err);
+        if (!response.ok) {
+          setError('Failed to load saved cases');
+          return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.cases) {
+          setCompletedCases(data.cases);
+        } else {
+          setError('Invalid data received');
+        }
+      } catch (error) {
+        console.error('Error fetching completed cases:', error);
         setError('Failed to load saved cases');
-        setLoading(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadSavedCases();
-  }, []);
+    fetchCompletedCases();
+  }, [userEmail]);
 
-  const formatLastUpdated = (dateString: string) => {
+  const handleViewCase = (caseId: string) => {
+    router.push(`/saved-cases/${caseId}`);
+  };
+
+  const handleDeleteCase = (caseId: string) => {
+    // TODO: Implement delete functionality
+    console.log('Delete case:', caseId);
+  };
+
+  const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      const now = new Date();
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      
-      if (diffInMinutes < 1) return 'Just now';
-      if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
-      return `${Math.floor(diffInMinutes / 1440)} days ago`;
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     } catch (err) {
       return 'Unknown';
     }
   };
 
-  const handleResumeCase = (caseId: string) => {
-    try {
-      // Ensure we're on the client side
-      if (typeof window === 'undefined') return;
-      
-      // Set this case as the active one (clear others and keep only this one)
-      const conversations = ConversationStorageUtils.getAllConversations();
-      const targetCase = conversations.find(conv => conv.caseId === caseId);
-      
-      if (targetCase) {
-        // Clear all cases first
-        ConversationStorageUtils.clearAll();
-        
-        // Re-save only the target case
-        const storage = new ConversationStorage(targetCase.caseId);
-        storage.saveConversation(targetCase.conversation, targetCase.caseState);
-        
-        router.push('/clerking');
-      }
-    } catch (err) {
-      console.error('Error resuming case:', err);
-      setError('Failed to resume case');
-    }
-  };
-
-  const handleDeleteCase = (caseId: string) => {
-    try {
-      // Ensure we're on the client side
-      if (typeof window === 'undefined') return;
-      
-      // Remove this specific case from localStorage
-      const conversations = ConversationStorageUtils.getAllConversations();
-      const updatedCases = conversations.filter(conv => conv.caseId !== caseId);
-      
-      // Clear all and re-save the remaining ones
-      ConversationStorageUtils.clearAll();
-      updatedCases.forEach(conv => {
-        const storage = new ConversationStorage(conv.caseId);
-        storage.saveConversation(conv.conversation, conv.caseState);
-      });
-      
-      // Update the UI
-      setSavedCases(prev => prev.filter(c => c.caseId !== caseId));
-    } catch (err) {
-      console.error('Error deleting case:', err);
-      setError('Failed to delete case');
-    }
-  };
-
-  const handleClearAll = () => {
-    try {
-      // Ensure we're on the client side
-      if (typeof window === 'undefined') return;
-      
-      ConversationStorageUtils.clearAll();
-      setSavedCases([]);
-    } catch (err) {
-      console.error('Error clearing all cases:', err);
-      setError('Failed to clear all cases');
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
-        <div className="text-center">
-          <Icon name="loader-2" size={32} className="animate-spin text-teal-500 mx-auto mb-4" />
-          <p className="text-slate-500 dark:text-slate-400">Loading saved cases...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="relative">
+              <Icon name="loader-2" size={48} className="animate-spin text-teal-600 dark:text-teal-400 mx-auto mb-6" />
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+            </div>
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">Loading Your Cases</h3>
+            <p className="text-slate-500 dark:text-slate-400">Fetching your saved cases...</p>
+          </div>
         </div>
       </div>
     );
@@ -137,102 +99,168 @@ export default function SavedCasesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
-        <div className="text-center">
-          <Icon name="alert-circle" size={32} className="text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center justify-center min-h-screen px-6">
+          <div className="text-center max-w-md">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Icon name="alert-circle" size={32} className="text-red-600 dark:text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Oops! Something went wrong</h2>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white p-6 sm:p-8 transition-colors duration-300">
-      <header className="flex items-center justify-between mb-8">
-        <button 
-          onClick={() => router.push('/')} 
-          className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-        >
-          <Icon name="arrow-left" size={24} />
-        </button>
-        <h1 className="text-2xl font-bold text-center">Saved Cases</h1>
-        <div className="w-10"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Header */}
+      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => router.push('/')}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Icon name="arrow-left" size={24} className="text-slate-600 dark:text-slate-300" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Saved Cases</h1>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">
+                  Your learning journey in review
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
+                <Icon name="book-open" size={16} />
+                <span>{completedCases.length} case{completedCases.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
-      {savedCases.length === 0 ? (
-        <div className="text-center py-16">
-          <Icon name="book-open" size={64} className="text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">No Saved Cases</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">
-            Your incomplete cases will appear here when you pause a simulation.
-          </p>
-          <button
-            onClick={() => router.push('/departments')}
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            Start New Case
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-slate-600 dark:text-slate-400">
-              {savedCases.length} saved case{savedCases.length !== 1 ? 's' : ''}
-            </p>
-            <button
-              onClick={handleClearAll}
-              className="text-red-500 hover:text-red-600 text-sm font-medium transition-colors"
-            >
-              Clear All
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {savedCases.map((savedCase) => (
-              <div
-                key={savedCase.caseId}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-lg">
-                      <Icon name="play-circle" size={24} className="text-teal-600 dark:text-teal-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">
-                        {savedCase.department}
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {savedCase.messageCount} messages • {formatLastUpdated(savedCase.lastUpdated)}
-                      </p>
-                    </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {completedCases.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center max-w-sm">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                {/* Hero Icon */}
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center mx-auto">
+                    <Icon name="book-open" size={32} className="text-teal-600 dark:text-teal-400" />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleResumeCase(savedCase.caseId)}
-                      className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-medium rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      Resume
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCase(savedCase.caseId)}
-                      className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                    >
-                      <Icon name="trash-2" size={20} />
-                    </button>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                    <Icon name="plus" size={12} className="text-white" />
                   </div>
                 </div>
+
+                {/* Content */}
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                  Ready to start your learning journey?
+                </h2>
+                <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+                  Complete cases and save them from the feedback page to build your personal library of clinical experiences.
+                </p>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <button 
+                    onClick={() => router.push('/departments')}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    Start Your First Case
+                  </button>
+                  <button 
+                    onClick={() => router.push('/practice')}
+                    className="w-full px-6 py-2 border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-sm"
+                  >
+                    Practice Mode
+                  </button>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
-        </>
-      )}
+        ) : (
+          <div className="space-y-6">
+            {/* Stats Header */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Your Learning Library
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400 mt-1">
+                    {completedCases.length} case{completedCases.length !== 1 ? 's' : ''} completed and saved
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Icon name="filter" size={20} className="text-slate-400" />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">All Departments</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cases Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {completedCases.map((completedCase) => (
+                <div
+                  key={completedCase.id}
+                  className="group bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-teal-200 dark:hover:border-teal-700 transition-all duration-300 cursor-pointer transform hover:scale-105"
+                  onClick={() => handleViewCase(completedCase.id)}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      {completedCase.department.name}
+                    </div>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDeleteCase(completedCase.id); 
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                    >
+                      <Icon name="trash-2" size={16} />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 line-clamp-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                    {completedCase.diagnosis}
+                  </h3>
+                  
+                  <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center space-x-1">
+                      <Icon name="calendar" size={14} />
+                      <span>{formatDate(completedCase.savedAt)}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Icon name="eye" size={14} />
+                      <span>View</span>
+                    </div>
+                  </div>
+
+                  {/* Hover Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 } 

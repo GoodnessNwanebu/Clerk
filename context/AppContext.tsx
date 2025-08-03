@@ -24,7 +24,7 @@ interface AppContextType {
   setUserCountry: (country: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
   generateNewCaseWithDifficulty: (department: Department, difficulty: DifficultyLevel) => Promise<void>;
-  generatePracticeCase: (department: Department, condition: string) => Promise<void>;
+  generatePracticeCase: (department: Department, condition: string, difficulty?: DifficultyLevel) => Promise<void>;
   addMessage: (message: Message) => void;
   setPreliminaryData: (diagnosis: string, examinationPlan: string, investigationPlan: string) => void;
   setInvestigationResults: (results: InvestigationResult[]) => void;
@@ -37,6 +37,7 @@ interface AppContextType {
   saveResultsToDatabase: () => Promise<void>;
   saveFeedbackToDatabase: () => Promise<void>;
   savePatientInfoToDatabase: () => Promise<void>;
+  saveCompletedCaseToDatabase: () => Promise<boolean>;
 }
 
 const initialCaseState: CaseState = {
@@ -161,7 +162,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [userCountry]);
 
-  const generatePracticeCase = useCallback(async (department: Department, condition: string) => {
+  const generatePracticeCase = useCallback(async (department: Department, condition: string, difficulty: DifficultyLevel = 'standard') => {
     setIsGeneratingCase(true);
     try {
       const newCase = await generatePracticeCaseService(department.name, condition, userCountry || undefined);
@@ -408,6 +409,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [conversationStorage, userEmail, userCountry, caseState.caseDetails]);
 
+  const saveCompletedCaseToDatabase = useCallback(async (): Promise<boolean> => {
+    if (!conversationStorage || !userEmail || !caseState.caseDetails || !caseState.feedback) return false;
+    
+    try {
+      const response = await fetch('/api/cases/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveCompletedCase',
+          userEmail,
+          userCountry,
+          caseId: conversationStorage['caseId'],
+          completedCase: {
+            department: caseState.department?.name,
+            condition: caseState.caseDetails.diagnosis,
+            patientInfo: {
+              diagnosis: caseState.caseDetails.diagnosis,
+              primaryInfo: caseState.caseDetails.primaryInfo,
+              openingLine: caseState.caseDetails.openingLine,
+              patientProfile: caseState.caseDetails.patientProfile,
+              pediatricProfile: caseState.caseDetails.pediatricProfile,
+              isPediatric: caseState.caseDetails.isPediatric
+            },
+            messages: caseState.messages,
+            preliminaryDiagnosis: caseState.preliminaryDiagnosis,
+            examinationPlan: caseState.examinationPlan,
+            investigationPlan: caseState.investigationPlan,
+            finalDiagnosis: caseState.finalDiagnosis,
+            managementPlan: caseState.managementPlan,
+            examinationResults: caseState.examinationResults,
+            investigationResults: caseState.investigationResults,
+            feedback: caseState.feedback,
+            completedAt: new Date().toISOString()
+          }
+        })
+      });
+
+      if (response.ok) {
+        console.log('Completed case saved to database');
+        return true;
+      } else {
+        console.error('Failed to save completed case');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save completed case to database:', error);
+      return false;
+    }
+  }, [conversationStorage, userEmail, userCountry, caseState]);
+
   const value = { 
     caseState, 
     isGeneratingCase, 
@@ -429,7 +480,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     saveCaseStateToDatabase,
     saveResultsToDatabase,
     saveFeedbackToDatabase,
-    savePatientInfoToDatabase
+    savePatientInfoToDatabase,
+    saveCompletedCaseToDatabase
   };
 
   return (

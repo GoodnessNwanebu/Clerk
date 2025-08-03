@@ -84,7 +84,7 @@ const DepartmentSelectionScreen: React.FC = () => {
 
   return (
     <>
-      {isGeneratingCase && <LoadingOverlay message="Creating new case..." />}
+      {isGeneratingCase && <LoadingOverlay message="Creating new case..." department={selectedDepartment?.name || 'general'} />}
       <SubspecialtyModal
         isOpen={showSubspecialtyModal}
         onClose={() => setShowSubspecialtyModal(false)}

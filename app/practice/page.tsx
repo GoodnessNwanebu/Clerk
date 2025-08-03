@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { DEPARTMENTS } from '../../constants';
-import { Department, Subspecialty } from '../../types';
+import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/SubspecialtyModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
@@ -17,6 +17,7 @@ const PracticeModeScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
@@ -26,7 +27,7 @@ const PracticeModeScreen: React.FC = () => {
 
     setError(null);
     try {
-      await generatePracticeCase(department, condition.trim());
+      await generatePracticeCase(department, condition.trim(), difficulty);
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {
@@ -82,7 +83,7 @@ const PracticeModeScreen: React.FC = () => {
 
   return (
     <>
-      {isGeneratingCase && <LoadingOverlay message="Creating practice case..." />}
+      {isGeneratingCase && <LoadingOverlay message="Creating practice case..." department={selectedDepartment?.name || 'general'} />}
       <SubspecialtyModal
         isOpen={showSubspecialtyModal}
         onClose={() => setShowSubspecialtyModal(false)}
@@ -179,6 +180,53 @@ const PracticeModeScreen: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Difficulty Selector */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Case Difficulty
+              </label>
+              <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1 max-w-xs">
+                <button
+                  onClick={() => setDifficulty('standard')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'standard'
+                      ? 'bg-teal-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Standard
+                </button>
+                <button
+                  onClick={() => setDifficulty('intermediate')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'intermediate'
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Intermediate
+                </button>
+                <button
+                  onClick={() => setDifficulty('difficult')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'difficult'
+                      ? 'bg-red-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Difficult
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {difficulty === 'standard' && 'Classic textbook presentations'}
+                {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
+                {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
+              </p>
             </div>
 
             {/* Condition Input */}
