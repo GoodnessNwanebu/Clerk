@@ -1,4 +1,17 @@
-import { Case, CaseState, Feedback, InvestigationResult, Message, DetailedFeedbackReport, ConsultantTeachingNotes, PatientProfile, ExaminationResult, DifficultyLevel } from '../types';
+import { 
+    Case, 
+    CaseState, 
+    Feedback, 
+    InvestigationResult, 
+    Message, 
+    DetailedFeedbackReport, 
+    ConsultantTeachingNotes, 
+    ComprehensiveFeedback,
+    PatientProfile, 
+    ExaminationResult, 
+    DifficultyLevel,
+    PatientResponse 
+} from '../types';
 
 // Utility functions for context optimization
 const containsMedicalTerms = (text: string): boolean => {
@@ -303,6 +316,43 @@ export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<Con
         return feedback as ConsultantTeachingNotes;
     } catch (error) {
         console.error('Error in getDetailedCaseFeedback:', error);
+        throw error;
+    }
+};
+
+export const getComprehensiveCaseFeedback = async (caseState: CaseState): Promise<ComprehensiveFeedback | null> => {
+    try {
+        // Validate caseState before making the API call
+        if (!caseState.department || !caseState.caseDetails) {
+            throw new Error('Missing required case data for comprehensive feedback');
+        }
+        
+        // Optimize context for comprehensive feedback generation
+        const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails);
+        
+        const feedback = await fetchFromApi('getComprehensiveFeedback', { 
+            caseState: {
+                ...caseState,
+                messages: recentMessages
+            },
+            essentialInfo
+        });
+        
+        // Validate the response structure
+        if (!feedback || typeof feedback !== 'object') {
+            throw new Error('Invalid response format from comprehensive feedback API');
+        }
+        
+        const requiredFields = ['diagnosis', 'keyLearningPoint', 'whatYouDidWell', 'clinicalReasoning', 'clinicalOpportunities', 'clinicalPearls'];
+        const missingFields = requiredFields.filter(field => !(field in feedback));
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Response missing required fields: ${missingFields.join(', ')}`);
+        }
+        
+        return feedback as ComprehensiveFeedback;
+    } catch (error) {
+        console.error('Error in getComprehensiveCaseFeedback:', error);
         throw error;
     }
 };

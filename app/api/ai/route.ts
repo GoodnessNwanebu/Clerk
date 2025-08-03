@@ -107,6 +107,14 @@ export async function POST(request: NextRequest) {
                     body: JSON.stringify(payload)
                 });
                 break;
+            
+            case 'getComprehensiveFeedback':
+                response = await fetch(`${request.nextUrl.origin}/api/ai/comprehensive-feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                break;
             case 'generatePatientProfile':
                 response = await fetch(`${request.nextUrl.origin}/api/ai/patient-profile`, {
                     method: 'POST',

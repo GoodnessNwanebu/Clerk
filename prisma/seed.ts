@@ -7,7 +7,6 @@ async function main() {
   console.log('🌱 Starting database seed...')
 
   // Clear existing data
-  await prisma.emailReport.deleteMany()
   await prisma.feedback.deleteMany()
   await prisma.investigationResult.deleteMany()
   await prisma.examinationResult.deleteMany()

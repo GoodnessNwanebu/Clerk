@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
         }
 
         const context = 'getCaseFeedback';
-        const surgicalContext = getSurgicalContext(caseState);
-        const userMessage = feedbackPrompt(caseState, surgicalContext);
+        const userMessage = feedbackPrompt(caseState);
 
         const response = await ai.generateContent({
             model: MODEL,

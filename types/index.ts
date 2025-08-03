@@ -95,10 +95,10 @@ export type ExaminationResult = QuantitativeExaminationResult | DescriptiveExami
 
 export interface Feedback {
     diagnosis: string;
-    keyTakeaway: string;
-    whatYouDidWell: string[];
-    whatCouldBeImproved: string[];
-    clinicalTip: string;
+    keyLearningPoint: string; // Changed from keyTakeaway to keyLearningPoint
+    whatYouDidWell: string[]; // Expanded to 4-5 points
+    whatCouldBeImproved: string[]; // Will be moved to collapsible section
+    clinicalTip: string; // Will be replaced by clinical pearls
 }
 
 export interface ConsultantTeachingNotes {
@@ -111,6 +111,25 @@ export interface ConsultantTeachingNotes {
     }>;
     clinicalReasoning: string;
     communicationNotes: string;
+    clinicalPearls: string[];
+}
+
+// New comprehensive feedback interface that merges basic and detailed feedback
+export interface ComprehensiveFeedback {
+    // Essential (always visible)
+    diagnosis: string;
+    keyLearningPoint: string;
+    whatYouDidWell: string[]; // 4-5 points including positive communication/clerking feedback
+    clinicalReasoning: string;
+    
+    // Collapsible sections
+    clinicalOpportunities: {
+        areasForImprovement: string[];
+        missedOpportunities: Array<{
+            opportunity: string;
+            clinicalSignificance: string;
+        }>;
+    };
     clinicalPearls: string[];
 }
 
@@ -158,7 +177,7 @@ export interface CaseState {
   investigationResults: InvestigationResult[];
   finalDiagnosis: string;
   managementPlan: string;
-  feedback: Feedback | null;
+  feedback: Feedback | ComprehensiveFeedback | null;
 }
 
 export type Theme = 'light' | 'dark';

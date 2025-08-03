@@ -1,9 +1,19 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { CaseState, Department, Feedback, InvestigationResult, Message, Case, ExaminationResult, DifficultyLevel } from '../types';
+import { 
+  CaseState, 
+  Department, 
+  Message, 
+  InvestigationResult, 
+  ExaminationResult, 
+  Feedback, 
+  ComprehensiveFeedback,
+  DifficultyLevel 
+} from '../types';
 import { generateClinicalCase, generateClinicalCaseWithDifficulty, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
 import { ConversationStorage } from '../lib/localStorage';
+import { getCaseFeedback, getDetailedCaseFeedback, getComprehensiveCaseFeedback } from '../services/geminiService';
 
 interface AppContextType {
   caseState: CaseState;
@@ -20,7 +30,7 @@ interface AppContextType {
   setInvestigationResults: (results: InvestigationResult[]) => void;
   setExaminationResults: (results: ExaminationResult[]) => void;
   setFinalData: (diagnosis: string, plan: string) => void;
-  setFeedback: (feedback: Feedback) => void;
+  setFeedback: (feedback: Feedback | ComprehensiveFeedback) => void;
   resetCase: () => void;
   saveConversationToDatabase: () => Promise<void>;
   saveCaseStateToDatabase: () => Promise<void>;
@@ -243,7 +253,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [conversationStorage]);
 
-  const setFeedback = useCallback((feedback: Feedback) => {
+  const setFeedback = useCallback((feedback: Feedback | ComprehensiveFeedback) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, feedback };
       

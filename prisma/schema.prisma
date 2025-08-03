@@ -141,7 +141,6 @@ model Case {
   examinationResults    ExaminationResult[]
   investigationResults  InvestigationResult[]
   feedback              Feedback?
-  emailReports          EmailReport[]
 
   @@map("cases")
 }
@@ -223,7 +222,7 @@ model InvestigationResult {
 model Feedback {
   id                String   @id @default(cuid())
   diagnosis         String
-  keyTakeaway       String   @db.Text
+  keyLearningPoint  String   @db.Text
   whatYouDidWell    String[] // Array of positive points
   whatCouldBeImproved String[] // Array of improvement points
   clinicalTip       String   @db.Text
@@ -233,7 +232,6 @@ model Feedback {
   improvementQuotes Json?    // Array of {quote: string, explanation: string}
   
   // Consultant teaching notes
-  keyLearningPoint    String? @db.Text
   clerkingStructure    String? @db.Text
   missedOpportunities  Json?   // Array of {opportunity: string, clinicalSignificance: string}
   clinicalReasoning    String? @db.Text
@@ -248,16 +246,4 @@ model Feedback {
   updatedAt DateTime @updatedAt
 
   @@map("feedback")
-}
-
-// Email tracking for reports
-model EmailReport {
-  id        String   @id @default(cuid())
-  email     String
-  caseId    String
-  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  sentAt    DateTime @default(now())
-  status    String   @default("sent") // 'sent' | 'delivered' | 'failed'
-  
-  @@map("email_reports")
 }

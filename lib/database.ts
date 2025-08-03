@@ -327,7 +327,7 @@ export async function saveFeedback(
     where: { caseId },
     update: {
       diagnosis: feedback.diagnosis,
-      keyTakeaway: feedback.keyTakeaway,
+      keyLearningPoint: feedback.keyLearningPoint,
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip
@@ -335,7 +335,7 @@ export async function saveFeedback(
     create: {
       caseId,
       diagnosis: feedback.diagnosis,
-      keyTakeaway: feedback.keyTakeaway,
+      keyLearningPoint: feedback.keyLearningPoint,
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip
@@ -360,13 +360,12 @@ export async function saveDetailedFeedback(
     where: { caseId },
     update: {
       diagnosis: feedback.diagnosis,
-      keyTakeaway: feedback.keyTakeaway,
+      keyLearningPoint: feedback.keyLearningPoint,
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip,
       positiveQuotes: feedback.positiveQuotes,
       improvementQuotes: feedback.improvementQuotes,
-      keyLearningPoint: feedback.keyLearningPoint,
       clerkingStructure: feedback.clerkingStructure,
       missedOpportunities: feedback.missedOpportunities,
       clinicalReasoning: feedback.clinicalReasoning,
@@ -376,13 +375,12 @@ export async function saveDetailedFeedback(
     create: {
       caseId,
       diagnosis: feedback.diagnosis,
-      keyTakeaway: feedback.keyTakeaway,
+      keyLearningPoint: feedback.keyLearningPoint,
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip,
       positiveQuotes: feedback.positiveQuotes,
       improvementQuotes: feedback.improvementQuotes,
-      keyLearningPoint: feedback.keyLearningPoint,
       clerkingStructure: feedback.clerkingStructure,
       missedOpportunities: feedback.missedOpportunities,
       clinicalReasoning: feedback.clinicalReasoning,
@@ -413,20 +411,4 @@ export async function getUserStats(userId: string) {
     completionRate: totalCases > 0 ? (completedCases / totalCases) * 100 : 0,
     departmentBreakdown: departments
   }
-}
-
-// Email Report Tracking
-export async function createEmailReport(data: {
-  email: string
-  caseId: string
-  status?: string
-}): Promise<any> {
-  return await prisma.emailReport.create({ data })
-}
-
-export async function updateEmailReportStatus(id: string, status: string): Promise<any> {
-  return await prisma.emailReport.update({
-    where: { id },
-    data: { status }
-  })
 } 

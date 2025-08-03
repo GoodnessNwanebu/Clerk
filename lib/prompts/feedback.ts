@@ -1,16 +1,22 @@
 import { CaseState } from '../../types';
 
-export const feedbackPrompt = (caseState: CaseState, surgicalContext: string) =>
-`Analyze student performance. Provide JSON: {"diagnosis": string, "keyTakeaway": string, "whatYouDidWell": string[], "whatCouldBeImproved": string[], "clinicalTip": string}.
+export const feedbackPrompt = (caseState: CaseState) =>
+`Provide clinical feedback. JSON: {
+    "diagnosis": string, 
+    "keyLearningPoint": string, 
+    "whatYouDidWell": string[],
+    "whatCouldBeImproved": string[],
+    "clinicalTip": string
+}
 
 IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
 
-${surgicalContext}
+Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities.
 
 Case: ${caseState.department?.name || 'Unknown'}
 Correct Diagnosis: ${caseState.caseDetails?.diagnosis || 'Unknown'}
-Conversation: ${JSON.stringify(caseState.messages)}
-Student Diagnosis: ${caseState.finalDiagnosis}
+Your Diagnosis: ${caseState.finalDiagnosis}
+Conversation: ${JSON.stringify(caseState.messages || [])}
 Management Plan: ${caseState.managementPlan}`;
 
 export const detailedFeedbackPrompt = (caseState: CaseState, surgicalContext: string) =>
@@ -27,6 +33,38 @@ export const detailedFeedbackPrompt = (caseState: CaseState, surgicalContext: st
 IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities. Explain clinical significance.
+
+${surgicalContext}
+
+Case: ${caseState.department?.name || 'Unknown'}
+Correct Diagnosis: ${caseState.caseDetails?.diagnosis || 'Unknown'}
+Your Diagnosis: ${caseState.finalDiagnosis || 'Not provided'}
+Conversation: ${JSON.stringify(caseState.messages || [])}
+Management Plan: ${caseState.managementPlan || 'Not provided'}`;
+
+// New comprehensive feedback prompt that merges basic and detailed feedback
+export const comprehensiveFeedbackPrompt = (caseState: CaseState, surgicalContext: string) =>
+`Provide comprehensive clinical feedback that combines immediate feedback with detailed teaching notes. JSON: {
+    "diagnosis": string,
+    "keyLearningPoint": string,
+    "whatYouDidWell": string[],
+    "clinicalReasoning": string,
+    "clinicalOpportunities": {
+        "areasForImprovement": string[],
+        "missedOpportunities": [{"opportunity": string, "clinicalSignificance": string}]
+    },
+    "clinicalPearls": string[]
+}
+
+IMPORTANT: 
+- The "diagnosis" field should contain ONLY the diagnosis name
+- "whatYouDidWell" should include 4-5 points, incorporating positive communication and clerking structure feedback
+- "clinicalReasoning" should analyze the student's thinking process
+- "areasForImprovement" should include general improvement areas and negative communication/clerking feedback if any
+- "missedOpportunities" should be specific clinical opportunities with significance
+- "clinicalPearls" should be 3-5 actionable clinical tips
+
+Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities.
 
 ${surgicalContext}
 

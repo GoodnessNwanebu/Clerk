@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { getInvestigationResults, getExaminationResults, getCaseFeedback } from '../../services/geminiService';
+import { getInvestigationResults, getExaminationResults, getComprehensiveCaseFeedback } from '../../services/geminiService';
 import { Icon } from '../../components/Icon';
 import { InvestigationResults } from '../../components/InvestigationResults';
 import { ExaminationResults } from '../../components/ExaminationResults';
-import { InvestigationResult, ExaminationResult, Feedback } from '../../types';
+import { InvestigationResult, ExaminationResult, ComprehensiveFeedback } from '../../types';
 
 const ProgressIndicator: React.FC<{ step: number }> = ({ step }) => (
     <div className="flex items-center justify-center space-x-4 my-8">
@@ -104,7 +104,7 @@ const SummaryScreen: React.FC = () => {
         
         try {
             setFinalData(finalDiagnosis, managementPlan);
-            const feedback: Feedback | null = await getCaseFeedback({
+            const feedback: ComprehensiveFeedback | null = await getComprehensiveCaseFeedback({
                 ...caseState,
                 finalDiagnosis,
                 managementPlan

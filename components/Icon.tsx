@@ -5,7 +5,7 @@ import {
   Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2,
   Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
   Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
-  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet
+  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, Bookmark
 } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
@@ -35,6 +35,8 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'heart': return <Heart {...iconProps} />;
     case 'x': return <X {...iconProps} />;
     case 'chevrons-right': return <ChevronsRight {...iconProps} />;
+    case 'chevron-up': return <ChevronUp {...iconProps} />;
+    case 'chevron-down': return <ChevronDown {...iconProps} />;
     case 'send': return <SendHorizontal {...iconProps} />;
     case 'loader-2': return <Loader2 {...iconProps} />;
     case 'mail': return <Mail {...iconProps} />;
@@ -66,6 +68,7 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'bone': return <Bone {...iconProps} />;
     case 'sparkles': return <Sparkles {...iconProps} />;
     case 'droplet': return <Droplet {...iconProps} />;
+    case 'bookmark': return <Bookmark {...iconProps} />;
     // Fallback for missing icons (like 'stomach')
     case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
     case 'mind': return <Brain {...iconProps} />; // Using brain as fallback
