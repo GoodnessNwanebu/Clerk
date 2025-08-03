@@ -6,29 +6,24 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    if (!userEmail) {
-      return NextResponse.json({ 
-        error: 'userEmail is required' 
-      }, { status: 400 });
-    }
+    // For now, fetch all completed cases if no userEmail is provided
+    // In the future, we can implement proper user authentication
+    let whereClause: any = { isCompleted: true };
+    
+    if (userEmail) {
+      // Get user
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail }
+      });
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail }
-    });
-
-    if (!user) {
-      return NextResponse.json({ 
-        error: 'User not found' 
-      }, { status: 404 });
+      if (user) {
+        whereClause.userId = user.id;
+      }
     }
 
     // Fetch completed cases
     const completedCases = await prisma.case.findMany({
-      where: {
-        userId: user.id,
-        isCompleted: true
-      },
+      where: whereClause,
       include: {
         department: true,
         patientProfile: true,

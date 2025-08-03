@@ -22,16 +22,16 @@ export default function SavedCasesPage() {
 
   useEffect(() => {
     const fetchCompletedCases = async () => {
-      if (!userEmail) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/cases/completed?userEmail=${encodeURIComponent(userEmail)}`);
+        // Build URL with userEmail if available
+        const url = userEmail 
+          ? `/api/cases/completed?userEmail=${encodeURIComponent(userEmail)}`
+          : '/api/cases/completed';
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           setError('Failed to load saved cases');
