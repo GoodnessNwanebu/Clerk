@@ -130,6 +130,15 @@ model Case {
   finalDiagnosis       String?
   managementPlan       String?
   
+  // Enhanced saved case fields (Phase 1)
+  clinicalSummary      String? @db.Text
+  keyFindings          Json?   // Array of key findings with rationale
+  investigations       Json?   // Array of appropriate investigations with rationale
+  enhancedManagementPlan Json? // Array of appropriate management steps with rationale
+  clinicalOpportunities Json?  // Array of missed opportunities from feedback
+  clinicalPearls       String? @db.Text
+  aiGeneratedAt        DateTime? // When AI content was generated
+  
   // Timestamps
   startedAt    DateTime @default(now())
   completedAt  DateTime?

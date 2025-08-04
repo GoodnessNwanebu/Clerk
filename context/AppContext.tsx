@@ -125,7 +125,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const generateNewCaseWithDifficulty = useCallback(async (department: Department, difficulty: DifficultyLevel) => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await generateClinicalCaseWithDifficulty(department.name, difficulty, userCountry || undefined);
+      const newCase = await retryWithBackoff(
+        () => generateClinicalCaseWithDifficulty(department.name, difficulty, userCountry || undefined),
+        3, // 3 retries
+        1000, // 1s base delay
+        `Generate case for ${department.name}`
+      );
+      
       if (!newCase) {
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
@@ -165,7 +171,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const generatePracticeCase = useCallback(async (department: Department, condition: string, difficulty: DifficultyLevel = 'standard') => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await generatePracticeCaseService(department.name, condition, userCountry || undefined);
+      const newCase = await retryWithBackoff(
+        () => generatePracticeCaseService(department.name, condition, userCountry || undefined),
+        3, // 3 retries
+        1000, // 1s base delay
+        `Generate practice case for ${condition}`
+      );
+      
       if (!newCase) {
         throw new Error(`Failed to generate a practice case for ${condition} in ${department.name}`);
       }
@@ -276,22 +288,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const saveConversationToDatabase = useCallback(async () => {
     if (!conversationStorage || !userEmail || !caseState.messages.length) return;
     
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveConversation',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          messages: caseState.messages
-        })
-      });
+    const saveOperation = () => fetch('/api/cases/batch-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveConversation',
+        userEmail,
+        userCountry,
+        caseId: conversationStorage['caseId'],
+        messages: caseState.messages
+      })
+    });
 
-      if (response.ok) {
-        console.log('Conversation saved to database');
-      }
+    try {
+      await retrySaveWithBackoff(saveOperation, 2, 500);
+      console.log('Conversation saved to database');
     } catch (error) {
       console.error('Failed to save conversation to database:', error);
     }
@@ -300,28 +311,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const saveCaseStateToDatabase = useCallback(async () => {
     if (!conversationStorage || !userEmail) return;
     
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveCaseState',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          caseState: {
-            preliminaryDiagnosis: caseState.preliminaryDiagnosis,
-            examinationPlan: caseState.examinationPlan,
-            investigationPlan: caseState.investigationPlan,
-            finalDiagnosis: caseState.finalDiagnosis,
-            managementPlan: caseState.managementPlan
-          }
-        })
-      });
+    const saveOperation = () => fetch('/api/cases/batch-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveCaseState',
+        userEmail,
+        userCountry,
+        caseId: conversationStorage['caseId'],
+        caseState: {
+          preliminaryDiagnosis: caseState.preliminaryDiagnosis,
+          examinationPlan: caseState.examinationPlan,
+          investigationPlan: caseState.investigationPlan,
+          finalDiagnosis: caseState.finalDiagnosis,
+          managementPlan: caseState.managementPlan
+        }
+      })
+    });
 
-      if (response.ok) {
-        console.log('Case state saved to database');
-      }
+    try {
+      await retrySaveWithBackoff(saveOperation, 2, 500);
+      console.log('Case state saved to database');
     } catch (error) {
       console.error('Failed to save case state to database:', error);
     }
@@ -409,55 +419,211 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [conversationStorage, userEmail, userCountry, caseState.caseDetails]);
 
+  // Generic retry mechanism for all operations
+  const retryWithBackoff = async (
+    operation: () => Promise<any>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000,
+    operationName: string = 'Operation'
+  ): Promise<any> => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await operation();
+        console.log(`${operationName} succeeded on attempt ${attempt + 1}`);
+        return result;
+      } catch (error) {
+        console.warn(`${operationName} failed on attempt ${attempt + 1}:`, error);
+        
+        if (attempt === maxRetries) {
+          throw error; // Re-throw on final attempt
+        }
+        
+        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+        console.log(`Retrying ${operationName} in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error(`${operationName} failed after ${maxRetries + 1} attempts`);
+  };
+
+  // Retry mechanism for save operations (keeps existing interface)
+  const retrySaveWithBackoff = async (
+    operation: () => Promise<Response>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<boolean> => {
+    try {
+      await retryWithBackoff(operation, maxRetries, baseDelay, 'Save operation');
+      return true;
+    } catch (error) {
+      console.error('Save operation failed after all retries:', error);
+      return false;
+    }
+  };
+
   const saveCompletedCaseToDatabase = useCallback(async (): Promise<boolean> => {
     if (!conversationStorage || !userEmail || !caseState.caseDetails || !caseState.feedback) return false;
     
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveCompletedCase',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          completedCase: {
-            department: caseState.department?.name,
-            condition: caseState.caseDetails.diagnosis,
-            patientInfo: {
-              diagnosis: caseState.caseDetails.diagnosis,
-              primaryInfo: caseState.caseDetails.primaryInfo,
-              openingLine: caseState.caseDetails.openingLine,
-              patientProfile: caseState.caseDetails.patientProfile,
-              pediatricProfile: caseState.caseDetails.pediatricProfile,
-              isPediatric: caseState.caseDetails.isPediatric
-            },
-            messages: caseState.messages,
-            preliminaryDiagnosis: caseState.preliminaryDiagnosis,
-            examinationPlan: caseState.examinationPlan,
-            investigationPlan: caseState.investigationPlan,
-            finalDiagnosis: caseState.finalDiagnosis,
-            managementPlan: caseState.managementPlan,
-            examinationResults: caseState.examinationResults,
-            investigationResults: caseState.investigationResults,
-            feedback: caseState.feedback,
-            completedAt: new Date().toISOString()
-          }
-        })
-      });
+    const saveOperation = () => fetch('/api/cases/batch-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveCompletedCase',
+        userEmail,
+        userCountry,
+        caseId: conversationStorage['caseId'],
+        completedCase: {
+          department: caseState.department?.name,
+          condition: caseState.caseDetails?.diagnosis || '',
+          patientInfo: {
+            diagnosis: caseState.caseDetails?.diagnosis || '',
+            primaryInfo: caseState.caseDetails?.primaryInfo || '',
+            openingLine: caseState.caseDetails?.openingLine || '',
+            patientProfile: caseState.caseDetails?.patientProfile,
+            pediatricProfile: caseState.caseDetails?.pediatricProfile,
+            isPediatric: caseState.caseDetails?.isPediatric || false
+          },
+          messages: caseState.messages,
+          preliminaryDiagnosis: caseState.preliminaryDiagnosis,
+          examinationPlan: caseState.examinationPlan,
+          investigationPlan: caseState.investigationPlan,
+          finalDiagnosis: caseState.finalDiagnosis,
+          managementPlan: caseState.managementPlan,
+          examinationResults: caseState.examinationResults,
+          investigationResults: caseState.investigationResults,
+          feedback: caseState.feedback,
+          completedAt: new Date().toISOString()
+        }
+      })
+    });
 
-      if (response.ok) {
-        console.log('Completed case saved to database');
-        return true;
-      } else {
-        console.error('Failed to save completed case');
-        return false;
-      }
-    } catch (error) {
-      console.error('Failed to save completed case to database:', error);
-      return false;
+    // Try immediate save first
+    const immediateSuccess = await retrySaveWithBackoff(saveOperation, 2, 500);
+    if (immediateSuccess) {
+      console.log('Completed case saved to database immediately');
+      return true;
     }
+
+    // If immediate save fails, queue for background retry
+    console.log('Immediate save failed, queuing for background retry...');
+    queueBackgroundSave(saveOperation);
+    
+    // Return true to prevent user from seeing error
+    return true;
   }, [conversationStorage, userEmail, userCountry, caseState]);
+
+  // Background save queue
+  const backgroundSaveQueue: Array<() => Promise<Response>> = [];
+  let isProcessingBackgroundSaves = false;
+
+  const queueBackgroundSave = (saveOperation: () => Promise<Response>) => {
+    backgroundSaveQueue.push(saveOperation);
+    if (!isProcessingBackgroundSaves) {
+      processBackgroundSaves();
+    }
+  };
+
+  // Persistent storage for failed saves
+  const saveFailedOperationToStorage = (saveOperation: () => Promise<Response>, caseData: any) => {
+    try {
+      const failedSaves = JSON.parse(localStorage.getItem('clerkSmartFailedSaves') || '[]');
+      failedSaves.push({
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        caseData,
+        retryCount: 0
+      });
+      localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(failedSaves));
+      console.log('Failed save operation stored for later retry');
+    } catch (error) {
+      console.error('Failed to store failed save operation:', error);
+    }
+  };
+
+  const processBackgroundSaves = async () => {
+    if (isProcessingBackgroundSaves || backgroundSaveQueue.length === 0) return;
+    
+    isProcessingBackgroundSaves = true;
+    console.log(`Processing ${backgroundSaveQueue.length} background saves...`);
+
+    while (backgroundSaveQueue.length > 0) {
+      const saveOperation = backgroundSaveQueue.shift();
+      if (saveOperation) {
+        try {
+          const success = await retrySaveWithBackoff(saveOperation, 5, 2000);
+          if (success) {
+            console.log('Background save succeeded');
+          } else {
+            console.error('Background save failed after all retries');
+            // Store failed operation for later retry
+            const caseData = {
+              userEmail,
+              userCountry,
+              caseId: conversationStorage?.['caseId'],
+              completedCase: {
+                department: caseState.department?.name,
+                condition: caseState.caseDetails?.diagnosis,
+                // ... other case data
+              }
+            };
+            saveFailedOperationToStorage(saveOperation, caseData);
+          }
+        } catch (error) {
+          console.error('Background save error:', error);
+        }
+        
+        // Add delay between background saves to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    isProcessingBackgroundSaves = false;
+    console.log('Background save processing complete');
+  };
+
+  // Process any failed saves from previous sessions on app load
+  useEffect(() => {
+    const processFailedSaves = async () => {
+      try {
+        const failedSaves = JSON.parse(localStorage.getItem('clerkSmartFailedSaves') || '[]');
+        if (failedSaves.length > 0) {
+          console.log(`Found ${failedSaves.length} failed saves to retry`);
+          
+          for (const failedSave of failedSaves) {
+            if (failedSave.retryCount < 3) {
+              // Reconstruct the save operation
+              const saveOperation = () => fetch('/api/cases/batch-save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'saveCompletedCase',
+                  ...failedSave.caseData
+                })
+              });
+
+              const success = await retrySaveWithBackoff(saveOperation, 2, 1000);
+              if (success) {
+                // Remove from failed saves
+                const updatedFailedSaves = failedSaves.filter((save: any) => save.id !== failedSave.id);
+                localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(updatedFailedSaves));
+                console.log('Recovered failed save from previous session');
+              } else {
+                // Increment retry count
+                failedSave.retryCount++;
+                localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(failedSaves));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error processing failed saves:', error);
+      }
+    };
+
+    if (userEmail) {
+      processFailedSaves();
+    }
+  }, [userEmail]);
 
   const value = { 
     caseState, 

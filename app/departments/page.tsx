@@ -52,7 +52,8 @@ const DepartmentSelectionScreen: React.FC = () => {
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
             setError(err.message.split(': ')[1]);
         } else {
-            setError("Sorry, we couldn't create a new case right now. Please try again.");
+            // Show a more user-friendly error message since we have retry logic
+            setError("We're having trouble creating a case right now. Please try again in a moment.");
         }
       } else {
          setError("An unknown error occurred. Please try again.");

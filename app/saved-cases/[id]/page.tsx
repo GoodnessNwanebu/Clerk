@@ -14,6 +14,31 @@ interface CaseData {
   completedAt: string;
   timeSpent: number;
   clinicalSummary: string;
+  keyFindings: Array<{
+    finding: string;
+    significance: string;
+    rationale: string;
+    category: string;
+  }>;
+  investigations: Array<{
+    investigation: string;
+    rationale: string;
+    expectedFindings: string;
+    clinicalSignificance: string;
+  }>;
+  enhancedManagementPlan: Array<{
+    intervention: string;
+    rationale: string;
+    timing: string;
+    expectedOutcome: string;
+  }>;
+  clinicalOpportunities: Array<{
+    opportunity: string;
+    clinicalSignificance: string;
+    learningPoint: string;
+  }>;
+  clinicalPearls: string;
+  aiGeneratedAt: string;
   feedback: {
     keyLearningPoint: string;
     whatYouDidWell: string[];
@@ -221,6 +246,139 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
             </p>
           </div>
         </div>
+
+        {/* Key Findings */}
+        {caseData.keyFindings && caseData.keyFindings.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
+              <Icon name="search" size={20} className="mr-2" />
+              Key Findings
+            </h2>
+            
+            <div className="space-y-3">
+              {caseData.keyFindings.map((finding, index) => (
+                <div key={index} className="border-l-4 border-teal-500 pl-4 py-2">
+                  <div className="font-medium text-slate-900 dark:text-white">
+                    {finding.finding}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    <span className="font-medium">Significance:</span> {finding.significance}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    <span className="font-medium">Rationale:</span> {finding.rationale}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                    Category: {finding.category}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Investigations */}
+        {caseData.investigations && caseData.investigations.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
+              <Icon name="microscope" size={20} className="mr-2" />
+              Investigations
+            </h2>
+            
+            <div className="space-y-4">
+              {caseData.investigations.map((investigation, index) => (
+                <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  <div className="mb-2">
+                    <h3 className="font-medium text-slate-900 dark:text-white">
+                      {investigation.investigation}
+                    </h3>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    <span className="font-medium">Rationale:</span> {investigation.rationale}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    <span className="font-medium">Expected Findings:</span> {investigation.expectedFindings}
+                  </div>
+                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                    <span className="font-medium">Clinical Significance:</span> {investigation.clinicalSignificance}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Management Plan */}
+        {caseData.enhancedManagementPlan && caseData.enhancedManagementPlan.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
+              <Icon name="stethoscope" size={20} className="mr-2" />
+              Management Plan
+            </h2>
+            
+            <div className="space-y-4">
+              {caseData.enhancedManagementPlan.map((intervention, index) => (
+                <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-slate-900 dark:text-white">
+                      {intervention.intervention}
+                    </h3>
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      {intervention.timing}
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    <span className="font-medium">Rationale:</span> {intervention.rationale}
+                  </div>
+                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                    <span className="font-medium">Expected Outcome:</span> {intervention.expectedOutcome}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Clinical Opportunities */}
+        {caseData.clinicalOpportunities && caseData.clinicalOpportunities.length > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl p-6 mb-6 shadow-sm border border-red-200 dark:border-red-800">
+            <h2 className="text-lg font-semibold text-red-700 dark:text-red-400 mb-4 flex items-center">
+              <Icon name="alert-triangle" size={20} className="mr-2" />
+              Clinical Opportunities
+            </h2>
+            
+            <div className="space-y-3">
+              {caseData.clinicalOpportunities.map((opportunity, index) => (
+                <div key={index} className="border-l-4 border-red-500 pl-4 py-2">
+                  <div className="font-medium text-slate-900 dark:text-white">
+                    {opportunity.opportunity}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    <span className="font-medium">Clinical Significance:</span> {opportunity.clinicalSignificance}
+                  </div>
+                  <div className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                    <span className="font-medium">Learning Point:</span> {opportunity.learningPoint}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Clinical Pearls */}
+        {caseData.clinicalPearls && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-6 mb-6 shadow-sm border border-amber-200 dark:border-amber-800">
+            <h2 className="text-lg font-semibold text-amber-700 dark:text-amber-400 mb-4 flex items-center">
+              <Icon name="lightbulb" size={20} className="mr-2" />
+              Clinical Pearls
+            </h2>
+            
+            <div className="prose prose-slate dark:prose-invert max-w-none">
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                {caseData.clinicalPearls}
+              </p>
+            </div>
+          </div>
+        )}
 
         <hr className="border-slate-200 dark:border-slate-700 my-6" />
 

@@ -74,15 +74,29 @@ const SummaryScreen: React.FC = () => {
             // Get examination results if examination plan is provided
             let examinationResults: ExaminationResult[] = [];
             if (examinationPlan.trim()) {
-                examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
-                setExaminationResults(examinationResults);
+                try {
+                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
+                    setExaminationResults(examinationResults);
+                } catch (examError) {
+                    console.warn('Failed to get examination results, retrying...', examError);
+                    // Retry examination results
+                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
+                    setExaminationResults(examinationResults);
+                }
             }
             
             // Get investigation results if investigation plan is provided
             let investigationResults: InvestigationResult[] = [];
             if (investigationPlan.trim()) {
-                investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
-                setInvestigationResults(investigationResults);
+                try {
+                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
+                    setInvestigationResults(investigationResults);
+                } catch (invError) {
+                    console.warn('Failed to get investigation results, retrying...', invError);
+                    // Retry investigation results
+                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
+                    setInvestigationResults(investigationResults);
+                }
             }
             
             setFinalDiagnosis(prelimDiagnosis);
@@ -104,11 +118,29 @@ const SummaryScreen: React.FC = () => {
         
         try {
             setFinalData(finalDiagnosis, managementPlan);
-            const feedback: ComprehensiveFeedback | null = await getComprehensiveCaseFeedback({
-                ...caseState,
-                finalDiagnosis,
-                managementPlan
-            });
+            
+            // Retry feedback generation with exponential backoff
+            let feedback: ComprehensiveFeedback | null = null;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (!feedback && retryCount <= maxRetries) {
+                try {
+                    feedback = await getComprehensiveCaseFeedback({
+                        ...caseState,
+                        finalDiagnosis,
+                        managementPlan
+                    });
+                } catch (feedbackError) {
+                    retryCount++;
+                    if (retryCount <= maxRetries) {
+                        console.warn(`Feedback generation failed, retrying ${retryCount}/${maxRetries}...`, feedbackError);
+                        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1))); // Exponential backoff
+                    } else {
+                        throw feedbackError;
+                    }
+                }
+            }
 
             if (feedback) {
                 setFeedback(feedback);

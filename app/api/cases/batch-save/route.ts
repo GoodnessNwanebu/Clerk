@@ -11,6 +11,15 @@ import {
 } from '../../../../lib/database'
 import { prisma } from '../../../../lib/prisma'
 import { Message } from '../../../../types'
+import { 
+  generateClinicalSummary,
+  generateKeyFindings,
+  generateInvestigations,
+  generateManagementPlan,
+  generateClinicalOpportunities,
+  generateClinicalPearls,
+  createFallbackSummary
+} from '../../../../lib/ai-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -281,10 +290,124 @@ export async function POST(request: NextRequest) {
             await saveFeedback(newCase.id, completedCase.feedback);
           }
 
+          // Generate enhanced saved case content with AI (Phase 1)
+          try {
+            console.log('Generating enhanced saved case content...');
+            
+            // Get the saved data for AI generation
+            const savedCase = await prisma.case.findUnique({
+              where: { id: newCase.id },
+              include: {
+                examinationResults: true,
+                investigationResults: true,
+                feedback: true,
+                patientProfile: true,
+                pediatricProfile: true
+              }
+            });
+
+            if (savedCase) {
+              // Generate AI content with fallback
+              const [clinicalSummary, keyFindings, investigations, managementPlan, clinicalOpportunities, clinicalPearls] = await Promise.allSettled([
+                generateClinicalSummary(
+                  completedCase.patientInfo,
+                  savedCase.examinationResults,
+                  savedCase.investigationResults
+                ),
+                generateKeyFindings(
+                  savedCase.examinationResults,
+                  savedCase.investigationResults
+                ),
+                generateInvestigations(
+                  completedCase.condition,
+                  completedCase.patientInfo
+                ),
+                generateManagementPlan(
+                  completedCase.condition,
+                  completedCase.patientInfo
+                ),
+                generateClinicalOpportunities(
+                  completedCase.feedback,
+                  completedCase.condition
+                ),
+                generateClinicalPearls(
+                  completedCase.feedback,
+                  completedCase.condition
+                )
+              ]);
+
+              // Use AI results or fallback
+              const fallback = createFallbackSummary(completedCase.patientInfo, savedCase.examinationResults, savedCase.investigationResults);
+              
+              const finalClinicalSummary = clinicalSummary.status === 'fulfilled' && clinicalSummary.value 
+                ? clinicalSummary.value 
+                : fallback.clinicalSummary;
+
+              const finalKeyFindings = keyFindings.status === 'fulfilled' && keyFindings.value 
+                ? keyFindings.value 
+                : fallback.keyFindings;
+
+              const finalInvestigations = investigations.status === 'fulfilled' && investigations.value 
+                ? investigations.value 
+                : fallback.investigations;
+
+              const finalManagementPlan = managementPlan.status === 'fulfilled' && managementPlan.value 
+                ? managementPlan.value 
+                : fallback.managementPlan;
+
+              const finalClinicalOpportunities = clinicalOpportunities.status === 'fulfilled' && clinicalOpportunities.value 
+                ? clinicalOpportunities.value 
+                : fallback.clinicalOpportunities;
+
+              const finalClinicalPearls = clinicalPearls.status === 'fulfilled' && clinicalPearls.value 
+                ? clinicalPearls.value 
+                : null;
+
+              // Update case with enhanced content
+              await prisma.case.update({
+                where: { id: newCase.id },
+                data: {
+                  clinicalSummary: finalClinicalSummary,
+                  keyFindings: finalKeyFindings,
+                  investigations: finalInvestigations,
+                  enhancedManagementPlan: finalManagementPlan,
+                  clinicalOpportunities: finalClinicalOpportunities,
+                  clinicalPearls: finalClinicalPearls,
+                  aiGeneratedAt: new Date()
+                }
+              });
+
+              console.log('Enhanced saved case content generated successfully');
+            }
+          } catch (aiError) {
+            console.error('Error generating AI content, using fallback:', aiError);
+            
+            // Use fallback content
+            const fallback = createFallbackSummary(
+              completedCase.patientInfo,
+              completedCase.examinationResults || [],
+              completedCase.investigationResults || []
+            );
+
+            await prisma.case.update({
+              where: { id: newCase.id },
+              data: {
+                clinicalSummary: fallback.clinicalSummary,
+                keyFindings: fallback.keyFindings,
+                investigations: fallback.investigations,
+                aiGeneratedAt: new Date()
+              }
+            });
+          }
+
           return NextResponse.json({ 
             success: true, 
             caseId: newCase.id 
           });
+        } else {
+          return NextResponse.json({ 
+            error: 'No completed case data provided' 
+          }, { status: 400 });
         }
         break;
 

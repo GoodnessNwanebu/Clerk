@@ -97,6 +97,20 @@ export const parseJsonResponse = <T>(text: string, context: string): T => {
     }
 };
 
+// Helper function to generate AI responses
+export const generateAIResponse = async (prompt: string): Promise<string> => {
+  try {
+    const response = await ai.generateContent({
+      model: MODEL,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+    return response.text;
+  } catch (error) {
+    console.error('Error generating AI response:', error);
+    throw error;
+  }
+};
+
 export const handleApiError = (error: unknown, context: string) => {
     console.error(`Error in ${context}:`, error);
     
@@ -126,3 +140,270 @@ export const handleApiError = (error: unknown, context: string) => {
     
     return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
 }; 
+
+// Enhanced saved case AI generation functions
+export async function generateClinicalSummary(
+  patientInfo: any,
+  examinationResults: any[],
+  investigationResults: any[]
+): Promise<string | null> {
+  try {
+    const prompt = `Generate a concise clinical summary for this patient case:
+
+Patient Information:
+- Primary Info: ${patientInfo.primaryInfo}
+- Opening Line: ${patientInfo.openingLine}
+- Diagnosis: ${patientInfo.diagnosis}
+
+Key Examination Findings:
+${examinationResults.map(result => `- ${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`).join('\n')}
+
+Key Investigation Results:
+${investigationResults.map(result => `- ${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`).join('\n')}
+
+Please provide a 2-3 sentence clinical summary that captures the patient's presentation, key findings, and diagnosis. Focus on the most clinically relevant information.`;
+
+    const response = await generateAIResponse(prompt);
+    return response;
+  } catch (error) {
+    console.error('Error generating clinical summary:', error);
+    return null;
+  }
+}
+
+export async function generateKeyFindings(
+  examinationResults: any[],
+  investigationResults: any[]
+): Promise<any[] | null> {
+  try {
+    const prompt = `Analyze these examination and investigation results to identify the most important clinical findings with detailed rationale:
+
+Examination Results:
+${examinationResults.map(result => `- ${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''} (${result.status || 'Normal'})`).join('\n')}
+
+Investigation Results:
+${investigationResults.map(result => `- ${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`).join('\n')}
+
+Please return a JSON array of the 5-8 most important findings in this format:
+[
+  {
+    "finding": "ST elevation in leads II, III, aVF",
+    "significance": "Indicates inferior STEMI",
+    "rationale": "ST elevation in inferior leads (II, III, aVF) indicates transmural myocardial injury in the inferior wall of the heart, which is supplied by the right coronary artery. This is a critical finding that requires immediate intervention.",
+    "category": "ECG"
+  }
+]
+
+Focus on abnormal findings and clinically significant results. Provide detailed rationale explaining WHY each finding is important and what it means clinically.`;
+
+    const response = await generateAIResponse(prompt);
+    
+    try {
+      const parsed = JSON.parse(response);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (parseError) {
+      console.error('Error parsing key findings JSON:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error generating key findings:', error);
+    return null;
+  }
+}
+
+export async function generateInvestigations(
+  diagnosis: string,
+  patientInfo: any
+): Promise<any[] | null> {
+  try {
+    const prompt = `Based on the diagnosis and patient presentation, generate the APPROPRIATE investigations that SHOULD be ordered for this condition (not what the student actually ordered):
+
+Diagnosis: ${diagnosis}
+Patient Presentation: ${patientInfo.primaryInfo} ${patientInfo.openingLine}
+
+Please return a JSON array of the appropriate investigations in this format:
+[
+  {
+    "investigation": "Troponin",
+    "rationale": "Cardiac biomarker to confirm myocardial injury. Troponin I or T levels rise 3-4 hours after myocardial injury and remain elevated for 7-10 days, making them highly sensitive and specific for acute myocardial infarction.",
+    "expectedFindings": "Elevated levels (>99th percentile of normal) indicate myocardial injury",
+    "clinicalSignificance": "Confirms diagnosis of acute myocardial infarction and helps risk stratify patients"
+  }
+]
+
+Focus on what investigations are STANDARD OF CARE for this condition, not what the student chose. Provide detailed rationale explaining WHY each investigation is appropriate and what it tells us.`;
+
+    const response = await generateAIResponse(prompt);
+    
+    try {
+      const parsed = JSON.parse(response);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (parseError) {
+      console.error('Error parsing investigations JSON:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error generating investigations:', error);
+    return null;
+  }
+}
+
+export async function generateManagementPlan(
+  diagnosis: string,
+  patientInfo: any
+): Promise<any[] | null> {
+  try {
+    const prompt = `Based on the diagnosis and patient presentation, generate the APPROPRIATE management plan that SHOULD be implemented for this condition (not what the student actually wrote):
+
+Diagnosis: ${diagnosis}
+Patient Presentation: ${patientInfo.primaryInfo} ${patientInfo.openingLine}
+
+Please return a JSON array of the appropriate management steps in this format:
+[
+  {
+    "intervention": "Immediate PCI (Percutaneous Coronary Intervention)",
+    "rationale": "Primary PCI is the gold standard treatment for STEMI. It should be performed within 90 minutes of first medical contact to restore blood flow and minimize myocardial damage.",
+    "timing": "Immediate (within 90 minutes)",
+    "expectedOutcome": "Restoration of coronary blood flow, reduction in infarct size, and improved survival"
+  }
+]
+
+Focus on what management is STANDARD OF CARE for this condition, not what the student chose. Provide detailed rationale explaining WHY each intervention is appropriate and when it should be done.`;
+
+    const response = await generateAIResponse(prompt);
+    
+    try {
+      const parsed = JSON.parse(response);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (parseError) {
+      console.error('Error parsing management plan JSON:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error generating management plan:', error);
+    return null;
+  }
+}
+
+export async function generateClinicalOpportunities(
+  feedback: any,
+  diagnosis: string
+): Promise<any[] | null> {
+  try {
+    const prompt = `Based on the feedback and diagnosis, identify the clinical opportunities that were missed or could be improved:
+
+Diagnosis: ${diagnosis}
+
+Feedback:
+- Areas for Improvement: ${feedback.areasForImprovement?.join(', ') || 'Not provided'}
+- Missed Opportunities: ${feedback.missedOpportunities?.map((opp: any) => `${opp.opportunity}: ${opp.clinicalSignificance}`).join(', ') || 'Not provided'}
+- Key Learning Points: ${feedback.keyLearningPoints?.join(', ') || 'Not provided'}
+
+Please return a JSON array of clinical opportunities in this format:
+[
+  {
+    "opportunity": "Early ECG interpretation",
+    "clinicalSignificance": "Delayed recognition of STEMI can lead to increased myocardial damage and worse outcomes",
+    "learningPoint": "Always prioritize ECG interpretation in chest pain patients - time is muscle in STEMI"
+  }
+]
+
+Focus on what opportunities were missed and their clinical significance. Provide learning points for future cases.`;
+
+    const response = await generateAIResponse(prompt);
+    
+    try {
+      const parsed = JSON.parse(response);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (parseError) {
+      console.error('Error parsing clinical opportunities JSON:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error generating clinical opportunities:', error);
+    return null;
+  }
+}
+
+export async function generateClinicalPearls(
+  feedback: any,
+  diagnosis: string
+): Promise<string | null> {
+  try {
+    const prompt = `Based on this feedback and diagnosis, generate 2-3 clinical pearls for learning:
+
+Diagnosis: ${diagnosis}
+
+Feedback:
+- Key Learning Points: ${feedback.keyLearningPoints?.join(', ') || 'Not provided'}
+- Areas for Improvement: ${feedback.areasForImprovement?.join(', ') || 'Not provided'}
+- Strengths: ${feedback.strengths?.join(', ') || 'Not provided'}
+
+Please provide 2-3 concise clinical pearls that would help a medical student learn from this case. Focus on practical clinical knowledge and common pitfalls.`;
+
+    const response = await generateAIResponse(prompt);
+    return response;
+  } catch (error) {
+    console.error('Error generating clinical pearls:', error);
+    return null;
+  }
+}
+
+// Fallback function to create basic summaries when AI fails
+export function createFallbackSummary(
+  patientInfo: any,
+  examinationResults: any[],
+  investigationResults: any[]
+): {
+  clinicalSummary: string;
+  keyFindings: any[];
+  investigations: any[];
+  managementPlan: any[];
+  clinicalOpportunities: any[];
+} {
+  const clinicalSummary = `${patientInfo.primaryInfo} ${patientInfo.openingLine}`;
+  
+  const keyFindings = examinationResults
+    .filter(result => result.status === 'High' || result.status === 'Low' || result.status === 'Critical' || result.findings)
+    .slice(0, 5)
+    .map(result => ({
+      finding: `${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`,
+      significance: result.status || 'Abnormal',
+      rationale: `This finding indicates ${result.status || 'an abnormality'} in ${result.name}`,
+      category: result.category
+    }));
+
+  const investigations = investigationResults
+    .slice(0, 5)
+    .map(result => ({
+      investigation: result.name,
+      rationale: 'Standard investigation for this condition',
+      expectedFindings: result.findings || 'Results available',
+      clinicalSignificance: 'Important for diagnosis and management'
+    }));
+
+  const managementPlan = [
+    {
+      intervention: 'Standard management for this condition',
+      rationale: 'Based on current clinical guidelines',
+      timing: 'As appropriate for the condition',
+      expectedOutcome: 'Improved patient outcomes'
+    }
+  ];
+
+  const clinicalOpportunities = [
+    {
+      opportunity: 'Review case for learning opportunities',
+      clinicalSignificance: 'Important for improving clinical skills',
+      learningPoint: 'Always reflect on cases to improve future practice'
+    }
+  ];
+
+  return {
+    clinicalSummary,
+    keyFindings,
+    investigations,
+    managementPlan,
+    clinicalOpportunities
+  };
+} 
