@@ -20,8 +20,10 @@ interface AppContextType {
   isGeneratingCase: boolean;
   userEmail: string | null;
   userCountry: string | null;
+  navigationEntryPoint: string | null;
   setUserEmail: (email: string) => void;
   setUserCountry: (country: string) => void;
+  setNavigationEntryPoint: (entryPoint: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
   generateNewCaseWithDifficulty: (department: Department, difficulty: DifficultyLevel) => Promise<void>;
   generatePracticeCase: (department: Department, condition: string, difficulty?: DifficultyLevel) => Promise<void>;
@@ -61,6 +63,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [userEmail, setUserEmailState] = useState<string | null>(null);
   const [userCountry, setUserCountryState] = useState<string | null>(null);
+  const [navigationEntryPoint, setNavigationEntryPointState] = useState<string | null>(null);
   const [conversationStorage, setConversationStorage] = useState<ConversationStorage | null>(null);
   const isBrowser = typeof window !== 'undefined';
 
@@ -101,6 +104,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (storedCountry) {
       setUserCountryState(storedCountry);
     }
+
+    const storedEntryPoint = localStorage.getItem('navigationEntryPoint');
+    if (storedEntryPoint) {
+      setNavigationEntryPointState(storedEntryPoint);
+    }
   }, [isBrowser]);
 
   const setUserEmail = (email: string) => {
@@ -115,6 +123,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem('userCountry', country);
     }
     setUserCountryState(country);
+  };
+
+  const setNavigationEntryPoint = (entryPoint: string) => {
+    if (isBrowser) {
+      localStorage.setItem('navigationEntryPoint', entryPoint);
+    }
+    setNavigationEntryPointState(entryPoint);
   };
   
   const generateNewCase = useCallback(async (department: Department) => {
@@ -172,7 +187,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsGeneratingCase(true);
     try {
       const newCase = await retryWithBackoff(
-        () => generatePracticeCaseService(department.name, condition, userCountry || undefined),
+        () => generatePracticeCaseService(department.name, condition, difficulty, userCountry || undefined),
         3, // 3 retries
         1000, // 1s base delay
         `Generate practice case for ${condition}`
@@ -182,7 +197,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(`Failed to generate a practice case for ${condition} in ${department.name}`);
       }
       
-      setCaseState({
+      // Generate a unique case ID
+      const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Initialize localStorage for this case
+      const storage = new ConversationStorage(caseId);
+      setConversationStorage(storage);
+      
+      const newCaseState = {
         ...initialCaseState,
         department,
         caseDetails: newCase,
@@ -191,7 +213,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
             timestamp: new Date().toISOString()
         }]
-      });
+      };
+      
+      setCaseState(newCaseState);
+      
+      // Save initial state to localStorage
+      storage.saveConversation(newCaseState.messages, newCaseState);
+      
     } catch (error) {
         console.error("Error in generatePracticeCase:", error);
         // Rethrow the error to be caught by the caller UI
@@ -282,6 +310,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const resetCase = useCallback(() => {
     setCaseState(initialCaseState);
     setConversationStorage(null);
+    setNavigationEntryPoint('');
   }, []);
 
   // Background save functions
@@ -632,6 +661,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           userCountry,
     setUserEmail, 
     setUserCountry, 
+    setNavigationEntryPoint,
     generateNewCase, 
     generateNewCaseWithDifficulty, 
     generatePracticeCase, 
@@ -647,7 +677,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     saveResultsToDatabase,
     saveFeedbackToDatabase,
     savePatientInfoToDatabase,
-    saveCompletedCaseToDatabase
+    saveCompletedCaseToDatabase,
+    navigationEntryPoint
   };
 
   return (

@@ -69,7 +69,7 @@ const getLocationContext = (country: string) => {
 
 export async function POST(request: NextRequest) {
     try {
-        const { departmentName, condition, userCountry } = await request.json();
+        const { departmentName, condition, difficulty = 'standard', userCountry } = await request.json();
         
         if (!departmentName || !condition) {
             return NextResponse.json({ error: 'Department name and condition are required' }, { status: 400 });
@@ -91,6 +91,30 @@ export async function POST(request: NextRequest) {
             LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
             : `Use culturally diverse names and consider common global disease patterns.`;
 
+        // Add difficulty-specific requirements
+        const difficultyPrompt = difficulty === 'standard' ? '' : 
+            difficulty === 'intermediate' ? `
+INTERMEDIATE DIFFICULTY REQUIREMENTS:
+- Include 1-2 relevant comorbidities
+- Slightly atypical presentation of the primary diagnosis
+- Some conflicting or unclear information
+- Multiple possible diagnoses to consider
+- Age-related factors affecting presentation
+- Medication interactions or side effects
+- Social factors influencing care
+- Require more detailed history taking and examination` :
+            difficulty === 'difficult' ? `
+DIFFICULT DIFFICULTY REQUIREMENTS:
+- Multiple comorbidities (3+ relevant conditions)
+- Highly atypical presentation of the primary diagnosis
+- Red herrings and confounding factors
+- Complex social determinants of health
+- Multiple organ system involvement
+- Rare disease presentations or complications
+- Complex medication interactions
+- Cultural or language barriers
+- Require comprehensive assessment and differential diagnosis` : '';
+
         const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
         
         ${locationPrompt}
@@ -99,7 +123,7 @@ export async function POST(request: NextRequest) {
         - The case MUST be for the condition: "${condition}"
         - The case should be solvable by a medical student
         - Balance regional authenticity with educational value
-        - Create a realistic presentation of the specified condition
+        - Create a realistic presentation of the specified condition${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
         
         EXAMPLES by pathophysiology category:
         - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease

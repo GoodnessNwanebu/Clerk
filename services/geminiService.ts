@@ -214,13 +214,13 @@ export const generateClinicalCaseWithDifficulty = async (departmentName: string,
     throw new Error("The server returned an invalid case format.");
 };
 
-export const generatePracticeCase = async (departmentName: string, condition: string, userCountry?: string): Promise<Case> => {
+export const generatePracticeCase = async (departmentName: string, condition: string, difficulty: DifficultyLevel = 'standard', userCountry?: string): Promise<Case> => {
     const response = await fetch('/api/practice', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ departmentName, condition, userCountry }),
+        body: JSON.stringify({ departmentName, condition, difficulty, userCountry }),
     });
 
     if (!response.ok) {

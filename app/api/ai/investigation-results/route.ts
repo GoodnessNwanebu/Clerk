@@ -13,7 +13,17 @@ export async function POST(request: NextRequest) {
         }
 
         const context = 'getInvestigationResults';
-        const userMessage = investigationResultsPrompt(plan, caseDetails.diagnosis);
+        
+        // Extract age information for pediatric cases
+        let patientAge: number | null = null;
+        let ageGroup: string | null = null;
+        
+        if (caseDetails.isPediatric && caseDetails.pediatricProfile) {
+            patientAge = caseDetails.pediatricProfile.patientAge;
+            ageGroup = caseDetails.pediatricProfile.ageGroup;
+        }
+        
+        const userMessage = investigationResultsPrompt(plan, caseDetails.diagnosis, patientAge, ageGroup);
 
         const response = await ai.generateContent({
             model: MODEL,

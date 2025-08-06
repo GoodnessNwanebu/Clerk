@@ -28,7 +28,7 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 const ClerkingScreen: React.FC = () => {
   const router = useRouter();
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
-  const { caseState, addMessage, userCountry, saveConversationToDatabase, savePatientInfoToDatabase } = useAppContext();
+  const { caseState, addMessage, userCountry, saveConversationToDatabase, savePatientInfoToDatabase, navigationEntryPoint } = useAppContext();
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
   
   // Client-side safe function to get department config
@@ -225,7 +225,7 @@ const ClerkingScreen: React.FC = () => {
           : 'bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50'
       }`} style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)'}}>
         <div className="flex justify-between items-center max-w-4xl mx-auto">
-          <button onClick={() => router.push('/departments')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white flex-shrink-0">
+          <button onClick={() => router.push(navigationEntryPoint || '/departments')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white flex-shrink-0">
             <Icon name="arrow-left" size={20} className="sm:w-6 sm:h-6" />
           </button>
           <div className="text-center flex-shrink-0">

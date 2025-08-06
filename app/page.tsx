@@ -68,6 +68,7 @@ export default function HomePage() {
 
   const handleResumeCase = () => {
     setShowResumeModal(false);
+    // Don't clear the navigation entry point - let it be restored from localStorage
     router.push('/clerking');
   };
 

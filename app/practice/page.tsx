@@ -11,7 +11,7 @@ import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
-  const { generatePracticeCase, isGeneratingCase } = useAppContext();
+  const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint } = useAppContext();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +28,7 @@ const PracticeModeScreen: React.FC = () => {
     setError(null);
     try {
       await generatePracticeCase(department, condition.trim(), difficulty);
+      setNavigationEntryPoint('/practice');
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {

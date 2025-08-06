@@ -29,7 +29,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   });
 
   // State for the actual, resolved theme ('light' or 'dark')
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>('light');
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
+    if (!isBrowser) return 'light';
+    const setting = localStorage.getItem('theme') as ThemeSetting;
+    if (setting === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return (setting as Theme) || 'light';
+  });
 
   // This is the core logic. It runs whenever themeSetting changes.
   useEffect(() => {

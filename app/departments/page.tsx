@@ -36,7 +36,7 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
 
 const DepartmentSelectionScreen: React.FC = () => {
   const router = useRouter();
-  const { generateNewCaseWithDifficulty, isGeneratingCase } = useAppContext();
+  const { generateNewCaseWithDifficulty, isGeneratingCase, setNavigationEntryPoint } = useAppContext();
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
@@ -46,6 +46,7 @@ const DepartmentSelectionScreen: React.FC = () => {
     setError(null);
     try {
       await generateNewCaseWithDifficulty(department, difficulty);
+      setNavigationEntryPoint('/departments');
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {

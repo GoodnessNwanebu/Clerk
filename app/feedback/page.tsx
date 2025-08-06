@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, resetCase, saveFeedbackToDatabase, saveCompletedCaseToDatabase } = useAppContext();
+    const { caseState, resetCase, saveFeedbackToDatabase, saveCompletedCaseToDatabase, setNavigationEntryPoint } = useAppContext();
     const { feedback, department } = caseState;
     
     const [expandedSections, setExpandedSections] = useState<{
@@ -72,6 +72,7 @@ const FeedbackScreen: React.FC = () => {
     const handleDone = async () => {
         await saveFeedbackToDatabase();
         resetCase();
+        setNavigationEntryPoint('');
         
         // Clear localStorage to prevent resume modal from appearing
         if (typeof window !== 'undefined') {
