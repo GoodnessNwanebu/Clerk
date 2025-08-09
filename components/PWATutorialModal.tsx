@@ -26,11 +26,12 @@ const detectBrowserAndDevice = (): BrowserType => {
   const isIOS = /iphone|ipad|ipod/.test(userAgent);
   
   // Check if it's Chrome (including Chromium-based browsers like Edge)
-  const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg');
+  // Chrome on iOS uses 'CriOS' in user agent, not 'chrome'
+  const isChrome = (userAgent.includes('chrome') || userAgent.includes('crios')) && !userAgent.includes('edg');
   const isEdge = userAgent.includes('edg');
   
   // Check if it's Safari (but not Chrome or Edge)
-  const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('edg');
+  const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('edg');
   
   if (isChrome || isEdge) {
     return isIOS ? 'chrome-ios' : 'chrome-android';
