@@ -183,17 +183,61 @@ export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {
     // Generate the image
     const imageDataUrl = await generateShareImage(shareData);
     
-    // For now, we'll share the text with a note about the image
-    // In a future implementation, we could use the Web Share API with files
-    const message = encodeURIComponent(shareData.shareMessage);
+    // Try to use Web Share API with files (for mobile devices)
+    if (navigator.share && navigator.canShare) {
+      try {
+        // Convert data URL to blob
+        const response = await fetch(imageDataUrl);
+        const blob = await response.blob();
+        
+        // Create file from blob
+        const file = new File([blob], 'clerksmart-achievement.png', { type: 'image/png' });
+        
+        // Check if we can share files
+        const shareData = {
+          title: 'My ClerkSmart Achievement',
+          text: 'Come try a patient on ClerkSmart: https://clerksmart.vercel.app',
+          files: [file]
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return imageDataUrl;
+        }
+      } catch (error) {
+        console.log('Web Share API with files not supported, falling back to download');
+      }
+    }
+    
+    // Fallback: Download the image and share text
+    await downloadImage(imageDataUrl, 'clerksmart-achievement.png');
+    
+    // Share text with WhatsApp
+    const message = encodeURIComponent(`Come try a patient on ClerkSmart: https://clerksmart.vercel.app`);
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     
-    // Return the image data URL for potential future use
     return imageDataUrl;
   } catch (error) {
-    console.error('Error generating share image:', error);
-    // Fallback to text-only sharing
+    console.error('Error sharing image:', error);
+    // Final fallback to text-only sharing
     shareOnWhatsApp(shareData);
   }
+};
+
+// Helper function to download image
+const downloadImage = (dataUrl: string, filename: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
