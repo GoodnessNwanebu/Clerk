@@ -11,6 +11,28 @@ export const metadata: Metadata = {
   title: 'ClerkSmart',
   description: 'The intelligent clinical reasoning simulator',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'ClerkSmart - Medical Case Simulator',
+    description: 'Practice clinical reasoning with AI-powered patient cases. Perfect for medical students and healthcare professionals.',
+    url: 'https://clerksmart.vercel.app',
+    siteName: 'ClerkSmart',
+    images: [
+      {
+        url: 'https://clerksmart.vercel.app/icons/icon-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'ClerkSmart - Medical Case Simulator',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ClerkSmart - Medical Case Simulator',
+    description: 'Practice clinical reasoning with AI-powered patient cases',
+    images: ['https://clerksmart.vercel.app/icons/icon-512x512.png'],
+  },
   other: {
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',

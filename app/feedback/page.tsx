@@ -8,6 +8,7 @@ import { ComprehensiveFeedback, Feedback } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import ShareModal from '../../components/ShareModal';
 import { shareOnWhatsApp } from '../../lib/shareUtils';
+import { ConversationStorageUtils } from '../../lib/localStorage';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
@@ -87,11 +88,12 @@ const FeedbackScreen: React.FC = () => {
 
     const handleDone = async () => {
         await saveFeedbackToDatabase();
-        resetCase();
         setNavigationEntryPoint('');
         
         // Show share modal instead of going directly to home
         setShowShareModal(true);
+        
+        // Don't reset case yet - let the share modal handle it
     };
     
     const handleShare = () => {
@@ -111,6 +113,8 @@ const FeedbackScreen: React.FC = () => {
             localStorage.removeItem('clerkSmartConversation');
             localStorage.removeItem('clerkSmartCaseState');
             localStorage.removeItem('pendingShareData');
+            // Clear all case storage to prevent resume modal
+            ConversationStorageUtils.clearAll();
         }
         resetCase();
         setNavigationEntryPoint('');
