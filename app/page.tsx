@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon';
 import { SettingsModal } from '../components/SettingsModal';
 import { ResumeCaseModal } from '../components/ResumeCaseModal';
 import { ConversationStorageUtils } from '../lib/localStorage';
+import PWATutorialModal from '../components/PWATutorialModal';
 
 const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onClick?: () => void; disabled?: boolean }> = ({ icon, title, subtitle, onClick, disabled }) => {
   const cardClasses = `
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string } | null>(null);
+  const [showPWATutorial, setShowPWATutorial] = useState(false);
 
   // Check for saved case on mount
   useEffect(() => {
@@ -47,6 +49,77 @@ export default function HomePage() {
         });
         setShowResumeModal(true);
       }
+    }
+  }, []);
+
+  // Simplified PWA tutorial logic
+  useEffect(() => {
+    const checkPWATutorial = () => {
+      if (typeof window === 'undefined') return;
+      
+      // Only show on home page
+      if (window.location.pathname !== '/') return;
+      
+      // Check if tutorial has been completed
+      const tutorialCompleted = localStorage.getItem('pwaTutorialCompleted');
+      if (tutorialCompleted === 'true') return;
+      
+      // Check if user has completed onboarding
+      const hasOnboarded = localStorage.getItem('hasOnboarded');
+      if (!hasOnboarded) return;
+      
+      // Check if PWA is already installed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      if (isStandalone) {
+        // Mark as completed if already installed
+        localStorage.setItem('pwaTutorialCompleted', 'true');
+        return;
+      }
+      
+      // Check if it's mobile (tutorial is only for mobile)
+      const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|opera mini|iemobile/i.test(navigator.userAgent.toLowerCase());
+      if (!isMobile) {
+        return; // Don't show tutorial on desktop
+      }
+      
+      // Get visit count (this will be incremented by the other useEffect)
+      const visitCount = parseInt(localStorage.getItem('homePageVisits') || '0');
+      
+      // Show tutorial on second visit OR after 5 visits
+      const shouldShow = visitCount === 2 || visitCount === 5;
+      
+      if (shouldShow) {
+        // Check if we've shown recently (within 7 days)
+        const lastShown = localStorage.getItem('pwaTutorialLastShown');
+        const daysSinceLastShown = lastShown 
+          ? Math.floor((Date.now() - new Date(lastShown).getTime()) / (1000 * 60 * 60 * 24))
+          : 999;
+        
+        if (daysSinceLastShown >= 7) {
+          // Show tutorial after a short delay
+          const timer = setTimeout(() => {
+            setShowPWATutorial(true);
+            localStorage.setItem('pwaTutorialLastShown', new Date().toISOString());
+          }, 2000);
+          
+          return () => clearTimeout(timer);
+        }
+      }
+    };
+    
+    checkPWATutorial();
+  }, []);
+
+  // Track home page visits (only increment once per session)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Check if we've already visited this session
+    const sessionVisited = sessionStorage.getItem('homePageVisitedThisSession');
+    if (!sessionVisited) {
+      const currentVisits = parseInt(localStorage.getItem('homePageVisits') || '0');
+      localStorage.setItem('homePageVisits', (currentVisits + 1).toString());
+      sessionStorage.setItem('homePageVisitedThisSession', 'true');
     }
   }, []);
 
@@ -82,6 +155,17 @@ export default function HomePage() {
     router.push('/saved-cases');
   };
 
+  const handlePWATutorialComplete = () => {
+    setShowPWATutorial(false);
+    localStorage.setItem('pwaTutorialCompleted', 'true');
+  };
+
+  const handlePWATutorialClose = () => {
+    setShowPWATutorial(false);
+    // Don't mark as completed, just track when shown
+    localStorage.setItem('pwaTutorialLastShown', new Date().toISOString());
+  };
+
   return (
     <>
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
@@ -90,6 +174,11 @@ export default function HomePage() {
         onResume={handleResumeCase}
         onDismiss={handleDismissCase}
         caseInfo={savedCaseInfo!}
+      />
+      <PWATutorialModal
+        isOpen={showPWATutorial}
+        onClose={handlePWATutorialClose}
+        onComplete={handlePWATutorialComplete}
       />
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
         {/* Settings Button - Top Right */}

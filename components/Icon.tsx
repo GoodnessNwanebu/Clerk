@@ -5,7 +5,8 @@ import {
   Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2,
   Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
   Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
-  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, Bookmark
+  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, Bookmark,
+  Chrome, Compass, Info
 } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
@@ -69,6 +70,10 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'sparkles': return <Sparkles {...iconProps} />;
     case 'droplet': return <Droplet {...iconProps} />;
     case 'bookmark': return <Bookmark {...iconProps} />;
+    // PWA tutorial icons
+    case 'chrome': return <Chrome {...iconProps} />;
+    case 'compass': return <Compass {...iconProps} />;
+    case 'info': return <Info {...iconProps} />;
     // Fallback for missing icons (like 'stomach')
     case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
     case 'mind': return <Brain {...iconProps} />; // Using brain as fallback
