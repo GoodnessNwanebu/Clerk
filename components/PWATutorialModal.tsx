@@ -14,6 +14,10 @@ const detectBrowserAndDevice = (): BrowserType => {
   
   const userAgent = navigator.userAgent.toLowerCase();
   
+  // Temporary debugging - remove this after testing
+  console.log('Full User Agent:', navigator.userAgent);
+  console.log('Lowercase User Agent:', userAgent);
+  
   // Check if it's mobile
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|opera mini|iemobile/i.test(userAgent);
   
@@ -26,15 +30,28 @@ const detectBrowserAndDevice = (): BrowserType => {
   const isIOS = /iphone|ipad|ipod/.test(userAgent);
   
   // Check if it's Chrome (including Chromium-based browsers like Edge)
-  // Chrome on iOS uses 'CriOS' in user agent, not 'chrome'
-  const isChrome = (userAgent.includes('chrome') || userAgent.includes('crios')) && !userAgent.includes('edg');
+  // Chrome on iOS detection is tricky - it uses WebKit but has specific patterns
+  const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg');
   const isEdge = userAgent.includes('edg');
+  
+  // For iOS, we need to detect Chrome more carefully
+  // Chrome on iOS includes 'CriOS' in the user agent
+  const isChromeIOS = isIOS && userAgent.includes('crios');
   
   // Check if it's Safari (but not Chrome or Edge)
   const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('edg');
   
-  if (isChrome || isEdge) {
-    return isIOS ? 'chrome-ios' : 'chrome-android';
+  // Temporary debugging - remove this after testing
+  console.log('Is iOS:', isIOS);
+  console.log('Is Chrome:', isChrome);
+  console.log('Is Chrome iOS:', isChromeIOS);
+  console.log('Is Safari:', isSafari);
+  console.log('Is Edge:', isEdge);
+  
+  if (isChromeIOS) {
+    return 'chrome-ios';
+  } else if (isChrome || isEdge) {
+    return 'chrome-android';
   } else if (isSafari) {
     return 'safari';
   } else {
