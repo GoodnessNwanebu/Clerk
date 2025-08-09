@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon';
 import { ComprehensiveFeedback, Feedback } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import ShareModal from '../../components/ShareModal';
-import { shareOnWhatsApp } from '../../lib/shareUtils';
+import { shareOnWhatsApp, ShareData } from '../../lib/shareUtils';
 import { ConversationStorageUtils } from '../../lib/localStorage';
 
 const FeedbackScreen: React.FC = () => {
@@ -24,7 +24,7 @@ const FeedbackScreen: React.FC = () => {
     });
     
     const [showShareModal, setShowShareModal] = useState(false);
-    const [shareData, setShareData] = useState<any>(null);
+    const [shareData, setShareData] = useState<ShareData | null>(null);
 
     React.useEffect(() => {
         if (!feedback || !department) {
