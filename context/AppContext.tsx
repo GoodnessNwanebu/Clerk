@@ -14,6 +14,7 @@ import {
 import { generateClinicalCase, generateClinicalCaseWithDifficulty, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
 import { ConversationStorage } from '../lib/localStorage';
 import { getCaseFeedback, getDetailedCaseFeedback, getComprehensiveCaseFeedback } from '../services/geminiService';
+import { generateShareData } from '../lib/shareUtils';
 
 interface AppContextType {
   caseState: CaseState;
@@ -297,6 +298,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const setFeedback = useCallback((feedback: Feedback | ComprehensiveFeedback) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, feedback };
+      
+      // Generate share data immediately when feedback is created
+      const shareData = generateShareData(feedback, newState);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingShareData', JSON.stringify(shareData));
+      }
       
       // Save to localStorage in background
       if (conversationStorage) {

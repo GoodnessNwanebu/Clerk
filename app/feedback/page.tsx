@@ -6,6 +6,8 @@ import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
 import { ComprehensiveFeedback, Feedback } from '../../types';
 import ReactMarkdown from 'react-markdown';
+import ShareModal from '../../components/ShareModal';
+import { shareOnWhatsApp } from '../../lib/shareUtils';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
@@ -19,10 +21,21 @@ const FeedbackScreen: React.FC = () => {
         clinicalOpportunities: false,
         clinicalPearls: false
     });
+    
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState<any>(null);
 
     React.useEffect(() => {
         if (!feedback || !department) {
             router.push('/');
+        }
+        
+        // Load share data when component mounts
+        if (typeof window !== 'undefined') {
+            const storedShareData = localStorage.getItem('pendingShareData');
+            if (storedShareData) {
+                setShareData(JSON.parse(storedShareData));
+            }
         }
     }, [feedback, department, router]);
 
@@ -58,6 +71,9 @@ const FeedbackScreen: React.FC = () => {
                         saveButton.classList.remove('bg-green-600', 'hover:bg-green-700');
                     }, 3000);
                 }
+                
+                // Show share modal after successful save
+                setShowShareModal(true);
             } else {
                 // This should rarely happen now due to retry mechanism
                 alert('Case saved in background. If you encounter any issues, please contact support.');
@@ -74,12 +90,30 @@ const FeedbackScreen: React.FC = () => {
         resetCase();
         setNavigationEntryPoint('');
         
-        // Clear localStorage to prevent resume modal from appearing
+        // Show share modal instead of going directly to home
+        setShowShareModal(true);
+    };
+    
+    const handleShare = () => {
+        if (shareData) {
+            shareOnWhatsApp(shareData);
+        }
+        clearLocalStorageAndGoHome();
+    };
+    
+    const handleSkipShare = () => {
+        clearLocalStorageAndGoHome();
+    };
+    
+    const clearLocalStorageAndGoHome = () => {
+        // Clear all case data
         if (typeof window !== 'undefined') {
             localStorage.removeItem('clerkSmartConversation');
             localStorage.removeItem('clerkSmartCaseState');
+            localStorage.removeItem('pendingShareData');
         }
-        
+        resetCase();
+        setNavigationEntryPoint('');
         router.push('/');
     };
     
@@ -340,6 +374,14 @@ const FeedbackScreen: React.FC = () => {
                     </button>
                 </div>
             </main>
+            
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={handleSkipShare}
+                onShare={handleShare}
+                shareData={shareData}
+            />
         </div>
     );
 };

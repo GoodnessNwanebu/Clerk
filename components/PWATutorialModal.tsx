@@ -14,10 +14,6 @@ const detectBrowserAndDevice = (): BrowserType => {
   
   const userAgent = navigator.userAgent.toLowerCase();
   
-  // Temporary debugging - remove this after testing
-  console.log('Full User Agent:', navigator.userAgent);
-  console.log('Lowercase User Agent:', userAgent);
-  
   // Check if it's mobile
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|opera mini|iemobile/i.test(userAgent);
   
@@ -40,13 +36,6 @@ const detectBrowserAndDevice = (): BrowserType => {
   
   // Check if it's Safari (but not Chrome or Edge)
   const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('edg');
-  
-  // Temporary debugging - remove this after testing
-  console.log('Is iOS:', isIOS);
-  console.log('Is Chrome:', isChrome);
-  console.log('Is Chrome iOS:', isChromeIOS);
-  console.log('Is Safari:', isSafari);
-  console.log('Is Edge:', isEdge);
   
   if (isChromeIOS) {
     return 'chrome-ios';
