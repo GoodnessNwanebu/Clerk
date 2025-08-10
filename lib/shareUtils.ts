@@ -131,8 +131,8 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, baseWidth, baseHeight);
 
-          // Add subtle geometric accents
-          ctx.fillStyle = 'rgba(20, 184, 166, 0.1)';
+          // Add fun geometric accents and celebration elements
+          ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
           ctx.beginPath();
           ctx.arc(baseWidth * 0.85, baseHeight * 0.15, 60, 0, 2 * Math.PI);
           ctx.fill();
@@ -140,6 +140,31 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.beginPath();
           ctx.arc(baseWidth * 0.15, baseHeight * 0.85, 40, 0, 2 * Math.PI);
           ctx.fill();
+          
+          // Add celebration sparkles
+          ctx.fillStyle = 'rgba(255, 215, 0, 0.8)'; // Gold sparkles
+          const sparklePositions = [
+            { x: baseWidth * 0.2, y: baseHeight * 0.25 },
+            { x: baseWidth * 0.8, y: baseHeight * 0.35 },
+            { x: baseWidth * 0.1, y: baseHeight * 0.7 },
+            { x: baseWidth * 0.9, y: baseHeight * 0.6 },
+            { x: baseWidth * 0.3, y: baseHeight * 0.8 }
+          ];
+          
+          sparklePositions.forEach(pos => {
+            // Draw star/sparkle
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y - 8);
+            ctx.lineTo(pos.x + 3, pos.y - 3);
+            ctx.lineTo(pos.x + 8, pos.y);
+            ctx.lineTo(pos.x + 3, pos.y + 3);
+            ctx.lineTo(pos.x, pos.y + 8);
+            ctx.lineTo(pos.x - 3, pos.y + 3);
+            ctx.lineTo(pos.x - 8, pos.y);
+            ctx.lineTo(pos.x - 3, pos.y - 3);
+            ctx.closePath();
+            ctx.fill();
+          });
 
           // SECTION 1: BRAND LOGO (Top) - with 20px margin
           const section1Y = 140; // 20px margin from top
@@ -150,12 +175,15 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.textAlign = 'center';
           ctx.fillText('ClerkSmart', baseWidth / 2, section1Y);
 
-          // SECTION 2: HERO ACHIEVEMENT TEXT (Main focal point)
+          // SECTION 2: HERO ACHIEVEMENT TEXT (Main focal point) - FUN VERSION
           const section2Y = 380; // Increased spacing from logo
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 90px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.font = 'bold 70px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(shareData.achievementText, baseWidth / 2, section2Y);
+          
+          // Add fun emoji and make text more engaging
+          const funAchievementText = `🎉 ${shareData.achievementText} 🎯`;
+          ctx.fillText(funAchievementText, baseWidth / 2, section2Y);
 
           // SECTION 3: DIAGNOSIS SECTION
           const section3Y = 620; // Increased spacing from hero text
@@ -172,7 +200,7 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.textAlign = 'center';
           ctx.fillText(shareData.diagnosis, baseWidth / 2, section3Y + 100);
 
-          // SECTION 4: ACHIEVEMENT BADGE (increased spacing from diagnosis)
+          // SECTION 4: ACHIEVEMENT BADGE (increased spacing from diagnosis) - FUN VERSION
           const section4Y = 920; // Much more spacing from diagnosis
           ctx.fillStyle = '#f59e0b';
           ctx.font = 'bold 35px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
@@ -186,12 +214,12 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.textAlign = 'center';
           ctx.fillText(shareData.department, baseWidth / 2, section5Y);
 
-          // SECTION 6: CALL TO ACTION (moved to bottom)
+          // SECTION 6: CALL TO ACTION (moved to bottom) - FUN VERSION
           const section6Y = 1400; // Positioned at bottom
           ctx.fillStyle = '#14b8a6';
-          ctx.font = 'bold 40px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.font = 'bold 30px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('Made with ❤️ for medical students', baseWidth / 2, section6Y);
+          ctx.fillText('🚀 Join thousands of medical students on ClerkSmart!', baseWidth / 2, section6Y);
 
           // Add a subtle accent line (properly positioned between achievement and department)
           ctx.strokeStyle = '#14b8a6';
