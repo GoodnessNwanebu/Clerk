@@ -18,8 +18,8 @@ export const generateShareData = (
   
   // Determine achievement text based on diagnosis accuracy
   const achievementText = diagnosis === correctDiagnosis 
-    ? "I cracked the case." 
-    : "Just tackled this challenging case.";
+    ? "I cracked the case!" 
+    : "Just tackled this challenging case!";
   
   // Generate the share message
   const shareMessage = `${achievementText}
@@ -194,21 +194,60 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.textAlign = 'center';
           ctx.fillText('Correctly diagnosed:', baseWidth / 2, section3Y);
 
-          // Diagnosis value (highlight)
+          // Diagnosis value (highlight) - with multi-line support
           ctx.fillStyle = '#14b8a6';
           ctx.font = 'bold 60px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(shareData.diagnosis, baseWidth / 2, section3Y + 100);
+          
+          // Multi-line text wrapping for long diagnoses
+          const maxWidth = 900; // Maximum width for text (leaving 90px margin on each side)
+          const lineHeight = 72; // 1.2x font size for good readability
+          
+          // Function to wrap text into multiple lines
+          const wrapText = (text: string, maxWidth: number): string[] => {
+            const words = text.split(' ');
+            const lines: string[] = [];
+            let currentLine = '';
+            
+            for (let i = 0; i < words.length; i++) {
+              const testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
+              const metrics = ctx.measureText(testLine);
+              
+              if (metrics.width > maxWidth && currentLine !== '') {
+                lines.push(currentLine);
+                currentLine = words[i];
+              } else {
+                currentLine = testLine;
+              }
+            }
+            
+            if (currentLine) {
+              lines.push(currentLine);
+            }
+            
+            return lines;
+          };
+          
+          const diagnosisLines = wrapText(shareData.diagnosis, maxWidth);
+          
+          // Draw each line of the diagnosis
+          diagnosisLines.forEach((line, index) => {
+            const yPosition = section3Y + 100 + (index * lineHeight);
+            ctx.fillText(line, baseWidth / 2, yPosition);
+          });
 
           // SECTION 4: ACHIEVEMENT BADGE (increased spacing from diagnosis) - FUN VERSION
-          const section4Y = 920; // Much more spacing from diagnosis
+          // Calculate dynamic positioning based on diagnosis line count
+          const diagnosisLineCount = diagnosisLines.length;
+          const diagnosisHeight = diagnosisLineCount * lineHeight;
+          const section4Y = section3Y + 100 + diagnosisHeight + 100; // 100px spacing after diagnosis
           ctx.fillStyle = '#f59e0b';
           ctx.font = 'bold 35px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('🏆 In the top 2% of ClerkSmart users this week', baseWidth / 2, section4Y);
 
           // SECTION 5: DEPARTMENT INFO (increased font size)
-          const section5Y = 1020;
+          const section5Y = section4Y + 100; // 100px spacing after achievement badge
           ctx.fillStyle = '#64748b';
           ctx.font = '40px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
