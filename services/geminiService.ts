@@ -104,11 +104,22 @@ const handleApiError = async (response: Response, context: string) => {
             if (errorData.error.startsWith('QUOTA_EXCEEDED')) {
                 throw new Error(errorData.error);
             }
+            
+            // If we have both error and suggestion, combine them in a structured way
+            if (errorData.suggestion) {
+                const structuredError = {
+                    error: errorData.error,
+                    suggestion: errorData.suggestion
+                };
+                throw new Error(JSON.stringify(structuredError));
+            }
+            
+            // For simple errors, just throw the error message directly
             throw new Error(errorData.error);
         }
         
         // Fallback error message
-        throw new Error(`An error occurred while trying to ${context}. Please try again.`);
+        throw new Error(`We couldn't process your request. Please try again.`);
     } catch (e) {
         // If JSON parsing failed, try to get the response as text
         if (e instanceof Error && e.message.startsWith('QUOTA_EXCEEDED')) {
@@ -132,17 +143,18 @@ const handleApiError = async (response: Response, context: string) => {
             originalError: e
         });
         
-        // Provide a user-friendly error message based on status code
+        // Provide user-friendly error messages based on status code
         if (response.status === 401) {
-            throw new Error('API authentication failed. Please check your API key configuration.');
+            throw new Error('Authentication failed. Please check your configuration.');
         } else if (response.status === 429) {
             throw new Error('Rate limit exceeded. Please wait a moment and try again.');
         } else if (response.status === 500) {
             throw new Error('Server error occurred. Please try again later.');
         } else if (response.status >= 400 && response.status < 500) {
-            throw new Error(`Request error (${response.status}): ${errorText}`);
+            // For client errors, provide a more helpful message
+            throw new Error('We couldn\'t process your request. Please check your input and try again.');
         } else {
-            throw new Error(`Server error (${response.status}): Please try again later.`);
+            throw new Error('Something went wrong. Please try again later.');
         }
     }
 };

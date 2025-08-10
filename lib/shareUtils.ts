@@ -55,7 +55,7 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
         return;
       }
 
-      // Create canvas with simple setup - NO SCALING
+      // Create canvas with clean dimensions
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
@@ -63,14 +63,14 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
         return;
       }
 
-      // Simple dimensions - NO DEVICE PIXEL RATIO SCALING
-              const baseWidth = 1080;
-        const baseHeight = 1500;
+      // Clean dimensions for the new design
+      const baseWidth = 1080;
+      const baseHeight = 1350;
       
       canvas.width = baseWidth;
       canvas.height = baseHeight;
       
-      // NO SCALING - 1:1 pixel mapping
+      // Clean 1:1 pixel mapping
       canvas.style.width = baseWidth + 'px';
       canvas.style.height = baseHeight + 'px';
 
@@ -78,8 +78,7 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
         width: canvas.width,
         height: canvas.height,
         styleWidth: canvas.style.width,
-        styleHeight: canvas.style.height,
-        devicePixelRatio: window.devicePixelRatio
+        styleHeight: canvas.style.height
       });
 
       // Test canvas functionality first
@@ -100,17 +99,14 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
         return;
       }
 
-            // Load all fonts for the complete design
+      // Load fonts for the clean design
       const loadFont = async () => {
         try {
           if ('fonts' in document) {
-            await (document as any).fonts.load('bold 90px Inter, sans-serif');   // Hero text
-            await (document as any).fonts.load('bold 60px Inter, sans-serif');   // Diagnosis
-            await (document as any).fonts.load('bold 80px Inter, sans-serif');   // Logo
-            await (document as any).fonts.load('bold 40px Inter, sans-serif');   // CTA
-            await (document as any).fonts.load('bold 35px Inter, sans-serif');   // Badge
-            await (document as any).fonts.load('35px Inter, sans-serif');        // Labels (increased)
-            await (document as any).fonts.load('40px Inter, sans-serif');        // Department (increased)
+            await (document as any).fonts.load('bold 80px Inter, sans-serif');   // Main headline
+            await (document as any).fonts.load('bold 56px Inter, sans-serif');   // Diagnosis
+            await (document as any).fonts.load('28px Inter, sans-serif');        // Labels and body text
+            await (document as any).fonts.load('bold 36px Inter, sans-serif');   // Button text
             console.log('All fonts loaded successfully');
           } else {
             console.log('Font API not available, using fallback');
@@ -123,87 +119,70 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
       // Generate the image after font loading
       loadFont().then(() => {
         try {
-          // Create a clean gradient background
-          const gradient = ctx.createLinearGradient(0, 0, 0, baseHeight);
-          gradient.addColorStop(0, '#0f172a'); // Deep slate
-          gradient.addColorStop(0.7, '#1e293b'); // Medium slate
-          gradient.addColorStop(1, '#334155'); // Lighter slate
-          ctx.fillStyle = gradient;
+          // Clean white background
+          ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, baseWidth, baseHeight);
 
-          // Add fun geometric accents and celebration elements
-          ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
+          // SECTION 1: MAIN HEADLINE WITH STETHOSCOPE ICON
+          const section1Y = 180;
+          
+          // Draw stethoscope icon using SVG path (simplified Heroicons style)
+          ctx.fillStyle = '#14b8a6'; // Teal color
+          ctx.strokeStyle = '#14b8a6';
+          ctx.lineWidth = 6;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          // Stethoscope earpieces (larger and better positioned)
           ctx.beginPath();
-          ctx.arc(baseWidth * 0.85, baseHeight * 0.15, 60, 0, 2 * Math.PI);
+          ctx.arc(baseWidth / 2 + 220, section1Y - 25, 18, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(baseWidth / 2 + 220, section1Y + 25, 18, 0, 2 * Math.PI);
           ctx.fill();
           
+          // Stethoscope tubing (smoother curves)
           ctx.beginPath();
-          ctx.arc(baseWidth * 0.15, baseHeight * 0.85, 40, 0, 2 * Math.PI);
+          ctx.moveTo(baseWidth / 2 + 220, section1Y - 25);
+          ctx.quadraticCurveTo(baseWidth / 2 + 160, section1Y - 50, baseWidth / 2 + 100, section1Y - 35);
+          ctx.quadraticCurveTo(baseWidth / 2 + 40, section1Y - 20, baseWidth / 2, section1Y);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(baseWidth / 2 + 220, section1Y + 25);
+          ctx.quadraticCurveTo(baseWidth / 2 + 160, section1Y + 50, baseWidth / 2 + 100, section1Y + 35);
+          ctx.quadraticCurveTo(baseWidth / 2 + 40, section1Y + 20, baseWidth / 2, section1Y);
+          ctx.stroke();
+          
+          // Stethoscope chest piece (larger)
+          ctx.beginPath();
+          ctx.arc(baseWidth / 2, section1Y, 30, 0, 2 * Math.PI);
           ctx.fill();
-          
-          // Add celebration sparkles
-          ctx.fillStyle = 'rgba(255, 215, 0, 0.8)'; // Gold sparkles
-          const sparklePositions = [
-            { x: baseWidth * 0.2, y: baseHeight * 0.25 },
-            { x: baseWidth * 0.8, y: baseHeight * 0.35 },
-            { x: baseWidth * 0.1, y: baseHeight * 0.7 },
-            { x: baseWidth * 0.9, y: baseHeight * 0.6 },
-            { x: baseWidth * 0.3, y: baseHeight * 0.8 }
-          ];
-          
-          sparklePositions.forEach(pos => {
-            // Draw star/sparkle
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y - 8);
-            ctx.lineTo(pos.x + 3, pos.y - 3);
-            ctx.lineTo(pos.x + 8, pos.y);
-            ctx.lineTo(pos.x + 3, pos.y + 3);
-            ctx.lineTo(pos.x, pos.y + 8);
-            ctx.lineTo(pos.x - 3, pos.y + 3);
-            ctx.lineTo(pos.x - 8, pos.y);
-            ctx.lineTo(pos.x - 3, pos.y - 3);
-            ctx.closePath();
-            ctx.fill();
-          });
 
-          // SECTION 1: BRAND LOGO (Top) - with 20px margin
-          const section1Y = 140; // 20px margin from top
-          
-          // ClerkSmart text
-          ctx.fillStyle = '#14b8a6';
+          // Main headline text (positioned to the left of stethoscope)
+          ctx.fillStyle = '#000000';
           ctx.font = 'bold 80px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('ClerkSmart', baseWidth / 2, section1Y);
+          ctx.fillText('I cracked the case.', baseWidth / 2 - 120, section1Y + 30);
 
-          // SECTION 2: HERO ACHIEVEMENT TEXT (Main focal point) - FUN VERSION
-          const section2Y = 380; // Increased spacing from logo
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 70px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
+          // SECTION 2: DIAGNOSIS SECTION
+          const section2Y = 380;
           
-          // Add fun emoji and make text more engaging
-          const funAchievementText = `🎉 ${shareData.achievementText} 🎯`;
-          ctx.fillText(funAchievementText, baseWidth / 2, section2Y);
-
-          // SECTION 3: DIAGNOSIS SECTION
-          const section3Y = 620; // Increased spacing from hero text
-          
-          // Diagnosis label (increased font size)
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = '35px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          // Diagnosis label
+          ctx.fillStyle = '#000000';
+          ctx.font = '28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('Correctly diagnosed:', baseWidth / 2, section3Y);
+          ctx.fillText('Correctly diagnosed:', baseWidth / 2, section2Y);
 
-          // Diagnosis value (highlight) - with multi-line support
-          ctx.fillStyle = '#14b8a6';
-          ctx.font = 'bold 60px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          // Diagnosis value
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 56px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
           
           // Multi-line text wrapping for long diagnoses
-          const maxWidth = 900; // Maximum width for text (leaving 90px margin on each side)
-          const lineHeight = 72; // 1.2x font size for good readability
+          const maxWidth = 900;
+          const lineHeight = 70;
           
-          // Function to wrap text into multiple lines
           const wrapText = (text: string, maxWidth: number): string[] => {
             const words = text.split(' ');
             const lines: string[] = [];
@@ -232,42 +211,93 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           
           // Draw each line of the diagnosis
           diagnosisLines.forEach((line, index) => {
-            const yPosition = section3Y + 100 + (index * lineHeight);
+            const yPosition = section2Y + 80 + (index * lineHeight);
             ctx.fillText(line, baseWidth / 2, yPosition);
           });
 
-          // SECTION 4: ACHIEVEMENT BADGE (increased spacing from diagnosis) - FUN VERSION
-          // Calculate dynamic positioning based on diagnosis line count
+          // SECTION 3: ACHIEVEMENT METRIC WITH BRAIN ICON
           const diagnosisLineCount = diagnosisLines.length;
           const diagnosisHeight = diagnosisLineCount * lineHeight;
-          const section4Y = section3Y + 100 + diagnosisHeight + 100; // 100px spacing after diagnosis
-          ctx.fillStyle = '#f59e0b';
-          ctx.font = 'bold 35px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('🏆 In the top 2% of ClerkSmart users this week', baseWidth / 2, section4Y);
-
-          // SECTION 5: DEPARTMENT INFO (increased font size)
-          const section5Y = section4Y + 100; // 100px spacing after achievement badge
-          ctx.fillStyle = '#64748b';
-          ctx.font = '40px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(shareData.department, baseWidth / 2, section5Y);
-
-          // SECTION 6: CALL TO ACTION (moved to bottom) - FUN VERSION
-          const section6Y = 1400; // Positioned at bottom
-          ctx.fillStyle = '#14b8a6';
-          ctx.font = 'bold 30px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('🚀 Join thousands of medical students on ClerkSmart!', baseWidth / 2, section6Y);
-
-          // Add a subtle accent line (properly positioned between achievement and department)
-          ctx.strokeStyle = '#14b8a6';
-          ctx.lineWidth = 6;
-          ctx.lineCap = 'round';
+          const section3Y = section2Y + 80 + diagnosisHeight + 100;
+          
+          // Brain icon (larger and better positioned)
+          ctx.fillStyle = '#000000';
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 3;
+          
+          // Draw a simplified brain icon (larger and more visible)
+          const brainX = baseWidth / 2 - 180;
+          const brainY = section3Y;
+          
+          // Main brain lobes
           ctx.beginPath();
-          ctx.moveTo(200, section5Y - 60);
-          ctx.lineTo(baseWidth - 200, section5Y - 60);
+          ctx.arc(brainX, brainY, 20, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(brainX + 25, brainY - 15, 15, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(brainX + 25, brainY + 15, 15, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(brainX + 45, brainY - 25, 12, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(brainX + 45, brainY + 25, 12, 0, 2 * Math.PI);
+          ctx.fill();
+          
+          // Brain stem
+          ctx.beginPath();
+          ctx.moveTo(brainX, brainY + 20);
+          ctx.lineTo(brainX, brainY + 35);
           ctx.stroke();
+
+          // Achievement text (positioned to the right of brain icon)
+          ctx.fillStyle = '#000000';
+          ctx.font = '28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('In the top 2% of ClerkSmart users this week', brainX + 80, section3Y + 10);
+
+          // SECTION 4: CALL TO ACTION
+          const section4Y = section3Y + 120;
+          
+          // Challenge question
+          ctx.fillStyle = '#000000';
+          ctx.font = '28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Think you can do better?', baseWidth / 2, section4Y);
+
+          // Pointing finger emoji and text
+          const section5Y = section4Y + 80;
+          ctx.fillStyle = '#000000';
+          ctx.font = '28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('👉 Try this case on ClerkSmart', baseWidth / 2, section5Y);
+
+          // SECTION 5: BUTTON
+          const buttonY = section5Y + 100;
+          const buttonWidth = 320;
+          const buttonHeight = 70;
+          const buttonX = (baseWidth - buttonWidth) / 2;
+          
+          // Button background
+          ctx.fillStyle = '#14b8a6';
+          ctx.beginPath();
+          ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 16);
+          ctx.fill();
+
+          // Button text
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 36px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Try Now', baseWidth / 2, buttonY + 45);
+
+          // SECTION 6: BOTTOM TEXT
+          const section6Y = buttonY + buttonHeight + 120;
+          ctx.fillStyle = '#000000';
+          ctx.font = '28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Join thousands of medical students on ClerkSmart!', baseWidth / 2, section6Y);
 
           // Convert to data URL
           const dataUrl = canvas.toDataURL('image/png', 1.0);

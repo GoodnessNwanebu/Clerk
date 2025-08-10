@@ -12,6 +12,7 @@ const MODEL = 'gemini-2.5-flash';
 
 interface ErrorResponse {
     error: string;
+    suggestion?: string;
 }
 
 interface ApiError extends Error {
@@ -67,15 +68,166 @@ const getLocationContext = (country: string) => {
     return contexts[country] || 'local cultural context';
 };
 
+// Enhanced input validation for custom cases
+const validateCustomCaseInput = (input: string): { isValid: boolean; error?: string; suggestion?: string } => {
+    const trimmedInput = input.trim();
+    
+    // Length validation (only maximum)
+    if (trimmedInput.length > 2000) {
+        return {
+            isValid: false,
+            error: 'Case description is too long',
+            suggestion: 'Please keep your description under 2000 characters. Focus on the most relevant medical details.'
+        };
+    }
+    
+    // Medical content validation
+    const medicalTerms = [
+        'pain', 'fever', 'shortness', 'breath', 'headache', 'nausea', 'vomiting',
+        'diarrhea', 'constipation', 'cough', 'sore throat', 'rash', 'swelling',
+        'bleeding', 'dizziness', 'fatigue', 'weakness', 'numbness', 'tingling',
+        'chest', 'abdominal', 'back', 'joint', 'muscle', 'bone', 'heart',
+        'lung', 'liver', 'kidney', 'brain', 'blood', 'infection', 'injury'
+    ];
+    
+    const hasMedicalContent = medicalTerms.some(term => 
+        trimmedInput.toLowerCase().includes(term)
+    );
+    
+    if (!hasMedicalContent) {
+        return {
+            isValid: false,
+            error: 'Missing medical content',
+            suggestion: 'Please include medical symptoms, conditions, or patient details relevant to clinical practice.'
+        };
+    }
+    
+    // Inappropriate content filtering
+    const inappropriateTerms = [
+        'kill', 'suicide', 'self-harm', 'abuse', 'illegal', 'drugs',
+        'weapon', 'violence', 'hate', 'discrimination'
+    ];
+    
+    const hasInappropriateContent = inappropriateTerms.some(term => 
+        trimmedInput.toLowerCase().includes(term)
+    );
+    
+    if (hasInappropriateContent) {
+        return {
+            isValid: false,
+            error: 'Inappropriate content detected',
+            suggestion: 'Please focus on standard medical scenarios suitable for educational practice.'
+        };
+    }
+    
+    return { isValid: true };
+};
+
+// Validate AI-generated case for safety and appropriateness
+const validateGeneratedCase = (caseData: Case): { isValid: boolean; error?: string } => {
+    if (!caseData.diagnosis || !caseData.primaryInfo || !caseData.openingLine) {
+        return {
+            isValid: false,
+            error: 'Generated case is missing required information'
+        };
+    }
+    
+    // Check for inappropriate content in generated case
+    const inappropriateTerms = [
+        'kill', 'suicide', 'self-harm', 'abuse', 'illegal', 'drugs',
+        'weapon', 'violence', 'hate', 'discrimination', 'inappropriate'
+    ];
+    
+    const caseText = `${caseData.diagnosis} ${caseData.primaryInfo} ${caseData.openingLine}`.toLowerCase();
+    
+    const hasInappropriateContent = inappropriateTerms.some(term => 
+        caseText.includes(term)
+    );
+    
+    if (hasInappropriateContent) {
+        return {
+            isValid: false,
+            error: 'Generated case contains inappropriate content'
+        };
+    }
+    
+    // Validate diagnosis is reasonable
+    if (caseData.diagnosis.length < 3 || caseData.diagnosis.length > 100) {
+        return {
+            isValid: false,
+            error: 'Generated diagnosis is invalid'
+        };
+    }
+    
+    return { isValid: true };
+};
+
+// Detect if input is a single diagnosis or custom case
+const detectInputType = (input: string): 'diagnosis' | 'custom' => {
+    const trimmedInput = input.trim();
+    
+    // If input is short (< 100 chars) and contains medical terminology, treat as single diagnosis
+    if (trimmedInput.length < 100) {
+        // Check for medical terminology patterns
+        const medicalTerms = [
+            'infarction', 'pneumonia', 'eclampsia', 'appendicitis', 'ketoacidosis',
+            'sepsis', 'meningitis', 'arthritis', 'diabetes', 'hypertension',
+            'cancer', 'tumor', 'fracture', 'trauma', 'infection', 'disease',
+            'syndrome', 'disorder', 'failure', 'shock', 'embolism', 'thrombosis'
+        ];
+        
+        const hasMedicalTerms = medicalTerms.some(term => 
+            trimmedInput.toLowerCase().includes(term)
+        );
+        
+        if (hasMedicalTerms) {
+            return 'diagnosis';
+        }
+    }
+    
+    // If input contains patient details, demographics, or longer descriptions, treat as custom case
+    const customCaseIndicators = [
+        'year-old', 'male', 'female', 'patient', 'presenting', 'complaining',
+        'symptoms', 'history', 'pain', 'fever', 'shortness', 'breath',
+        'headache', 'nausea', 'vomiting', 'diarrhea', 'constipation'
+    ];
+    
+    const hasCustomIndicators = customCaseIndicators.some(indicator => 
+        trimmedInput.toLowerCase().includes(indicator)
+    );
+    
+    if (hasCustomIndicators || trimmedInput.length >= 100) {
+        return 'custom';
+    }
+    
+    // Default to diagnosis for short inputs
+    return 'diagnosis';
+};
+
 export async function POST(request: NextRequest) {
     try {
         const { departmentName, condition, difficulty = 'standard', userCountry } = await request.json();
         
         if (!departmentName || !condition) {
-            return NextResponse.json({ error: 'Department name and condition are required' }, { status: 400 });
+            return NextResponse.json({ 
+                error: 'Department name and condition are required',
+                suggestion: 'Please select a department and enter a condition or case description.'
+            }, { status: 400 });
         }
 
         const context = 'generatePracticeCase';
+        const inputType = detectInputType(condition);
+        
+        // Validate custom case input
+        if (inputType === 'custom') {
+            const validation = validateCustomCaseInput(condition);
+            if (!validation.isValid) {
+                return NextResponse.json({ 
+                    error: validation.error!,
+                    suggestion: validation.suggestion
+                }, { status: 400 });
+            }
+        }
         
         const locationPrompt = userCountry 
             ? `🌍 LOCATION: ${userCountry}
@@ -115,41 +267,78 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
 - Cultural or language barriers
 - Require comprehensive assessment and differential diagnosis` : '';
 
-        const userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
+        // Generate different prompts based on input type
+        let userMessage: string;
         
-        ${locationPrompt}
-        
-        REQUIREMENTS:
-        - The case MUST be for the condition: "${condition}"
-        - The case should be solvable by a medical student
-        - Balance regional authenticity with educational value
-        - Create a realistic presentation of the specified condition${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
-        
-        EXAMPLES by pathophysiology category:
-        - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease
-        - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis
-        - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
-        - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease
-        - Autoimmune: Rheumatoid Arthritis, SLE, Multiple Sclerosis
-        - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction
-        - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
-        - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
-        
-        The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
+        if (inputType === 'diagnosis') {
+            // Single diagnosis mode - generate a case around the specified condition
+            userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
+            
+            ${locationPrompt}
+            
+            REQUIREMENTS:
+            - The case MUST be for the condition: "${condition}"
+            - The case should be solvable by a medical student
+            - Balance regional authenticity with educational value
+            - Create a realistic presentation of the specified condition${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+            
+            EXAMPLES by pathophysiology category:
+            - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease
+            - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis
+            - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
+            - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease
+            - Autoimmune: Rheumatoid Arthritis, SLE, Multiple Sclerosis
+            - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction
+            - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
+            - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
+            
+            The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
 
-        - "diagnosis": The most likely diagnosis for the case (should match or be very close to "${condition}").
-        - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-            - ## BIODATA
-            - ## Presenting Complaint
-            - ## History of Presenting Complaint
-            - ## Past Medical and Surgical History
-            - ## Drug History
-            - ## Family History
-            - ## Social History
-            - ## Review of Systems
-        - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
+            - "diagnosis": The most likely diagnosis for the case (should match or be very close to "${condition}").
+            - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
+                - ## BIODATA
+                - ## Presenting Complaint
+                - ## History of Presenting Complaint
+                - ## Past Medical and Surgical History
+                - ## Drug History
+                - ## Family History
+                - ## Social History
+                - ## Review of Systems
+            - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
 
-        Generate a case for the condition "${condition}" within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+            Generate a case for the condition "${condition}" within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+        } else {
+            // Custom case mode - use the provided case description to generate a structured case
+            userMessage = `Generate a structured clinical case based on the following custom case description for a medical student simulation in the '${departmentName}' department.
+            
+            ${locationPrompt}
+            
+            CUSTOM CASE DESCRIPTION:
+            "${condition}"
+            
+            REQUIREMENTS:
+            - Use the provided case description as the foundation
+            - Expand and structure the case into a complete clinical scenario
+            - Ensure the case is solvable by a medical student
+            - Balance the provided details with educational value
+            - Create a realistic and challenging presentation${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+            
+            The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
+
+            - "diagnosis": The most likely diagnosis based on the provided case description.
+            - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
+                - ## BIODATA
+                - ## Presenting Complaint
+                - ## History of Presenting Complaint
+                - ## Past Medical and Surgical History
+                - ## Drug History
+                - ## Family History
+                - ## Social History
+                - ## Review of Systems
+            - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
+
+            Generate a structured case based on the custom description within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+        }
 
         try {
             const response = await ai.generateContent({
@@ -158,12 +347,37 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
             });
             
             const practiceCase = parseJsonResponse<Case>(response.text, context);
+            
+            // Validate the generated case
+            const caseValidation = validateGeneratedCase(practiceCase);
+            if (!caseValidation.isValid) {
+                console.error('Generated case validation failed:', caseValidation.error);
+                
+                // For custom cases, try fallback to single diagnosis mode
+                if (inputType === 'custom') {
+                    const fallbackMessage = `The custom case generation failed. Please try:
+1. Simplifying your case description
+2. Focusing on specific medical symptoms
+3. Using the "Single Diagnosis" mode instead`;
+                    
+                    return NextResponse.json({ 
+                        error: 'Unable to generate a safe case from your description',
+                        suggestion: fallbackMessage
+                    }, { status: 422 });
+                }
+                
+                throw new Error(caseValidation.error);
+            }
+            
             return NextResponse.json(practiceCase);
         } catch (error) {
             return handleApiError(error as ApiError, context);
         }
     } catch (error) {
         console.error('Error parsing request:', error);
-        return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
+        return NextResponse.json({ 
+            error: 'Invalid request format',
+            suggestion: 'Please check your input and try again.'
+        }, { status: 400 });
     }
 } 
