@@ -47,135 +47,147 @@ export const shareOnWhatsApp = (shareData: ShareData) => {
 
 // Generate a beautiful share image using Canvas
 export const generateShareImage = async (shareData: ShareData): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Create canvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Canvas context not available'));
-        return;
-      }
-
-      // Set canvas size (1200x630 for optimal sharing)
-      canvas.width = 1200;
-      canvas.height = 630;
-
-      // Load Inter font if available
-      const loadFont = async () => {
-        try {
-          if ('fonts' in document) {
-            await (document as any).fonts.load('bold 48px Inter, sans-serif');
-            await (document as any).fonts.load('bold 36px Inter, sans-serif');
-            await (document as any).fonts.load('24px Inter, sans-serif');
-            await (document as any).fonts.load('bold 28px Inter, sans-serif');
-            await (document as any).fonts.load('bold 20px Inter, sans-serif');
-            await (document as any).fonts.load('18px Inter, sans-serif');
-            await (document as any).fonts.load('bold 22px Inter, sans-serif');
-          }
-        } catch (error) {
-          console.warn('Font loading failed, using fallback fonts:', error);
+    return new Promise((resolve, reject) => {
+      try {
+        // Create canvas with higher pixel density for crisp images
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
         }
-      };
-
-      // Generate the image after font loading
-      loadFont().then(() => {
-        // Create gradient background
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#0f172a'); // slate-900
-        gradient.addColorStop(1, '#1e293b'); // slate-800
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Add subtle pattern overlay
-        ctx.fillStyle = 'rgba(20, 184, 166, 0.05)'; // teal-500 with low opacity
-        for (let i = 0; i < canvas.width; i += 40) {
-          for (let j = 0; j < canvas.height; j += 40) {
-            ctx.fillRect(i, j, 2, 2);
+  
+        // Set canvas size (3000x4500 for optimal portrait sharing)
+        // Using devicePixelRatio for higher definition
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        const baseWidth = 3000;
+        const baseHeight = 4500;
+        
+        canvas.width = baseWidth * devicePixelRatio;
+        canvas.height = baseHeight * devicePixelRatio;
+        
+        // Scale the context to ensure crisp rendering
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        
+        // Set the canvas CSS size to the base dimensions
+        canvas.style.width = baseWidth + 'px';
+        canvas.style.height = baseHeight + 'px';
+  
+        // Load Inter font if available
+        const loadFont = async () => {
+          try {
+            if ('fonts' in document) {
+              await (document as any).fonts.load('bold 120px Inter, sans-serif');
+              await (document as any).fonts.load('bold 90px Inter, sans-serif');
+              await (document as any).fonts.load('60px Inter, sans-serif');
+              await (document as any).fonts.load('bold 70px Inter, sans-serif');
+              await (document as any).fonts.load('bold 50px Inter, sans-serif');
+              await (document as any).fonts.load('45px Inter, sans-serif');
+              await (document as any).fonts.load('bold 55px Inter, sans-serif');
+            }
+          } catch (error) {
+            console.warn('Font loading failed, using fallback fonts:', error);
           }
-        }
-
-        // Draw main content area
-        const contentWidth = canvas.width - 80;
-        const contentHeight = canvas.height - 80;
-        const contentX = 40;
-        const contentY = 40;
-
-        // Content background with rounded corners effect
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        ctx.shadowBlur = 20;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 10;
-        ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
-
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-
-        // Draw ClerkSmart logo/branding
-        ctx.fillStyle = '#14b8a6'; // teal-500
-        ctx.font = 'bold 48px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('ClerkSmart', canvas.width / 2, contentY + 80);
-
-        // Draw achievement text
-        ctx.fillStyle = '#0f172a'; // slate-900
-        ctx.font = 'bold 36px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(shareData.achievementText, canvas.width / 2, contentY + 160);
-
-        // Draw diagnosis
-        ctx.fillStyle = '#475569'; // slate-600
-        ctx.font = '24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Correctly diagnosed:', canvas.width / 2, contentY + 220);
-
-        // Draw diagnosis value with highlight
-        ctx.fillStyle = '#14b8a6'; // teal-500
-        ctx.font = 'bold 28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(shareData.diagnosis, canvas.width / 2, contentY + 260);
-
-        // Draw achievement badge
-        ctx.fillStyle = '#f59e0b'; // amber-500
-        ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🏆 In the top 2% of ClerkSmart users this week', canvas.width / 2, contentY + 320);
-
-        // Draw decorative elements
-        ctx.strokeStyle = '#14b8a6';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(contentX + 60, contentY + 380);
-        ctx.lineTo(contentX + contentWidth - 60, contentY + 380);
-        ctx.stroke();
-
-        // Draw department info
-        ctx.fillStyle = '#64748b'; // slate-500
-        ctx.font = '18px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(shareData.department, canvas.width / 2, contentY + 420);
-
-        // Draw call to action
-        ctx.fillStyle = '#14b8a6'; // teal-500
-        ctx.font = 'bold 22px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Practice clinical reasoning with AI-powered cases', canvas.width / 2, contentY + 460);
-
-        // Convert to data URL
-        const dataUrl = canvas.toDataURL('image/png', 0.9);
-        resolve(dataUrl);
-      }).catch((error) => {
+        };
+  
+        // Generate the image after font loading
+        loadFont().then(() => {
+          // Create gradient background
+          const gradient = ctx.createLinearGradient(0, 0, 0, baseHeight);
+          gradient.addColorStop(0, '#0f172a'); // slate-900
+          gradient.addColorStop(1, '#1e293b'); // slate-800
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, baseWidth, baseHeight);
+  
+          // Add subtle pattern overlay
+          ctx.fillStyle = 'rgba(20, 184, 166, 0.05)'; // teal-500 with low opacity
+          for (let i = 0; i < baseWidth; i += 100) {
+            for (let j = 0; j < baseHeight; j += 100) {
+              ctx.fillRect(i, j, 5, 5);
+            }
+          }
+  
+          // Draw main content area
+          const contentWidth = baseWidth - 200;
+          const contentHeight = baseHeight - 200;
+          const contentX = 100;
+          const contentY = 100;
+  
+          // Content background with rounded corners effect
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+          ctx.shadowBlur = 50;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 25;
+          ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
+  
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+  
+          // Draw ClerkSmart logo/branding
+          ctx.fillStyle = '#14b8a6'; // teal-500
+          ctx.font = 'bold 120px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('ClerkSmart', baseWidth / 2, contentY + 200);
+  
+          // Draw achievement text
+          ctx.fillStyle = '#0f172a'; // slate-900
+          ctx.font = 'bold 90px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(shareData.achievementText, baseWidth / 2, contentY + 400);
+  
+          // Draw diagnosis
+          ctx.fillStyle = '#475569'; // slate-600
+          ctx.font = '60px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Correctly diagnosed:', baseWidth / 2, contentY + 550);
+  
+          // Draw diagnosis value with highlight
+          ctx.fillStyle = '#14b8a6'; // teal-500
+          ctx.font = 'bold 70px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(shareData.diagnosis, baseWidth / 2, contentY + 650);
+  
+          // Draw achievement badge
+          ctx.fillStyle = '#f59e0b'; // amber-500
+          ctx.font = 'bold 50px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('🏆 In the top 2% of ClerkSmart users this week', baseWidth / 2, contentY + 800);
+  
+          // Draw decorative elements
+          ctx.strokeStyle = '#14b8a6';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.moveTo(contentX + 150, contentY + 950);
+          ctx.lineTo(contentX + contentWidth - 150, contentY + 950);
+          ctx.stroke();
+  
+          // Draw department info
+          ctx.fillStyle = '#64748b'; // slate-500
+          ctx.font = '45px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(shareData.department, baseWidth / 2, contentY + 1050);
+  
+          // Draw call to action
+          ctx.fillStyle = '#14b8a6'; // teal-500
+          ctx.font = 'bold 55px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Practice clinical reasoning with AI-powered cases', baseWidth / 2, contentY + 1150);
+  
+          // Convert to data URL with maximum quality
+          const dataUrl = canvas.toDataURL('image/png', 1.0);
+          resolve(dataUrl);
+        }).catch((error) => {
+          reject(error);
+        });
+      } catch (error) {
         reject(error);
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+      }
+    });
+  };
 
 // Share on WhatsApp with image
 export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {

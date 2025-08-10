@@ -63,10 +63,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
           </p>
         </div>
 
-        {/* Image Preview */}
+        {/* Image Preview - Elegantly Scaled */}
         <div className="mb-6">
           {isGeneratingImage ? (
-            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-8 flex items-center justify-center">
+            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-8 flex items-center justify-center" style={{ aspectRatio: '2/3' }}>
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-2"></div>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Generating your achievement image...</p>
@@ -74,17 +74,25 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             </div>
           ) : imagePreview ? (
             <div className="relative">
-              <img 
-                src={imagePreview} 
-                alt="Achievement Share Image" 
-                className="w-full rounded-xl shadow-lg border border-slate-200 dark:border-slate-600"
-              />
-              <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                Ready to share
+              {/* Container with aspect ratio for portrait image */}
+              <div className="relative w-full" style={{ aspectRatio: '2/3' }}>
+                <img 
+                  src={imagePreview} 
+                  alt="Achievement Share Image" 
+                  className="w-full h-full object-cover rounded-xl shadow-lg border border-slate-200 dark:border-slate-600"
+                  style={{ objectPosition: 'center' }}
+                />
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                  Ready to share
+                </div>
+                {/* Quality indicator */}
+                <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                  HD Quality
+                </div>
               </div>
             </div>
           ) : (
-            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-8 flex items-center justify-center">
+            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-8 flex items-center justify-center" style={{ aspectRatio: '2/3' }}>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Loading preview...</p>
             </div>
           )}
@@ -93,7 +101,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         {/* Share Info */}
         <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-600">
           <p className="text-slate-700 dark:text-slate-300 text-center text-sm">
-            This image will be shared along with a clickable link to ClerkSmart
+            This high-definition image will be shared along with a clickable link to ClerkSmart
           </p>
         </div>
 
