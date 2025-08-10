@@ -12,28 +12,48 @@ interface ShareModalProps {
 const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, shareData }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Generate image preview when modal opens
-  useEffect(() => {
-    if (isOpen && shareData && !imagePreview) {
-      setIsGeneratingImage(true);
-      generateShareImage(shareData)
-        .then((dataUrl) => {
-          setImagePreview(dataUrl);
-        })
-        .catch((error) => {
-          console.error('Error generating image preview:', error);
-        })
-        .finally(() => {
-          setIsGeneratingImage(false);
-        });
+  const generateImage = async () => {
+    if (!shareData) return;
+    
+    setIsGeneratingImage(true);
+    setGenerationError(null);
+    
+    try {
+      const dataUrl = await generateShareImage(shareData);
+      setImagePreview(dataUrl);
+      setRetryCount(0); // Reset retry count on success
+    } catch (error) {
+      console.error('Error generating image preview:', error);
+      setGenerationError(error instanceof Error ? error.message : 'Failed to generate image');
+      
+      // Auto-retry once with a delay
+      if (retryCount === 0) {
+        setTimeout(() => {
+          setRetryCount(1);
+          generateImage();
+        }, 1000);
+      }
+    } finally {
+      setIsGeneratingImage(false);
     }
-  }, [isOpen, shareData, imagePreview]);
+  };
+
+  useEffect(() => {
+    if (isOpen && shareData && !imagePreview && retryCount === 0) {
+      generateImage();
+    }
+  }, [isOpen, shareData, imagePreview, retryCount]);
 
   // Clear image preview when modal closes
   useEffect(() => {
     if (!isOpen) {
       setImagePreview(null);
+      setGenerationError(null);
+      setRetryCount(0);
     }
   }, [isOpen]);
 
@@ -47,6 +67,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       console.error('Error sharing:', error);
       onShare();
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(0);
+    setImagePreview(null);
+    setGenerationError(null);
+    generateImage();
   };
 
   return (
@@ -69,7 +96,31 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-8 flex items-center justify-center" style={{ aspectRatio: '2/3' }}>
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-2"></div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Generating your achievement image...</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {retryCount > 0 ? 'Retrying image generation...' : 'Generating your achievement image...'}
+                </p>
+              </div>
+            </div>
+          ) : generationError ? (
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-8 flex items-center justify-center" style={{ aspectRatio: '2/3' }}>
+              <div className="text-center">
+                <div className="text-red-500 mb-2">
+                  <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <p className="text-red-600 dark:text-red-400 text-sm mb-3">
+                  Failed to generate image
+                </p>
+                <p className="text-red-500 dark:text-red-400 text-xs mb-4">
+                  {generationError}
+                </p>
+                <button
+                  onClick={handleRetry}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                >
+                  Try Again
+                </button>
               </div>
             </div>
           ) : imagePreview ? (
@@ -101,7 +152,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         {/* Share Info */}
         <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-600">
           <p className="text-slate-700 dark:text-slate-300 text-center text-sm">
-            This high-definition image will be shared along with a clickable link to ClerkSmart
+            {generationError 
+              ? "You can still share your achievement via text message"
+              : "This high-definition image will be shared along with a clickable link to ClerkSmart"
+            }
           </p>
         </div>
 
@@ -109,7 +163,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         <div className="flex space-x-3">
           <button
             onClick={handleShare}
-            disabled={isGeneratingImage || !imagePreview}
+            disabled={isGeneratingImage}
             className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
