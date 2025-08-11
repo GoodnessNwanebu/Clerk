@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { SessionProvider } from 'next-auth/react';
+import { SessionProvider, useSession } from 'next-auth/react';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -21,13 +21,11 @@ const LoadingScreen = () => (
   </div>
 );
 
-export default function ClientWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Inner component that can use session
+function OnboardingCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -46,8 +44,11 @@ export default function ClientWrapper({
       return;
     }
     
+    // If user is authenticated, consider them as having completed onboarding
+    const shouldSkipOnboarding = hasOnboarded || (status === 'authenticated' && session);
+    
     // Redirect new users to onboarding with minimal delay
-    if (!hasOnboarded) {
+    if (!shouldSkipOnboarding) {
       // Use a minimal timeout to allow the initial render to complete
       // This makes the transition feel smoother
       setTimeout(() => {
@@ -56,12 +57,24 @@ export default function ClientWrapper({
     } else {
       setIsLoading(false);
     }
-  }, [pathname, router]);
+  }, [pathname, router, session, status]);
   
   // Show branded loading screen while determining if redirect is needed
   if (isLoading && pathname !== '/onboarding') {
     return <LoadingScreen />;
   }
 
-  return <SessionProvider>{children}</SessionProvider>;
+  return <>{children}</>;
+}
+
+export default function ClientWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SessionProvider>
+      <OnboardingCheck>{children}</OnboardingCheck>
+    </SessionProvider>
+  );
 } 

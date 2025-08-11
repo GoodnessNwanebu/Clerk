@@ -79,7 +79,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#14b8a6" />
       </head>
-      <body  className={`${inter.className} max-h-min`}>
+      <body  className={`${inter.className} h-4/5`}>
         <ThemeProvider>
           <AppProvider>
             <ClientWrapper>{children}</ClientWrapper>

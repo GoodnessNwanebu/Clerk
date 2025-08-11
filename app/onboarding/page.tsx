@@ -183,7 +183,7 @@ const OnboardingScreen: React.FC = () => {
            )}
         </div>
 
-        <div className="flex-shrink-0 w-full max-w-sm mx-auto pb-8 mb-4">
+        <div className="flex-shrink-0 w-full max-w-sm mx-auto  mb-4">
           <div className="flex justify-center items-center mb-6 space-x-2">
               {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Back</button>}
               <div className="flex-grow flex justify-center items-center space-x-2">

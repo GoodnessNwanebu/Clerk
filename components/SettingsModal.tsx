@@ -58,7 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleSignIn = () => {
-    signIn('google', { callbackUrl: window.location.href });
+    signIn('google', { callbackUrl: '/' });
   };
 
   const handleSignOut = () => {
