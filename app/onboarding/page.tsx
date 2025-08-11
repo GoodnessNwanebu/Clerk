@@ -88,7 +88,7 @@ const OnboardingScreen: React.FC = () => {
   }
 
   const handleSignIn = () => {
-    signIn('google', { callbackUrl: window.location.href });
+    signIn('google', { callbackUrl: '/' });
   };
 
   const handleSkipSignIn = () => {
@@ -110,7 +110,7 @@ const OnboardingScreen: React.FC = () => {
       <Head>
         <title>Welcome to ClerkSmart</title>
       </Head>
-      <div className=" bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 transition-colors duration-300">
+      <div className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 transition-colors duration-300">
         <div className="flex-grow flex flex-col items-center justify-center text-center">
           <div className="bg-teal-500/10 p-6 rounded-full mb-8">
               <div className="bg-teal-500/20 p-5 rounded-full">

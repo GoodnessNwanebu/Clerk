@@ -70,14 +70,15 @@ const parseExaminationScope = (plan: string): {
     return scope;
 };
 
-export const examinationResultsPrompt = (plan: string, diagnosis: string) => {
+export const examinationResultsPrompt = (plan: string, patientContext: string) => {
     // Parse the examination scope from the plan
     const examinationScope = parseExaminationScope(plan);
     
     // Generate scope-specific instructions
     const scopeInstructions = generateScopeInstructions(examinationScope);
     
-    return `Parse examination plan for patient with diagnosis '${diagnosis}'.
+    return `Generate examination results for a patient based on their presenting symptoms and clinical context.
+PATIENT CONTEXT: ${patientContext}
 EXAMINATION SCOPE: ${scopeInstructions}
 
 Return consolidated examination reports as JSON array:
@@ -87,7 +88,8 @@ QUANTITATIVE: {"name": string, "type": "quantitative", "category": "vital_signs"
 DESCRIPTIVE: {"name": string, "type": "descriptive", "category": "vital_signs"|"system_examination"|"special_tests", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "cardiovascular"|"respiratory"|"abdominal"|"neurological"|"musculoskeletal"|"general"|"obstetric"|"pediatric"}
 
 GUIDELINES:
-- CONSOLIDATE examinations into comprehensive reports
+- Generate realistic examination findings based on patient's presenting symptoms
+- DO NOT reveal the underlying diagnosis - only provide findings that could be elicited through physical examination
 - Each examination type = ONE comprehensive report
 - Include inspection, palpation, percussion, auscultation in ONE report
 - ALWAYS generate vital signs as separate quantitative results (if general examination is included):
@@ -96,9 +98,10 @@ GUIDELINES:
   * Temp: Celsius (37.2°C, range 36.5-37.5)
   * RR: bpm (16 bpm, range 12-20)
   * O2 Sat: % (98%, range 95-100)
-- Make some vital signs abnormal for educational value
+- Make some vital signs abnormal if consistent with presenting symptoms
 - Use professional medical terminology
-- Consider patient age, gender, underlying condition
+- Consider patient age, gender, and presenting symptoms
+- Findings should be consistent with the patient's condition but not diagnostic
 
 CRITICAL SCOPE RULES:
 - ONLY provide results for examinations that were actually requested
@@ -111,13 +114,28 @@ CRITICAL SCOPE RULES:
 - DO NOT provide findings for systems that were not examined
 - DO NOT assume examinations were done if not explicitly requested
 
+REALISTIC EXAMINATION RULES:
+- Provide findings that could realistically be elicited through physical examination
+- DO NOT include findings that would require imaging, lab tests, or other investigations
+- DO NOT mention specific diagnoses in the findings
+- DO NOT include pathognomonic signs unless they are subtle and require careful examination
+- Focus on inspection, palpation, percussion, and auscultation findings
+- Include both normal and abnormal findings as appropriate
+- Findings should be consistent with the patient's symptoms but not reveal the diagnosis
+
 EXAMPLES:
 - "general examination" → ONLY vital signs and general appearance
-- "cardiovascular examination" → ONLY cardiovascular findings
-- "respiratory examination" → ONLY respiratory findings
-- "abdominal examination" → ONLY abdominal findings
-- "neurological examination" → ONLY neurological findings
+- "cardiovascular examination" → ONLY cardiovascular findings (inspection, palpation, auscultation)
+- "respiratory examination" → ONLY respiratory findings (inspection, palpation, percussion, auscultation)
+- "abdominal examination" → ONLY abdominal findings (inspection, palpation, percussion, auscultation)
+- "neurological examination" → ONLY neurological findings (cranial nerves, motor, sensory, reflexes)
 - "full examination" or "complete examination" → ALL systems
+
+REALISTIC FINDINGS EXAMPLES:
+- Cardiovascular: "Regular rate and rhythm, no murmurs, gallops, or rubs. JVP not elevated. Peripheral pulses palpable and equal."
+- Respiratory: "Clear breath sounds bilaterally, no wheezes, crackles, or rubs. Chest expansion equal. No chest wall tenderness."
+- Abdominal: "Soft, non-tender, non-distended. No masses or organomegaly. Bowel sounds present. No rebound or guarding."
+- Neurological: "Alert and oriented. Cranial nerves II-XII intact. Motor strength 5/5 throughout. Sensation intact. Reflexes 2+ and symmetric."
 
 OUTPUT: {"results": [...]}
 

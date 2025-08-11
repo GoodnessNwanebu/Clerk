@@ -13,7 +13,11 @@ export async function POST(request: NextRequest) {
         }
 
         const context = 'getExaminationResults';
-        const userMessage = examinationResultsPrompt(plan, caseDetails.diagnosis);
+        
+        // Create patient context from demographics and presenting symptoms
+        const patientContext = `Patient: ${caseDetails.patientProfile?.age || 'unknown age'} year old ${caseDetails.patientProfile?.gender || 'patient'}. Presenting symptoms: ${caseDetails.patientProfile?.presentingComplaint || 'various symptoms'}.`;
+        
+        const userMessage = examinationResultsPrompt(plan, patientContext);
 
         const response = await ai.generateContent({
             model: MODEL,

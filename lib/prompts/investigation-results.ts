@@ -1,8 +1,9 @@
-export const investigationResultsPrompt = (plan: string, diagnosis: string, patientAge?: number | null, ageGroup?: string | null) => {
+export const investigationResultsPrompt = (plan: string, patientContext: string, patientAge?: number | null, ageGroup?: string | null) => {
     // Generate age-specific reference ranges for pediatric cases
     const ageSpecificRanges = patientAge && ageGroup ? getAgeSpecificRanges(patientAge, ageGroup) : '';
     
-    return `Parse investigation plan for patient with diagnosis '${diagnosis}'.
+    return `Generate investigation results for a patient based on their presenting symptoms and clinical context.
+PATIENT CONTEXT: ${patientContext}
 ${patientAge ? `PATIENT AGE: ${patientAge} years old (${ageGroup})` : ''}
 ${ageSpecificRanges}
 
@@ -13,7 +14,8 @@ QUANTITATIVE: {"name": string, "type": "quantitative", "category": "laboratory"|
 DESCRIPTIVE: {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
 
 GUIDELINES:
-- Medically plausible results consistent with diagnosis
+- Generate medically plausible results based on patient's presenting symptoms
+- Results should be consistent with the patient's condition but not reveal the diagnosis
 - FBC: Hemoglobin, PCV, WBC, Platelets (quantitative)
   * PCV range: 36-46% (females), 40-50% (males)
   * Hemoglobin range: 12-16 g/dL (females), 13-17 g/dL (males)
@@ -23,7 +25,7 @@ GUIDELINES:
 - ECGs: Professional interpretation with rhythm, axis, intervals
 - Echo: Structured cardiac findings with measurements
 - Include ALL requested tests
-- Make some results abnormal for educational value
+- Make some results abnormal if consistent with presenting symptoms
 - Use professional medical terminology
 ${patientAge ? `- Use age-appropriate reference ranges for pediatric patients` : ''}
 
