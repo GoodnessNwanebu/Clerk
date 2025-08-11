@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { SessionProvider } from 'next-auth/react';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -62,5 +63,5 @@ export default function ClientWrapper({
     return <LoadingScreen />;
   }
 
-  return <>{children}</>;
+  return <SessionProvider>{children}</SessionProvider>;
 } 

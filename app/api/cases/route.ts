@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '../../../auth'
 import { 
   createCase, 
   getUserCases, 
@@ -9,6 +10,11 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { action, data } = body
 
@@ -16,8 +22,8 @@ export async function POST(request: NextRequest) {
       case 'create':
         const { email, country, ...caseData } = data
         
-        // Create or get user
-        const user = await createOrGetUser(email, country)
+        // Use authenticated user's email
+        const user = await createOrGetUser(session.user.email, country)
         
         // Create case
         const newCase = await createCase({
@@ -51,24 +57,26 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
     const caseId = searchParams.get('caseId')
-    const limit = parseInt(searchParams.get('limit') || '20')
 
     if (caseId) {
-      // Get specific case
       const caseData = await getCaseById(caseId)
       if (!caseData) {
         return NextResponse.json({ error: 'Case not found' }, { status: 404 })
       }
-      return NextResponse.json({ case: caseData })
+      return NextResponse.json(caseData)
     }
 
     if (userId) {
-      // Get user's cases
-      const cases = await getUserCases(userId, limit)
-      return NextResponse.json({ cases })
+      const cases = await getUserCases(userId)
+      return NextResponse.json(cases)
     }
 
     return NextResponse.json({ error: 'Missing userId or caseId parameter' }, { status: 400 })

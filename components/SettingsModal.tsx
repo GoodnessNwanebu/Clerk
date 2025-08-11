@@ -3,93 +3,19 @@ import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { ThemeSetting } from '../types';
 import { Icon } from './Icon';
+import { CountrySelect } from './CountrySelect';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const COUNTRIES = [
-  'United States',
-  'United Kingdom', 
-  'Canada',
-  'Australia',
-  'India',
-  'Nigeria',
-  'Germany',
-  'France',
-  'Japan',
-  'Brazil',
-  'Jordan'
-];
-
-const ThemeOption: React.FC<{ 
-  label: string; 
-  description: string;
-  value: ThemeSetting; 
-  current: ThemeSetting; 
-  onClick: (value: ThemeSetting) => void;
-  icon: string;
-}> = ({ label, description, value, current, onClick, icon }) => {
-  const isActive = current === value;
-  
-  return (
-    <button
-      onClick={() => onClick(value)}
-      className={`w-full text-left p-4 rounded-lg transition-all duration-200 flex items-center space-x-3 ${
-        isActive 
-          ? 'bg-teal-500 text-white shadow-lg' 
-          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-      }`}
-      role="radio"
-      aria-checked={isActive}
-    >
-      <Icon 
-        name={icon} 
-        size={20} 
-        className={isActive ? 'text-white' : 'text-teal-500'} 
-      />
-      <div className="flex-1">
-        <div className="font-medium">{label}</div>
-        <div className={`text-sm ${isActive ? 'text-teal-100' : 'text-slate-500 dark:text-slate-400'}`}>
-          {description}
-        </div>
-      </div>
-      {isActive && (
-        <Icon name="check" size={20} className="text-white" />
-      )}
-    </button>
-  );
-};
-
-const CountryOption: React.FC<{
-  country: string;
-  current: string | null;
-  onClick: (country: string) => void;
-}> = ({ country, current, onClick }) => {
-  const isActive = current === country;
-  
-  return (
-    <button
-      onClick={() => onClick(country)}
-      className={`w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center justify-between ${
-        isActive 
-          ? 'bg-teal-500 text-white shadow-lg' 
-          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-      }`}
-    >
-      <span className="font-medium">{country}</span>
-      {isActive && (
-        <Icon name="check" size={16} className="text-white" />
-      )}
-    </button>
-  );
-};
-
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { themeSetting, setThemeSetting, theme } = useTheme();
   const { userCountry, setUserCountry } = useAppContext();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(userCountry);
+  const { data: session, status } = useSession();
 
   // Update local state when userCountry changes
   useEffect(() => {
@@ -131,16 +57,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setUserCountry(country);
   };
 
-  const getCurrentThemeDescription = () => {
-    if (themeSetting === 'system') {
-      return `Following system (currently ${theme})`;
-    }
-    return `Always ${theme}`;
+  const handleSignIn = () => {
+    signIn('google', { callbackUrl: window.location.href });
+  };
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
   };
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" 
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm " 
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -162,58 +89,118 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
         
+        {/* Account Section */}
+        <div className="space-y-4 mb-8">
+          <div className="flex items-center space-x-2">
+            <Icon name="user" size={20} className="text-slate-600 dark:text-slate-400" />
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Account</h3>
+          </div>
+          
+          {status === 'loading' ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500"></div>
+            </div>
+          ) : session ? (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                {session.user?.image && (
+                  <img 
+                    src={session.user.image} 
+                    alt="Profile" 
+                    className="w-10 h-10 rounded-full"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="font-medium text-slate-900 dark:text-white">
+                    {session.user?.name || 'User'}
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {session.user?.email}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              >
+                <Icon name="log-out" size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Sign in to save your progress and access your case history across devices.
+              </p>
+              <button
+                onClick={handleSignIn}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-lg transition-colors"
+              >
+                <Icon name="chrome" size={16} />
+                <span>Sign in with Google</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Theme Section */}
         <div className="space-y-4 mb-8">
           <div className="flex items-center space-x-2">
-            <Icon name="sun" size={20} className="text-slate-600 dark:text-slate-400" />
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Appearance</h3>
           </div>
           
-          <div className="space-y-3" role="radiogroup" aria-labelledby="theme-group-label">
-            <ThemeOption 
-              label="Light" 
-              description="Always use light theme"
-              value="light" 
-              current={themeSetting} 
-              onClick={setThemeSetting}
-              icon="sun" 
-            />
-            <ThemeOption 
-              label="Dark" 
-              description="Always use dark theme"
-              value="dark" 
-              current={themeSetting} 
-              onClick={setThemeSetting}
-              icon="moon" 
-            />
-            <ThemeOption 
-              label="System" 
-              description="Follow system preference"
-              value="system" 
-              current={themeSetting} 
-              onClick={setThemeSetting}
-              icon="monitor" 
-            />
-          </div>
-          
-          {/* Current Theme Display */}
-          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Icon 
-                  name={theme === 'dark' ? 'moon' : 'sun'} 
-                  size={16} 
-                  className="text-teal-500" 
-                />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Current theme:
-                </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Icon 
+                name={theme === 'dark' ? 'moon' : themeSetting === 'system' ? 'monitor' : 'sun'} 
+                size={20} 
+                className="text-slate-600 dark:text-slate-400" 
+              />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-white">Theme</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  {themeSetting === 'system' ? 'Use Device' : `Always ${theme}`}
+                </div>
               </div>
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                {getCurrentThemeDescription()}
-              </span>
+            </div>
+            <div className="flex bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+              <button
+                onClick={() => setThemeSetting('light')}
+                className={`p-2 rounded-md transition-all duration-200 flex items-center justify-center ${
+                  themeSetting === 'light' 
+                    ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Light theme"
+              >
+                <Icon name="sun" size={16} />
+              </button>
+              <button
+                onClick={() => setThemeSetting('dark')}
+                className={`p-2 rounded-md transition-all duration-200 flex items-center justify-center ${
+                  themeSetting === 'dark' 
+                    ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Dark theme"
+              >
+                <Icon name="moon" size={16} />
+              </button>
+              <button
+                onClick={() => setThemeSetting('system')}
+                className={`p-2 rounded-md transition-all duration-200 flex items-center justify-center ${
+                  themeSetting === 'system' 
+                    ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="System theme"
+              >
+                <Icon name="monitor" size={16} />
+              </button>
             </div>
           </div>
+          
+
         </div>
 
         {/* Location Section */}
@@ -227,15 +214,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             Your location helps us create culturally relevant patients with appropriate names and medical contexts.
           </p>
           
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {COUNTRIES.map((country) => (
-              <CountryOption
-                key={country}
-                country={country}
-                current={selectedCountry}
-                onClick={handleCountrySelect}
-              />
-            ))}
+          <div className="w-full">
+            <CountrySelect
+              value={selectedCountry || ''}
+              onChange={handleCountrySelect}
+              placeholder="Choose your country..."
+            />
           </div>
           
           {/* Current Location Display */}

@@ -5,39 +5,7 @@ import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import { Icon } from '../../components/Icon';
 import { useAppContext } from '../../context/AppContext';
-
-const COUNTRIES = [
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'NG', name: 'Nigeria' },
-  { code: 'IN', name: 'India' },
-  { code: 'ZA', name: 'South Africa' },
-  { code: 'KE', name: 'Kenya' },
-  { code: 'GH', name: 'Ghana' },
-  { code: 'UG', name: 'Uganda' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'FR', name: 'France' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'SE', name: 'Sweden' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'AR', name: 'Argentina' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'CN', name: 'China' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'TH', name: 'Thailand' },
-  { code: 'PH', name: 'Philippines' },
-  { code: 'EG', name: 'Egypt' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'JO', name: 'Jordan' },
-  { code: 'OTHER', name: 'Other' },
-];
+import { CountrySelect } from '../../components/CountrySelect';
 
 const onboardingSteps = [
   {
@@ -116,25 +84,18 @@ const OnboardingScreen: React.FC = () => {
           <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
           
-          {isCountryStep && (
-            <div className="w-full max-w-sm">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Select your country
-              </label>
-              <select
-                value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value)}
-                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors"
-              >
-                <option value="">Choose your country...</option>
-                {COUNTRIES.map((country) => (
-                  <option key={country.code} value={country.name}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+                     {isCountryStep && (
+             <div className="w-full max-w-sm">
+               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                 Select your country
+               </label>
+               <CountrySelect
+                 value={selectedCountry}
+                 onChange={setSelectedCountry}
+                 placeholder="Choose your country..."
+               />
+             </div>
+           )}
         </div>
 
         <div className="flex-shrink-0 w-full max-w-sm mx-auto pb-8 mb-4">
