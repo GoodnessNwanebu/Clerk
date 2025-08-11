@@ -35,8 +35,6 @@ body {
   padding: 0;
   min-height: 100vh;
   min-height: 100dvh; /* Use dynamic viewport height for mobile */
-  height: 100vh;
-  height: 100dvh; /* Ensure full dynamic viewport height */
 }
 
 /* iOS PWA specific styles */
@@ -61,7 +59,6 @@ html {
     /* Use dynamic viewport height to account for safe areas */
     min-height: 100vh;
     min-height: 100dvh;
-    height: 100dvh;
     /* Remove padding that might cause overflow */
     padding: 0;
   }
@@ -164,15 +161,4 @@ body,
   transition-property: color, background-color, border-color;
   transition-duration: 500ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Dynamic viewport height utilities for PWA */
-.min-h-dvh {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
-.h-dvh {
-  height: 100vh;
-  height: 100dvh;
 } 

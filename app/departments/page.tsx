@@ -94,7 +94,7 @@ const DepartmentSelectionScreen: React.FC = () => {
         onSelectSubspecialty={handleSubspecialtySelect}
         disabled={isGeneratingCase}
       />
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
         <header className="flex items-center justify-between mb-8">
           <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
             <Icon name="arrow-left" size={24} />

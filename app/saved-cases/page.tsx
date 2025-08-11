@@ -82,8 +82,8 @@ export default function SavedCasesPage() {
 
   if (isLoading) {
     return (
-          <div className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="flex items-center justify-center min-h-screen min-h-[100dvh]">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="relative">
               <Icon name="loader-2" size={48} className="animate-spin text-teal-600 dark:text-teal-400 mx-auto mb-6" />
@@ -99,8 +99,8 @@ export default function SavedCasesPage() {
 
   if (error) {
     return (
-          <div className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="flex items-center justify-center min-h-screen min-h-[100dvh] px-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center justify-center min-h-screen px-6">
           <div className="text-center max-w-md">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -122,7 +122,7 @@ export default function SavedCasesPage() {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
       <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-6">

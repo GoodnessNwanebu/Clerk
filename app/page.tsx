@@ -180,7 +180,7 @@ export default function HomePage() {
         onClose={handlePWATutorialClose}
         onComplete={handlePWATutorialComplete}
       />
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
         {/* Settings Button - Top Right */}
         <button 
           onClick={() => setIsSettingsOpen(true)} 

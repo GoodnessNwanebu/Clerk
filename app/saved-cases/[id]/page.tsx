@@ -137,7 +137,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
         <div className="text-center">
           <Icon name="loader-2" size={32} className="animate-spin text-teal-500 mx-auto mb-4" />
           <p className="text-slate-500 dark:text-slate-400">Loading case...</p>
@@ -148,7 +148,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
   if (error) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-6">
           <Icon name="alert-circle" size={48} className="text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Error Loading Case</h2>
@@ -166,7 +166,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
   if (!caseData) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
         <div className="text-center">
           <Icon name="file-x" size={48} className="text-slate-400 mx-auto mb-4" />
           <p className="text-slate-500 dark:text-slate-400">No case data available</p>
@@ -176,7 +176,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white">
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-6">

@@ -6,7 +6,7 @@ import { SessionProvider } from 'next-auth/react';
 
 // Branded loading screen component
 const LoadingScreen = () => (
-      <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center px-4">
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center px-4">
     <div className="text-center mb-8">
       <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-500 text-transparent bg-clip-text mb-3">
         ClerkSmart
