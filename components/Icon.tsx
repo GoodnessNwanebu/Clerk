@@ -6,7 +6,7 @@ import {
   Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
   Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
   Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, Bookmark,
-  Chrome, Compass, Info, Image, Download
+  Chrome, Compass, Info, Image, Download, UserCheck
 } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
@@ -76,6 +76,7 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'info': return <Info {...iconProps} />;
     case 'image': return <Image {...iconProps} />;
     case 'download': return <Download {...iconProps} />;
+    case 'user-check': return <UserCheck {...iconProps} />;
     // Fallback for missing icons (like 'stomach')
     case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
     case 'mind': return <Brain {...iconProps} />; // Using brain as fallback

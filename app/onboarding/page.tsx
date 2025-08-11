@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { Icon } from '../../components/Icon';
 import { useAppContext } from '../../context/AppContext';
 import { CountrySelect } from '../../components/CountrySelect';
+import { useSession, signIn } from 'next-auth/react';
 
 const onboardingSteps = [
   {
@@ -27,12 +28,18 @@ const onboardingSteps = [
     title: 'Choose Your Location',
     description: 'Select your country to get culturally appropriate cases and patient contexts.',
     icon: 'map-pin'
+  },
+  {
+    title: 'Sign in to Save Progress',
+    description: 'Sign in with Google to save your cases and access them across devices.',
+    icon: 'user-check'
   }
 ];
 
 const OnboardingScreen: React.FC = () => {
   const router = useRouter();
   const { setUserCountry } = useAppContext();
+  const { data: session, status } = useSession();
   const [step, setStep] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [isReady, setIsReady] = useState(false);
@@ -41,16 +48,33 @@ const OnboardingScreen: React.FC = () => {
     setIsReady(true);
   }, []);
 
-  const isCountryStep = step === onboardingSteps.length - 1;
+  const isCountryStep = step === onboardingSteps.length - 2; // Second to last step
+  const isSignInStep = step === onboardingSteps.length - 1; // Last step
   const canContinue = isCountryStep ? selectedCountry !== '' : true;
+
+  // Auto-advance if user is already signed in and we're on the sign-in step
+  useEffect(() => {
+    if (isSignInStep && session && status === 'authenticated') {
+      // User is already signed in, automatically complete onboarding
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hasOnboarded', 'true');
+        }
+        router.push('/');
+      }, 1000); // Small delay to show the success state
+    }
+  }, [isSignInStep, session, status, router]);
 
   const handleNext = () => {
     if (step < onboardingSteps.length - 1) {
+      // If moving from country step to sign-in step, save the country selection
+      if (isCountryStep) {
+        setUserCountry(selectedCountry);
+      }
       setStep(step + 1);
     } else {
-      // Save country selection and onboarding completion
+      // Final step - complete onboarding
       if (typeof window !== 'undefined') {
-        setUserCountry(selectedCountry);
         localStorage.setItem('hasOnboarded', 'true');
       }
       router.push('/');
@@ -62,6 +86,18 @@ const OnboardingScreen: React.FC = () => {
           setStep(step - 1);
       }
   }
+
+  const handleSignIn = () => {
+    signIn('google', { callbackUrl: window.location.href });
+  };
+
+  const handleSkipSignIn = () => {
+    // Skip sign-in and complete onboarding
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasOnboarded', 'true');
+    }
+    router.push('/');
+  };
 
   const currentStep = onboardingSteps[step];
 
@@ -84,7 +120,56 @@ const OnboardingScreen: React.FC = () => {
           <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
           
-                     {isCountryStep && (
+          {isSignInStep && (
+            <div className="w-full max-w-sm space-y-4">
+              {status === 'loading' ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500"></div>
+                </div>
+              ) : session ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                    {session.user?.image && (
+                      <img 
+                        src={session.user.image} 
+                        alt="Profile" 
+                        className="w-10 h-10 rounded-full"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900 dark:text-white">
+                        {session.user?.name || 'User'}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        {session.user?.email}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-green-600 dark:text-green-400 font-medium">
+                    ✓ Successfully signed in!
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-lg transition-colors shadow-sm"
+                  >
+                    <Icon name="chrome" size={20} />
+                    <span>Sign in with Google</span>
+                  </button>
+                  <button
+                    onClick={handleSkipSignIn}
+                    className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition-colors"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {isCountryStep && (
              <div className="w-full max-w-sm">
                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                  Select your country

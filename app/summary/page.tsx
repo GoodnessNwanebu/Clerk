@@ -160,7 +160,7 @@ const SummaryScreen: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 sm:p-8 transition-colors duration-300">
+        <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 sm:p-8 transition-colors duration-300">
             <header className="flex items-center mb-4">
                 <button onClick={() => router.push(phase === 'initial' ? '/clerking' : '#')} className="p-2 -ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" disabled={phase === 'results'}>
                     <Icon name="arrow-left" size={24} className={phase === 'results' ? 'text-slate-400 dark:text-slate-600' : ''} />

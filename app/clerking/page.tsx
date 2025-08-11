@@ -216,7 +216,7 @@ const ClerkingScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
       {showPermissionModal && <PermissionModal onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />}
       
       <header className={`fixed top-0 left-0 right-0 z-10 border-b p-4 transition-all duration-300 ${
