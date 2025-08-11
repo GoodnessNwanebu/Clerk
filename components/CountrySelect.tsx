@@ -117,7 +117,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search countries..."
-                className="w-full pl-10 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                className="w-full pl-10 pr-3 py-2 text-base md:text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
               />
             </div>
           </div>
