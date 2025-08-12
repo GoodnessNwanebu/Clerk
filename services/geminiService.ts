@@ -216,7 +216,8 @@ export const generateClinicalCaseWithDifficulty = async (departmentName: string,
             const patientProfile = await fetchFromApi('generatePatientProfile', { 
                 diagnosis: clinicalCase.diagnosis,
                 departmentName,
-                userCountry
+                userCountry,
+                randomSeed: Math.floor(Math.random() * 10000)
             });
             return { ...clinicalCase, patientProfile };
         }
@@ -245,7 +246,8 @@ export const generatePracticeCase = async (departmentName: string, condition: st
         const patientProfile = await fetchFromApi('generatePatientProfile', { 
             diagnosis: practiceCase.diagnosis,
             departmentName,
-            userCountry
+            userCountry,
+            randomSeed: Math.floor(Math.random() * 10000)
         });
         return { ...practiceCase, patientProfile };
     }

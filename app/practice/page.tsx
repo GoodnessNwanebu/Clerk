@@ -13,16 +13,16 @@ const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
   const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint } = useAppContext();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
+  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
-      setError('Please enter a condition or custom case.');
+      setError('Please enter a condition.');
       return;
     }
 
@@ -36,22 +36,10 @@ const PracticeModeScreen: React.FC = () => {
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
             setError(err.message.split(': ')[1]);
         } else {
-            // Check if the error message contains structured error data
-            if (err.message.includes('"error"') && err.message.includes('"suggestion"')) {
-              try {
-                const errorData = JSON.parse(err.message);
-                setError(`${errorData.error}\n\n${errorData.suggestion}`);
-              } catch {
-                // If JSON parsing fails, show a user-friendly message
-                setError("We couldn't create your practice case. Please try simplifying your description or using a different approach.");
-              }
-            } else {
-              // For other errors, show a user-friendly message
-              setError("We couldn't create your practice case right now. Please try again or simplify your description.");
-            }
+            setError("Sorry, we couldn't create a practice case right now. Please try again.");
         }
       } else {
-         setError("Something went wrong. Please try again.");
+         setError("An unknown error occurred. Please try again.");
       }
       console.error(err);
     }
@@ -66,6 +54,7 @@ const PracticeModeScreen: React.FC = () => {
       setSelectedMainDepartment(department);
       setSelectedDepartment(department);
     }
+    setShowDepartmentDropdown(false);
   };
 
   const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
@@ -82,7 +71,7 @@ const PracticeModeScreen: React.FC = () => {
 
   const handleStartPractice = async () => {
     if (!selectedDepartment || !condition.trim()) {
-      setError('Please select a department and enter a condition or custom case.');
+      setError('Please select a department and enter a condition.');
       return;
     }
 
@@ -90,17 +79,8 @@ const PracticeModeScreen: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+    if (e.key === 'Enter') {
       handleStartPractice();
-    }
-  };
-
-  const getPlaceholderText = () => {
-    if (inputMode === 'diagnosis') {
-      return "Enter a medical condition to practice...\n\nExamples:\n• Myocardial Infarction\n• Pneumonia";
-    } else {
-      return "Describe your custom case...\n\nExamples:\n• 45-year-old male with chest pain and shortness of breath\n• 28-year-old pregnant woman with severe headache and visual disturbances";
     }
   };
 
@@ -131,7 +111,7 @@ const PracticeModeScreen: React.FC = () => {
                 Practice Specific Conditions
               </h2>
               <p className="text-slate-600 dark:text-slate-400">
-                Select a department and enter a condition or custom case to practice your clinical skills
+                Select a department and enter a specific condition to practice your clinical skills
               </p>
             </div>
 
@@ -140,7 +120,63 @@ const PracticeModeScreen: React.FC = () => {
               <label className="block text-lg font-medium text-slate-700 dark:text-slate-300">
                 Select Department
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              
+              {/* Mobile Dropdown */}
+              <div className="block sm:hidden">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
+                    disabled={isGeneratingCase}
+                    className={`w-full p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
+                      selectedMainDepartment
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600'}`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      {selectedMainDepartment ? (
+                        <Icon name={selectedMainDepartment.icon} size={24} />
+                      ) : (
+                        <Icon name="building-2" size={24} />
+                      )}
+                      <span className="font-medium">
+                        {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
+                      </span>
+                    </div>
+                    <Icon 
+                      name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      className="transition-transform duration-200" 
+                    />
+                  </button>
+                  
+                  {showDepartmentDropdown && (
+                    <div className="absolute z-10 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-80 overflow-y-auto">
+                      {DEPARTMENTS.map((dept) => (
+                        <button
+                          key={dept.name}
+                          onClick={() => handleDepartmentSelect(dept)}
+                          disabled={isGeneratingCase}
+                          className={`w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                            isGeneratingCase ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon name={dept.icon} size={20} />
+                            <span className="font-medium text-left">{dept.name}</span>
+                          </div>
+                          {dept.subspecialties && (
+                            <Icon name="chevron-right" size={16} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop Grid */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {DEPARTMENTS.map((dept) => {
                   // Only highlight the button if it's the main department that was used for selection
                   const isSelected = selectedMainDepartment?.name === dept.name;
@@ -252,67 +288,29 @@ const PracticeModeScreen: React.FC = () => {
               </p>
             </div>
 
-            {/* Input Mode Toggle */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Input Type
-              </label>
-              <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1 max-w-xs">
-                <button
-                  onClick={() => setInputMode('diagnosis')}
-                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                    inputMode === 'diagnosis'
-                      ? 'bg-teal-500 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  disabled={isGeneratingCase}
-                >
-                  Single Diagnosis
-                </button>
-                <button
-                  onClick={() => setInputMode('custom')}
-                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                    inputMode === 'custom'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  disabled={isGeneratingCase}
-                >
-                  Custom Case
-                </button>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {inputMode === 'diagnosis' && 'Enter a specific medical condition to practice'}
-                {inputMode === 'custom' && 'Provide a detailed case description with patient details'}
-              </p>
-            </div>
-
-            {/* Condition/Case Input */}
+            {/* Condition Input */}
             <div className="space-y-4">
               <label className="block text-lg font-medium text-slate-700 dark:text-slate-300">
-                {inputMode === 'diagnosis' ? 'Enter Condition' : 'Enter Custom Case'}
+                Enter Condition
               </label>
               <div className="relative">
-                <textarea
+                <input
+                  type="text"
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={getPlaceholderText()}
+                  placeholder="e.g., Myocardial Infarction, Pneumonia, Pre-eclampsia..."
                   disabled={isGeneratingCase}
-                  rows={8}
-                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 resize-none"
+                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 text-sm placeholder:text-xs"
                 />
                 <Icon 
                   name="search" 
                   size={20} 
-                  className="absolute right-4 top-4 text-slate-400" 
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" 
                 />
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {inputMode === 'diagnosis' 
-                  ? "Enter any medical condition you'd like to practice. Be specific for better results."
-                  : "Describe the case in detail including patient demographics, symptoms, and relevant context."
-                }
+                Enter any medical condition you'd like to practice. Be specific for better results.
               </p>
             </div>
 
@@ -338,15 +336,9 @@ const PracticeModeScreen: React.FC = () => {
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">
-                <div className="flex items-start space-x-2">
-                  <Icon name="alert-circle" size={20} className="mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1">
-                    {error.split('\n\n').map((part, index) => (
-                      <div key={index} className={index === 0 ? 'font-medium' : 'text-sm'}>
-                        {part}
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Icon name="alert-circle" size={20} />
+                  <span>{error}</span>
                 </div>
               </div>
             )}
@@ -358,21 +350,10 @@ const PracticeModeScreen: React.FC = () => {
                 <span>Tips for Practice Mode</span>
               </h3>
               <ul className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
-                {inputMode === 'diagnosis' ? (
-                  <>
-                    <li>&bull; Be specific with conditions (e.g., &ldquo;Acute Myocardial Infarction&rdquo; vs &ldquo;Heart Problem&rdquo;)</li>
-                    <li>&bull; Use medical terminology for more accurate simulations</li>
-                    <li>&bull; Practice common OSCE conditions that you need to master</li>
-                    <li>&bull; Try different presentations of the same condition</li>
-                  </>
-                ) : (
-                  <>
-                    <li>&bull; Include patient demographics (age, gender, occupation)</li>
-                    <li>&bull; Describe presenting symptoms and their timeline</li>
-                    <li>&bull; Mention relevant past medical history and medications</li>
-                    <li>&bull; Add social context that might affect the case</li>
-                  </>
-                )}
+                <li>&bull; Be specific with conditions (e.g., &ldquo;Acute Myocardial Infarction&rdquo; vs &ldquo;Heart Problem&rdquo;)</li>
+                <li>&bull; Use medical terminology for more accurate simulations</li>
+                <li>&bull; Practice common OSCE conditions that you need to master</li>
+                <li>&bull; Try different presentations of the same condition</li>
               </ul>
             </div>
           </main>
