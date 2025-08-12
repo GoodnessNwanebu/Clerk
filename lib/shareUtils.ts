@@ -8,6 +8,56 @@ export interface ShareData {
   shareMessage: string;
 }
 
+// Helper function to wrap text to fit within a specified width
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  
+  if (words.length === 0) return lines;
+  
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const width = ctx.measureText(currentLine + ' ' + word).width;
+    
+    if (width < maxWidth) {
+      currentLine += ' ' + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  
+  lines.push(currentLine);
+  
+  // Limit to maximum 5 lines to prevent excessive height
+  return lines.slice(0, 5);
+};
+
+// Helper function to draw multiline text
+const drawMultilineText = (
+  ctx: CanvasRenderingContext2D, 
+  text: string, 
+  x: number, 
+  y: number, 
+  maxWidth: number, 
+  lineHeight: number,
+  textAlign: CanvasTextAlign = 'center'
+) => {
+  // Truncate text if it's extremely long to prevent layout issues
+  const maxChars = 200; // Maximum characters before truncation
+  const truncatedText = text.length > maxChars ? text.substring(0, maxChars) + '...' : text;
+  
+  const lines = wrapText(ctx, truncatedText, maxWidth);
+  
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + (index * lineHeight));
+  });
+  
+  return lines.length * lineHeight; // Return total height used
+};
+
 export const generateShareData = (
   feedback: Feedback | ComprehensiveFeedback,
   caseState: CaseState
@@ -65,7 +115,7 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
 
       // Simple dimensions - NO DEVICE PIXEL RATIO SCALING
       const baseWidth = 1080;
-      const baseHeight = 1500;
+      let baseHeight = 1500; // Will be adjusted dynamically if needed
       
       canvas.width = baseWidth;
       canvas.height = baseHeight;
@@ -123,6 +173,47 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
       // Generate the image after font loading
       loadFont().then(() => {
         try {
+          // Calculate required height for all text elements
+          const calculateRequiredHeight = () => {
+            let totalHeight = 140; // Starting Y position for logo
+            
+            // Achievement text height
+            ctx.font = 'bold 70px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+            const achievementMaxWidth = baseWidth - 200;
+            const achievementLines = wrapText(ctx, `🎉 ${shareData.achievementText} 🎯`, achievementMaxWidth);
+            totalHeight += achievementLines.length * 85 + 80; // Achievement text + spacing
+            
+            // Diagnosis section
+            totalHeight += 100; // "Correctly diagnosed:" label
+            ctx.font = 'bold 60px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+            const diagnosisMaxWidth = baseWidth - 150;
+            const diagnosisLines = wrapText(ctx, shareData.diagnosis, diagnosisMaxWidth);
+            totalHeight += diagnosisLines.length * 75 + 60; // Diagnosis text + spacing
+            
+            // Achievement badge
+            totalHeight += 80; // Badge spacing
+            
+            // Department text
+            ctx.font = '40px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+            const departmentMaxWidth = baseWidth - 200;
+            const departmentLines = wrapText(ctx, shareData.department, departmentMaxWidth);
+            totalHeight += departmentLines.length * 50 + 40; // Department text + spacing
+            
+            // Call to action and bottom margin
+            totalHeight += 200; // CTA + bottom margin
+            
+            return Math.max(totalHeight, 1500); // Minimum height of 1500px
+          };
+          
+          const requiredHeight = calculateRequiredHeight();
+          
+          // Adjust canvas height if needed
+          if (requiredHeight > baseHeight) {
+            baseHeight = requiredHeight;
+            canvas.height = baseHeight;
+            canvas.style.height = baseHeight + 'px';
+          }
+          
           // Create a clean gradient background
           const gradient = ctx.createLinearGradient(0, 0, 0, baseHeight);
           gradient.addColorStop(0, '#0f172a'); // Deep slate
@@ -181,12 +272,21 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.font = 'bold 70px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
           
-          // Add fun emoji and make text more engaging
+          // Add fun emoji and make text more engaging with multiline support
           const funAchievementText = `🎉 ${shareData.achievementText} 🎯`;
-          ctx.fillText(funAchievementText, baseWidth / 2, section2Y);
+          const achievementMaxWidth = baseWidth - 200; // 100px margin on each side
+          const achievementLineHeight = 85; // Slightly larger than font size for spacing
+          const achievementHeight = drawMultilineText(
+            ctx, 
+            funAchievementText, 
+            baseWidth / 2, 
+            section2Y, 
+            achievementMaxWidth, 
+            achievementLineHeight
+          );
 
           // SECTION 3: DIAGNOSIS SECTION
-          const section3Y = 620; // Increased spacing from hero text
+          const section3Y = section2Y + achievementHeight + 80; // Dynamic spacing based on achievement text height
           
           // Diagnosis label (increased font size)
           ctx.fillStyle = '#94a3b8';
@@ -194,28 +294,48 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.textAlign = 'center';
           ctx.fillText('Correctly diagnosed:', baseWidth / 2, section3Y);
 
-          // Diagnosis value (highlight)
+          // Diagnosis value (highlight) with multiline support
           ctx.fillStyle = '#14b8a6';
           ctx.font = 'bold 60px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(shareData.diagnosis, baseWidth / 2, section3Y + 100);
+          
+          const diagnosisMaxWidth = baseWidth - 150; // 75px margin on each side
+          const diagnosisLineHeight = 75; // Slightly larger than font size for spacing
+          const diagnosisHeight = drawMultilineText(
+            ctx, 
+            shareData.diagnosis, 
+            baseWidth / 2, 
+            section3Y + 100, 
+            diagnosisMaxWidth, 
+            diagnosisLineHeight
+          );
 
-          // SECTION 4: ACHIEVEMENT BADGE (increased spacing from diagnosis) - FUN VERSION
-          const section4Y = 920; // Much more spacing from diagnosis
+          // SECTION 4: ACHIEVEMENT BADGE (dynamic spacing from diagnosis) - FUN VERSION
+          const section4Y = section3Y + 100 + diagnosisHeight + 60; // Dynamic spacing based on diagnosis text height
           ctx.fillStyle = '#f59e0b';
           ctx.font = 'bold 35px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('🏆 In the top 2% of ClerkSmart users this week', baseWidth / 2, section4Y);
 
-          // SECTION 5: DEPARTMENT INFO (increased font size)
-          const section5Y = 1020;
+          // SECTION 5: DEPARTMENT INFO (increased font size) with multiline support
+          const section5Y = section4Y + 80; // Dynamic spacing from achievement badge
           ctx.fillStyle = '#64748b';
           ctx.font = '40px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(shareData.department, baseWidth / 2, section5Y);
+          
+          const departmentMaxWidth = baseWidth - 200; // 100px margin on each side
+          const departmentLineHeight = 50; // Slightly larger than font size for spacing
+          const departmentHeight = drawMultilineText(
+            ctx, 
+            shareData.department, 
+            baseWidth / 2, 
+            section5Y, 
+            departmentMaxWidth, 
+            departmentLineHeight
+          );
 
-          // SECTION 6: CALL TO ACTION (moved to bottom) - FUN VERSION
-          const section6Y = 1400; // Positioned at bottom
+          // SECTION 6: CALL TO ACTION (positioned dynamically) - FUN VERSION
+          const section6Y = section5Y + departmentHeight + 100; // Dynamic positioning after department
           ctx.fillStyle = '#14b8a6';
           ctx.font = 'bold 30px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
@@ -226,8 +346,8 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
           ctx.lineWidth = 6;
           ctx.lineCap = 'round';
           ctx.beginPath();
-          ctx.moveTo(200, section5Y - 60);
-          ctx.lineTo(baseWidth - 200, section5Y - 60);
+          ctx.moveTo(200, section5Y + departmentHeight + 40); // Position after department text
+          ctx.lineTo(baseWidth - 200, section5Y + departmentHeight + 40);
           ctx.stroke();
 
           // Convert to data URL
