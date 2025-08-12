@@ -358,7 +358,7 @@ const PracticeModeScreen: React.FC = () => {
                   placeholder={getPlaceholderText()}
                   disabled={isGeneratingCase}
                   rows={8}
-                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 resize-none text-sm"
+                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 resize-none text-base"
                 />
                 <Icon 
                   name="search" 
