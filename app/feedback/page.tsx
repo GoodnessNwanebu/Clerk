@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
@@ -9,6 +9,8 @@ import ReactMarkdown from 'react-markdown';
 import ShareModal from '../../components/ShareModal';
 import { shareOnWhatsApp, ShareData } from '../../lib/shareUtils';
 import { ConversationStorageUtils } from '../../lib/localStorage';
+import { useInstallGuide } from '../../hooks/useInstallGuide';
+import PWATutorialModal from '../../components/PWATutorialModal';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
@@ -25,6 +27,15 @@ const FeedbackScreen: React.FC = () => {
     
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareData, setShareData] = useState<ShareData | null>(null);
+    
+    // Install guide hook
+    const {
+        showInstallGuide,
+        shouldShowInstallGuide,
+        handleShowInstallGuide,
+        handleCloseInstallGuide,
+        handleCompleteInstallGuide
+    } = useInstallGuide();
 
     React.useEffect(() => {
         if (!feedback || !department) {
@@ -39,6 +50,21 @@ const FeedbackScreen: React.FC = () => {
             }
         }
     }, [feedback, department, router]);
+
+    // Scroll-to-bottom install guide trigger
+    useEffect(() => {
+        const handleScroll = () => {
+            // Check if user has scrolled to bottom
+            const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+            
+            if (isAtBottom && shouldShowInstallGuide()) {
+                handleShowInstallGuide();
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [shouldShowInstallGuide, handleShowInstallGuide]);
 
     const toggleSection = (section: 'clinicalOpportunities' | 'clinicalPearls') => {
         setExpandedSections(prev => ({
@@ -385,6 +411,13 @@ const FeedbackScreen: React.FC = () => {
                 onClose={handleSkipShare}
                 onShare={handleShare}
                 shareData={shareData}
+            />
+            
+            {/* Install Guide Modal */}
+            <PWATutorialModal
+                isOpen={showInstallGuide}
+                onClose={handleCloseInstallGuide}
+                onComplete={handleCompleteInstallGuide}
             />
         </div>
     );

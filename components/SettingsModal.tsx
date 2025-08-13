@@ -5,6 +5,8 @@ import { ThemeSetting } from '../types';
 import { Icon } from './Icon';
 import { CountrySelect } from './CountrySelect';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { useInstallGuide } from '../hooks/useInstallGuide';
+import PWATutorialModal from './PWATutorialModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,6 +18,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const { userCountry, setUserCountry } = useAppContext();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(userCountry);
   const { data: session, status } = useSession();
+  
+  // Install guide hook
+  const {
+    showInstallGuide,
+    handleShowInstallGuide,
+    handleCloseInstallGuide,
+    handleCompleteInstallGuide,
+    isPWAInstalled,
+    isMobile
+  } = useInstallGuide();
 
   // Update local state when userCountry changes
   useEffect(() => {
@@ -242,6 +254,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
         </div>
 
+        {/* App Installation Section */}
+        {isMobile() && (
+          <div className="space-y-4 mb-8">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">App Installation</h3>
+            </div>
+            
+            {isPWAInstalled() ? (
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Icon name="check-circle" size={20} className="text-green-600 dark:text-green-400" />
+                  <span className="text-green-800 dark:text-green-200 font-medium">
+                    ClerkSmart is installed on your device
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Install ClerkSmart for quick access and offline functionality.
+                </p>
+                
+                <button
+                  onClick={handleShowInstallGuide}
+                  className="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Icon name="download" size={16} />
+                  <span>Show Installation Guide</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
           <div className="space-y-2">
@@ -254,6 +300,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
         </div>
       </div>
+      
+      {/* Install Guide Modal */}
+      <PWATutorialModal
+        isOpen={showInstallGuide}
+        onClose={handleCloseInstallGuide}
+        onComplete={handleCompleteInstallGuide}
+      />
     </div>
   );
 };
