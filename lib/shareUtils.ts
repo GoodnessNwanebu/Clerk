@@ -334,21 +334,21 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
             departmentLineHeight
           );
 
-          // SECTION 6: CALL TO ACTION (positioned dynamically) - FUN VERSION
-          const section6Y = section5Y + departmentHeight + 100; // Dynamic positioning after department
-          ctx.fillStyle = '#14b8a6';
-          ctx.font = 'bold 30px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('🚀 Join thousands of medical students on ClerkSmart!', baseWidth / 2, section6Y);
-
-          // Add a subtle accent line (properly positioned between achievement and department)
+          // Add a subtle accent line (well positioned above department)
           ctx.strokeStyle = '#14b8a6';
           ctx.lineWidth = 6;
           ctx.lineCap = 'round';
           ctx.beginPath();
-          ctx.moveTo(200, section5Y + departmentHeight + 40); // Position after department text
-          ctx.lineTo(baseWidth - 200, section5Y + departmentHeight + 40);
+          ctx.moveTo(200, section5Y - 55); // Position above department text with 55px spacing
+          ctx.lineTo(baseWidth - 200, section5Y - 55);
           ctx.stroke();
+
+          // SECTION 6: CALL TO ACTION (positioned at bottom of image) - FUN VERSION
+          const section6Y = baseHeight - 100; // Position at bottom with margin
+          ctx.fillStyle = '#14b8a6';
+          ctx.font = 'bold 30px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('🚀 Join thousands of medical students on ClerkSmart!', baseWidth / 2, section6Y);
 
           // Convert to data URL
           const dataUrl = canvas.toDataURL('image/png', 1.0);
