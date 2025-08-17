@@ -10,17 +10,18 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
     return 'text-5xl'; // Short - very prominent
   };
 
-  const getDepartmentIcon = (department: string) => {
-    const dept = department.toLowerCase();
-    if (dept.includes('cardiology') || dept.includes('heart')) return 'heart';
-    if (dept.includes('neurology') || dept.includes('brain')) return 'brain';
-    if (dept.includes('pediatrics') || dept.includes('child')) return 'baby';
-    if (dept.includes('surgery') || dept.includes('scissors')) return 'scissors';
-    if (dept.includes('obstetrics') || dept.includes('pregnancy')) return 'user';
-    if (dept.includes('gynecology') || dept.includes('female')) return 'venus';
-    if (dept.includes('internal') || dept.includes('medicine')) return 'stethoscope';
-    return 'stethoscope';
-  };
+  // Note: getDepartmentIcon function is available for future use
+  // const getDepartmentIcon = (department: string) => {
+  //   const dept = department.toLowerCase();
+  //   if (dept.includes('cardiology') || dept.includes('heart')) return 'heart';
+  //   if (dept.includes('neurology') || dept.includes('brain')) return 'brain';
+  //   if (dept.includes('pediatrics') || dept.includes('child')) return 'baby';
+  //   if (dept.includes('surgery') || dept.includes('scissors')) return 'scissors';
+  //   if (dept.includes('obstetrics') || dept.includes('pregnancy')) return 'user';
+  //   if (dept.includes('gynecology') || dept.includes('female')) return 'venus';
+  //   if (dept.includes('internal') || dept.includes('medicine')) return 'stethoscope';
+  //   return 'stethoscope';
+  // };
 
   const diagnosisTextSize = getDiagnosisTextSize(shareData.diagnosis);
 

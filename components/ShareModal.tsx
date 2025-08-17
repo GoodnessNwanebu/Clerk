@@ -42,7 +42,23 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
           scale: 2, // Higher quality
           useCORS: true,
           allowTaint: true,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          ignoreElements: () => {
+            // Ignore any elements that might cause issues
+            return false;
+          },
+          onclone: (clonedDoc) => {
+            // Process the cloned document to fix any CSS issues
+            const style = clonedDoc.createElement('style');
+            style.textContent = `
+              /* Force standard color formats for html2canvas compatibility */
+              * {
+                color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+            `;
+            clonedDoc.head.appendChild(style);
+          }
         });
         
         // Convert to data URL
@@ -73,7 +89,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
     if (isOpen && shareData && !imagePreview && retryCount === 0) {
       generateImage();
     }
-  }, [isOpen, shareData, imagePreview, retryCount]);
+  }, [isOpen, shareData, imagePreview, retryCount, generateImage]);
 
   // Clear image preview when modal closes
   useEffect(() => {

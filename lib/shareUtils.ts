@@ -38,73 +38,7 @@ export const shareOnWhatsApp = (shareData: ShareData) => {
   window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 };
 
-// Generate share image using html2canvas
-export const generateShareImage = async (shareData: ShareData): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Check if we're in a browser environment
-      if (typeof document === 'undefined') {
-        reject(new Error('Document not available - not in browser environment'));
-        return;
-      }
-
-      // Create a temporary container
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '1080px';
-      container.style.height = '1350px';
-      document.body.appendChild(container);
-
-      // Import the ShareCard component dynamically
-      import('../components/ShareCard').then(({ ShareCard }) => {
-        // Create React element
-        const React = require('react');
-        const ReactDOM = require('react-dom');
-        
-        const shareCardElement = React.createElement(ShareCard, { shareData });
-        
-        // Render the component
-        ReactDOM.render(shareCardElement, container);
-        
-        // Wait for rendering to complete
-        setTimeout(() => {
-          // Use html2canvas to capture the component
-          import('html2canvas').then(({ default: html2canvas }) => {
-            html2canvas(container, {
-              width: 1080,
-              height: 1350,
-              scale: 2, // Higher quality
-              useCORS: true,
-              allowTaint: true,
-              backgroundColor: '#ffffff'
-            }).then(canvas => {
-          // Convert to data URL
-          const dataUrl = canvas.toDataURL('image/png', 1.0);
-          
-              // Clean up
-              document.body.removeChild(container);
-          
-          resolve(dataUrl);
-            }).catch(error => {
-              document.body.removeChild(container);
-              reject(error);
-            });
-          }).catch(error => {
-            document.body.removeChild(container);
-            reject(new Error('html2canvas not available'));
-          });
-        }, 100);
-      }).catch(error => {
-        document.body.removeChild(container);
-        reject(error);
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+// Note: Image generation is now handled in ShareModal component using pre-render approach
 
 // Share on WhatsApp with image
 export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {
@@ -118,19 +52,4 @@ export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {
   }
 };
 
-// Helper function to download image
-const downloadImage = (dataUrl: string, filename: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+// Note: Download functionality can be added back if needed in the future
