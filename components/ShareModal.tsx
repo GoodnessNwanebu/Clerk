@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { generateShareImage, shareOnWhatsAppWithImage } from '../lib/shareUtils';
+import React, { useState, useEffect, useRef } from 'react';
+import { shareOnWhatsAppWithImage } from '../lib/shareUtils';
 import { ShareData } from '../types/share';
+import { ShareCard } from './ShareCard';
+import html2canvas from 'html2canvas';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -15,6 +17,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   // Generate image preview when modal opens
   const generateImage = async () => {
@@ -24,9 +28,30 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
     setGenerationError(null);
     
     try {
-      const dataUrl = await generateShareImage(shareData);
-      setImagePreview(dataUrl);
-      setRetryCount(0); // Reset retry count on success
+      // Show the ShareCard in the DOM
+      setShowShareCard(true);
+      
+      // Wait for the component to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (shareCardRef.current) {
+        // Capture the ShareCard with html2canvas
+        const canvas = await html2canvas(shareCardRef.current, {
+          width: 1080,
+          height: 1350,
+          scale: 2, // Higher quality
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        
+        // Convert to data URL
+        const dataUrl = canvas.toDataURL('image/png', 1.0);
+        setImagePreview(dataUrl);
+        setRetryCount(0); // Reset retry count on success
+      } else {
+        throw new Error('ShareCard element not found');
+      }
     } catch (error) {
       console.error('Error generating image preview:', error);
       setGenerationError(error instanceof Error ? error.message : 'Failed to generate image');
@@ -40,6 +65,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       }
     } finally {
       setIsGeneratingImage(false);
+      setShowShareCard(false); // Hide the ShareCard after capture
     }
   };
 
@@ -96,8 +122,25 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
   };
 
   return (
-    <div className={`fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-all duration-700 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-      <div className={`bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out ${isTransitioning ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'}`}>
+    <>
+      {/* Hidden ShareCard for image generation */}
+      {showShareCard && shareData && (
+        <div 
+          ref={shareCardRef}
+          style={{ 
+            position: 'absolute', 
+            left: '-9999px', 
+            top: '-9999px',
+            width: '1080px',
+            height: '1350px'
+          }}
+        >
+          <ShareCard shareData={shareData} />
+        </div>
+      )}
+      
+      <div className={`fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-all duration-700 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out ${isTransitioning ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'}`}>
         
         {/* Header */}
         <div className="text-center mb-6">
@@ -210,8 +253,9 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             <span className="transition-all duration-200">{isTransitioning ? 'Returning...' : 'Skip'}</span>
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

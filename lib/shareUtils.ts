@@ -109,46 +109,10 @@ export const generateShareImage = async (shareData: ShareData): Promise<string> 
 // Share on WhatsApp with image
 export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {
   try {
-    // Generate the image
-    const imageDataUrl = await generateShareImage(shareData);
-    
-    // Try to use Web Share API with files (for mobile devices)
-    if (navigator.share && navigator.canShare) {
-      try {
-        // Convert data URL to blob
-        const response = await fetch(imageDataUrl);
-        const blob = await response.blob();
-        
-        // Create file from blob
-        const file = new File([blob], 'clerksmart-achievement.png', { type: 'image/png' });
-        
-        // Check if we can share files
-        const shareData = {
-          title: 'My ClerkSmart Achievement',
-          text: 'Come try a patient on ClerkSmart: https://clerksmart.vercel.app',
-          files: [file]
-        };
-        
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          return imageDataUrl;
-        }
-      } catch (error) {
-        console.log('Web Share API with files not supported, falling back to download');
-      }
-    }
-    
-    // Fallback: Download the image and share text
-    await downloadImage(imageDataUrl, 'clerksmart-achievement.png');
-    
-    // Share text with WhatsApp
-    const message = encodeURIComponent(`Come try a patient on ClerkSmart: https://clerksmart.vercel.app`);
-    const whatsappUrl = `https://wa.me/?text=${message}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    
-    return imageDataUrl;
+    // For now, just share text since image generation is handled in the modal
+    shareOnWhatsApp(shareData);
   } catch (error) {
-    console.error('Error sharing image:', error);
+    console.error('Error sharing:', error);
     // Final fallback to text-only sharing
     shareOnWhatsApp(shareData);
   }

@@ -188,7 +188,17 @@ const SummaryScreen: React.FC = () => {
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleRequestResults} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
-                                {isLoading ? <span>Generating Results...</span> : <><span>Request Results</span><Icon name="chevrons-right" size={20} /></>}
+                                {isLoading ? (
+                                    <>
+                                        <Icon name="loader-2" size={20} className="animate-spin" />
+                                        <span>Generating Results...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Request Results</span>
+                                        <Icon name="chevrons-right" size={20} />
+                                    </>
+                                )}
                             </button>
                              {error && <ErrorDisplay message={error} />}
                         </div>
@@ -213,7 +223,17 @@ const SummaryScreen: React.FC = () => {
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleSubmitForFeedback} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
-                                {isLoading ? <span>Generating Feedback...</span> : <><span>Submit for Feedback</span><Icon name="award" size={20} /></>}
+                                {isLoading ? (
+                                    <>
+                                        <Icon name="loader-2" size={20} className="animate-spin" />
+                                        <span>Analyzing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Submit for Feedback</span>
+                                        <Icon name="award" size={20} />
+                                    </>
+                                )}
                             </button>
                              {error && <ErrorDisplay message={error} />}
                         </div>
