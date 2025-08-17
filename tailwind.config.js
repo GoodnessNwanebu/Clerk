@@ -36,4 +36,11 @@ module.exports = {
     },
   },
   plugins: [],
+  // Force Tailwind to use standard color formats instead of oklch
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
+  experimental: {
+    optimizeUniversalDefaults: true,
+  },
 }; 
