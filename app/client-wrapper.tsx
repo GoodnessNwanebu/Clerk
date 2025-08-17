@@ -38,8 +38,8 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // Don't redirect for API routes or special Next.js pages
-    if (pathname.startsWith('/api/') || pathname.startsWith('/_')) {
+    // Don't redirect for API routes, special Next.js pages, or test pages
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_') || pathname === '/test-share') {
       setIsLoading(false);
       return;
     }

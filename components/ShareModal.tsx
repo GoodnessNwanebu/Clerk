@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateShareImage, shareOnWhatsAppWithImage } from '../lib/shareUtils';
-import { ShareData } from '../lib/shareUtils';
+import { ShareData } from '../types/share';
 
 interface ShareModalProps {
   isOpen: boolean;
