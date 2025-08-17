@@ -14,12 +14,12 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
 
   return (
     <div 
-      className={`w-[1080px] h-[1350px] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${className}`}
+      className={`w-[1080px] h-[1350px] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative ${className}`}
       style={{
         background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)'
       }}
     >
-      {/* Background decorative elements */}
+      {/* Background decorative elements - positioned exactly like original */}
       <div className="absolute inset-0 pointer-events-none">
         <div 
           className="absolute w-40 h-40 rounded-full opacity-10"
@@ -37,32 +37,14 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'
           }}
         />
-        <div 
-          className="absolute h-1 opacity-30"
-          style={{
-            top: '300px',
-            left: '50px',
-            width: '200px',
-            background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-          }}
-        />
-        <div 
-          className="absolute h-1 opacity-30"
-          style={{
-            top: '300px',
-            right: '50px',
-            width: '200px',
-            background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-          }}
-        />
       </div>
 
-      {/* Header Section - Fixed at top */}
+      {/* Header Section - Fixed at top with proper alignment */}
       <div className="relative z-10 flex-shrink-0 pt-16 pb-8">
         <div className="text-center">
-          <div className="flex items-center justify-center space-x-6 mb-8">
+          <div className="text-center mb-8">
             <div 
-              className="w-14 h-14 rounded-xl flex items-center justify-center"
+              className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4"
               style={{
                 background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'
               }}
@@ -72,28 +54,24 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
               </svg>
             </div>
             <h1 
-              className="text-5xl font-bold"
+              className="text-5xl font-bold block mb-4"
               style={{
-                background: 'linear-gradient(90deg, #0d9488 0%, #0f766e 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
+                color: '#0d9488'
               }}
             >
               ClerkSmart
             </h1>
+            <div 
+              className="w-32 h-1 mx-auto rounded-full opacity-60"
+              style={{
+                background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
+              }}
+            />
           </div>
-          
-          <div 
-            className="w-32 h-1 mx-auto rounded-full opacity-60"
-            style={{
-              background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-            }}
-          />
         </div>
       </div>
 
-      {/* Achievement Section - Fixed size */}
+      {/* Achievement Section - Fixed size with proper alignment */}
       <div className="relative z-10 flex-shrink-0 px-16 mb-8">
         <div className="text-center">
           <div className="flex items-center justify-center space-x-6 mb-6">
@@ -125,36 +103,37 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
         </div>
       </div>
 
-      {/* Diagnosis Section - FLEXIBLE HERO ELEMENT */}
+      {/* Diagnosis Section - Contained rounded rectangle */}
       <div className="relative z-10 flex-1 flex flex-col justify-center px-16 mb-8">
-        <div 
-          className="rounded-2xl p-12 border flex flex-col justify-center min-h-0"
-          style={{
-            background: 'linear-gradient(90deg, #f0fdfa 0%, #ccfbf1 100%)',
-            borderColor: '#99f6e4'
-          }}
-        >
-          <p 
-            className="text-2xl font-medium mb-6 text-center"
-            style={{ color: '#4b5563' }}
+        <div className="flex justify-center">
+          <div 
+            className="rounded-2xl p-12 flex flex-col justify-center min-h-0 max-w-4xl w-full"
+            style={{
+              background: 'linear-gradient(90deg, #f0fdfa 0%, #ccfbf1 100%)'
+            }}
           >
-            Successfully Diagnosed
-          </p>
-          <h3 
-            className={`${diagnosisTextSize} font-bold leading-tight break-words whitespace-normal max-w-full text-center flex-1 flex items-center justify-center`} 
-            style={{ color: '#0f766e' }}
-          >
-            {shareData.diagnosis}
-          </h3>
+            <p 
+              className="text-2xl font-medium mb-6 text-center"
+              style={{ color: '#4b5563' }}
+            >
+              Successfully Diagnosed
+            </p>
+            <h3 
+              className={`${diagnosisTextSize} font-bold leading-tight break-words whitespace-normal max-w-full text-center flex-1 flex items-center justify-center`} 
+              style={{ color: '#0f766e' }}
+            >
+              {shareData.diagnosis}
+            </h3>
+          </div>
         </div>
       </div>
 
-      {/* Department Section - Fixed at bottom */}
+      {/* Department Section - Fixed at bottom with proper alignment */}
       <div className="relative z-10 flex-shrink-0 px-16 mb-8">
         <div className="text-center">
-          <div className="flex items-center justify-center space-x-4 mb-4">
+          <div className="text-center mb-4">
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center"
+              className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
               style={{ backgroundColor: '#f3f4f6' }}
             >
               <svg 
@@ -168,7 +147,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
               </svg>
             </div>
             <span 
-              className="text-3xl font-semibold"
+              className="text-3xl font-semibold block"
               style={{ color: '#374151' }}
             >
               {shareData.department}
@@ -189,23 +168,25 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
         </div>
       </div>
 
-      {/* Call to Action - Fixed at bottom */}
+      {/* Call to Action - Contained rounded rectangle */}
       <div className="relative z-10 flex-shrink-0 px-16 mb-6">
-        <div 
-          className="rounded-2xl p-6 shadow-lg"
-          style={{
-            background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-          }}
-        >
-          <p className="text-2xl font-semibold text-white mb-2 text-center">
-            Join thousands of medical students
-          </p>
-          <p 
-            className="text-lg text-center"
-            style={{ color: '#ccfbf1' }}
+        <div className="flex justify-center">
+          <div 
+            className="rounded-2xl p-6 shadow-lg max-w-4xl w-full"
+            style={{
+              background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
+            }}
           >
-            Practice clinical reasoning with AI-powered cases
-          </p>
+            <p className="text-2xl font-semibold text-white mb-2 text-center">
+              Join thousands of medical students
+            </p>
+            <p 
+              className="text-lg text-center"
+              style={{ color: '#ccfbf1' }}
+            >
+              Practice clinical reasoning with AI-powered cases
+            </p>
+          </div>
         </div>
       </div>
 

@@ -38,13 +38,44 @@ export const shareOnWhatsApp = (shareData: ShareData) => {
   window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 };
 
-// Note: Image generation is now handled in ShareModal component using pre-render approach
-
 // Share on WhatsApp with image
-export const shareOnWhatsAppWithImage = async (shareData: ShareData) => {
+export const shareOnWhatsAppWithImage = async (shareData: ShareData, imageDataUrl?: string | null) => {
   try {
-    // For now, just share text since image generation is handled in the modal
-    shareOnWhatsApp(shareData);
+    if (imageDataUrl) {
+      // Try to share image using Web Share API if available
+      if (navigator.share && navigator.canShare) {
+        // Convert data URL to blob for sharing
+        const response = await fetch(imageDataUrl);
+        const blob = await response.blob();
+        
+        const shareData = {
+          title: 'My ClerkSmart Achievement',
+          text: shareData.shareMessage,
+          files: [new File([blob], 'achievement.png', { type: 'image/png' })]
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return;
+        }
+      }
+      
+      // Fallback: Download image and share text
+      const link = document.createElement('a');
+      link.download = 'clerk-smart-achievement.png';
+      link.href = imageDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Share text message after a brief delay
+      setTimeout(() => {
+        shareOnWhatsApp(shareData);
+      }, 500);
+    } else {
+      // No image available, just share text
+      shareOnWhatsApp(shareData);
+    }
   } catch (error) {
     console.error('Error sharing:', error);
     // Final fallback to text-only sharing

@@ -115,7 +115,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
     
     handleTransition(async () => {
       try {
-        await shareOnWhatsAppWithImage(shareData);
+        // Pass the generated image to the sharing function
+        await shareOnWhatsAppWithImage(shareData, imagePreview);
         onShare();
       } catch (error) {
         console.error('Error sharing:', error);
@@ -135,6 +136,9 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
     setGenerationError(null);
     generateImage();
   };
+
+  // Check if dark mode is enabled
+  const isDarkMode = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
 
   return (
     <>
@@ -160,20 +164,20 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       >
         <div 
           className={`rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out ${isTransitioning ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'}`}
-          style={{ backgroundColor: '#ffffff' }}
+          style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }}
         >
         
         {/* Header */}
         <div className="text-center mb-6">
           <h3 
             className="text-xl font-bold mb-2 transition-all duration-500"
-            style={{ color: '#0f172a' }}
+            style={{ color: isDarkMode ? '#ffffff' : '#0f172a' }}
           >
             {isTransitioning ? 'Returning to Home...' : 'Share Your Achievement'}
           </h3>
           <p 
             className="text-sm transition-all duration-500"
-            style={{ color: '#64748b' }}
+            style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}
           >
             {isTransitioning ? 'Thank you for using ClerkSmart!' : 'Share this beautiful image with your friends'}
           </p>
@@ -183,7 +187,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         {isTransitioning && (
           <div 
             className="absolute inset-0 rounded-2xl flex items-center justify-center z-10 animate-in fade-in duration-500 delay-200"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+            style={{ backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)' }}
           >
             <div className="text-center">
               <div 
@@ -195,13 +199,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
               ></div>
               <p 
                 className="text-sm font-medium"
-                style={{ color: '#475569' }}
+                style={{ color: isDarkMode ? '#94a3b8' : '#475569' }}
               >
                 Returning to home...
               </p>
               <p 
                 className="text-xs mt-1"
-                style={{ color: '#64748b' }}
+                style={{ color: isDarkMode ? '#64748b' : '#64748b' }}
               >
                 Just a moment
               </p>
@@ -215,7 +219,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             <div 
               className="rounded-xl p-8 flex items-center justify-center"
               style={{ 
-                backgroundColor: '#f1f5f9',
+                backgroundColor: isDarkMode ? '#334155' : '#f1f5f9',
                 aspectRatio: '2/3'
               }}
             >
@@ -226,7 +230,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
                 ></div>
                 <p 
                   className="text-sm"
-                  style={{ color: '#64748b' }}
+                  style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}
                 >
                   {retryCount > 0 ? 'Retrying image generation...' : 'Generating your achievement image...'}
                 </p>
@@ -236,7 +240,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             <div 
               className="rounded-xl p-8 flex items-center justify-center"
               style={{ 
-                backgroundColor: '#fef2f2',
+                backgroundColor: isDarkMode ? '#7f1d1d' : '#fef2f2',
                 aspectRatio: '2/3'
               }}
             >
@@ -251,13 +255,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
                 </div>
                 <p 
                   className="text-sm mb-3"
-                  style={{ color: '#dc2626' }}
+                  style={{ color: isDarkMode ? '#fca5a5' : '#dc2626' }}
                 >
                   Failed to generate image
                 </p>
                 <p 
                   className="text-xs mb-4"
-                  style={{ color: '#ef4444' }}
+                  style={{ color: isDarkMode ? '#fca5a5' : '#ef4444' }}
                 >
                   {generationError}
                 </p>
@@ -289,7 +293,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
                   className="w-full h-full object-cover rounded-xl shadow-lg"
                   style={{ 
                     objectPosition: 'center',
-                    border: '1px solid #e2e8f0'
+                    border: `1px solid ${isDarkMode ? '#475569' : '#e2e8f0'}`
                   }}
                 />
                 <div 
@@ -311,13 +315,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             <div 
               className="rounded-xl p-8 flex items-center justify-center"
               style={{ 
-                backgroundColor: '#f1f5f9',
+                backgroundColor: isDarkMode ? '#334155' : '#f1f5f9',
                 aspectRatio: '2/3'
               }}
             >
               <p 
                 className="text-sm"
-                style={{ color: '#64748b' }}
+                style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}
               >
                 Loading preview...
               </p>
@@ -329,13 +333,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         <div 
           className="rounded-xl p-4 mb-6 border"
           style={{
-            backgroundColor: '#f8fafc',
-            borderColor: '#e2e8f0'
+            backgroundColor: isDarkMode ? 'rgba(51, 65, 85, 0.5)' : '#f8fafc',
+            borderColor: isDarkMode ? '#475569' : '#e2e8f0'
           }}
         >
           <p 
             className="text-center text-sm"
-            style={{ color: '#334155' }}
+            style={{ color: isDarkMode ? '#cbd5e1' : '#334155' }}
           >
             {generationError 
               ? "You can still share your achievement via text message"
@@ -365,17 +369,17 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             disabled={isTransitioning}
             className="flex-1 py-3 rounded-lg active:scale-95 transform transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: '#e2e8f0',
-              color: '#334155'
+              backgroundColor: isDarkMode ? '#334155' : '#e2e8f0',
+              color: isDarkMode ? '#cbd5e1' : '#334155'
             }}
             onMouseEnter={(e) => {
               if (!isTransitioning) {
-                e.currentTarget.style.backgroundColor = '#cbd5e1';
+                e.currentTarget.style.backgroundColor = isDarkMode ? '#475569' : '#cbd5e1';
               }
             }}
             onMouseLeave={(e) => {
               if (!isTransitioning) {
-                e.currentTarget.style.backgroundColor = '#e2e8f0';
+                e.currentTarget.style.backgroundColor = isDarkMode ? '#334155' : '#e2e8f0';
               }
             }}
           >
