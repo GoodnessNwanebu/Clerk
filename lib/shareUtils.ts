@@ -48,14 +48,14 @@ export const shareOnWhatsAppWithImage = async (shareData: ShareData, imageDataUr
         const response = await fetch(imageDataUrl);
         const blob = await response.blob();
         
-        const shareData = {
+        const sharePayload = {
           title: 'My ClerkSmart Achievement',
           text: shareData.shareMessage,
           files: [new File([blob], 'achievement.png', { type: 'image/png' })]
         };
         
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
+        if (navigator.canShare(sharePayload)) {
+          await navigator.share(sharePayload);
           return;
         }
       }
