@@ -125,7 +125,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             </div>
             <span 
               className="text-4xl font-semibold block"
-              style={{ color: '#374151' }}
+              style={{ 
+                color: '#374151',
+                marginBottom: '5px'
+              }}
             >
               {shareData.department}
             </span>
