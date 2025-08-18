@@ -43,16 +43,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
       <div className="relative z-10 flex-shrink-0 pt-16 pb-8">
         <div className="text-center">
           <div className="text-center mb-8">
-            <div 
-              className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4"
-              style={{
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'
-              }}
-            >
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
             <h1 
               className="text-5xl font-bold block mb-4"
               style={{
@@ -61,12 +51,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             >
               ClerkSmart
             </h1>
-            <div 
-              className="w-32 h-1 mx-auto rounded-full opacity-60"
-              style={{
-                background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-              }}
-            />
           </div>
         </div>
       </div>
@@ -93,13 +77,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           >
             {shareData.achievementText}
           </h2>
-          
-          <div 
-            className="w-32 h-1 mx-auto rounded-full opacity-60"
-            style={{
-              background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)'
-            }}
-          />
         </div>
       </div>
 
@@ -109,11 +86,11 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           <div 
             className="rounded-2xl p-12 flex flex-col justify-center min-h-0 max-w-4xl w-full"
             style={{
-              background: 'linear-gradient(90deg, #f0fdfa 0%, #ccfbf1 100%)'
+              background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%)'
             }}
           >
             <p 
-              className="text-2xl font-medium mb-6 text-center"
+              className="text-2xl font-bold mb-6 text-center"
               style={{ color: '#4b5563' }}
             >
               Successfully Diagnosed
@@ -155,12 +132,15 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           </div>
           
           <div 
-            className="rounded-xl px-6 py-3 inline-block"
-            style={{ backgroundColor: '#f9fafb' }}
+            className="rounded-xl px-6 py-3 inline-block border relative z-20 shadow-sm"
+            style={{ 
+              backgroundColor: '#9ca3af',
+              borderColor: '#6b7280'
+            }}
           >
             <p 
               className="text-lg font-medium"
-              style={{ color: '#4b5563' }}
+              style={{ color: '#ffffff' }}
             >
               🏆 Top 2% of ClerkSmart users this week
             </p>
@@ -189,14 +169,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           </div>
         </div>
       </div>
-
-      {/* Bottom accent */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-2"
-        style={{
-          background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
-        }}
-      />
     </div>
   );
 };
