@@ -44,7 +44,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
         <div className="text-center">
           <div className="text-center mb-8">
             <h1 
-              className="text-5xl font-bold block mb-4"
+              className="text-6xl font-bold block mb-4"
               style={{
                 color: '#0d9488'
               }}
@@ -60,19 +60,19 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
         <div className="text-center">
           <div className="flex items-center justify-center space-x-6 mb-6">
             <div 
-              className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+              className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
               style={{
                 background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
               }}
             >
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
             </div>
           </div>
           
           <h2 
-            className="text-4xl font-bold mb-4 leading-tight"
+            className="text-5xl font-bold mb-4 leading-tight"
             style={{ color: '#1f2937' }}
           >
             {shareData.achievementText}
@@ -90,7 +90,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             }}
           >
             <p 
-              className="text-2xl font-bold mb-6 text-center"
+              className="text-3xl font-bold mb-6 text-center"
               style={{ color: '#4b5563' }}
             >
               Successfully Diagnosed
@@ -110,11 +110,11 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
         <div className="text-center">
           <div className="text-center mb-4">
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2"
               style={{ backgroundColor: '#f3f4f6' }}
             >
               <svg 
-                className="w-6 h-6" 
+                className="w-8 h-8" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -124,7 +124,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
               </svg>
             </div>
             <span 
-              className="text-3xl font-semibold block"
+              className="text-4xl font-semibold block"
               style={{ color: '#374151' }}
             >
               {shareData.department}
@@ -139,7 +139,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             }}
           >
             <p 
-              className="text-lg font-medium"
+              className="text-xl font-medium"
               style={{ color: '#ffffff' }}
             >
               🏆 Top 2% of ClerkSmart users this week
@@ -157,11 +157,11 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
               background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
             }}
           >
-            <p className="text-2xl font-semibold text-white mb-2 text-center">
+            <p className="text-3xl font-semibold text-white mb-2 text-center">
               Join thousands of medical students
             </p>
             <p 
-              className="text-lg text-center"
+              className="text-xl text-center"
               style={{ color: '#ccfbf1' }}
             >
               Practice clinical reasoning with AI-powered cases
