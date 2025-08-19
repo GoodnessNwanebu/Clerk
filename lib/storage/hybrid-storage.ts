@@ -23,10 +23,11 @@ export class HybridCaseStorage implements StorageManager {
   /**
    * Save secondary context to localStorage
    */
-  async saveSecondaryContext(caseId: string, context: SecondaryContext): Promise<boolean> {
+  async saveSecondaryContext(caseId: string, context: SecondaryContext, department?: string | null): Promise<boolean> {
     try {
       const data: LocalStorageCase = {
         caseId,
+        department: department || null,
         secondaryContext: context,
         lastUpdated: new Date().toISOString(),
         isActive: true

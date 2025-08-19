@@ -4,6 +4,7 @@ const STORAGE_PREFIX = 'clerksmart_case_'
 
 export interface LocalStorageCase {
   caseId: string
+  department: string | null
   conversation: Message[]
   // Only store secondary context - primary context is in cache
   secondaryContext: {
@@ -35,6 +36,7 @@ export class ConversationStorage {
       
       const data: LocalStorageCase = {
         caseId: this.caseId,
+        department: caseState?.department || null,
         conversation: messages,
         secondaryContext: {
           preliminaryDiagnosis: caseState?.preliminaryDiagnosis || '',

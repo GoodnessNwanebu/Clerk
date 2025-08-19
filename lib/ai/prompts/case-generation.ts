@@ -77,6 +77,8 @@ OUTPUT: ${isPediatric ?
 `{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}}` :
 `{"diagnosis": string, "primaryInfo": string, "openingLine": string}`}
 
+CRITICAL: ALL FIELDS ARE REQUIRED - DO NOT OMIT ANY FIELD
+
 - "diagnosis": Most likely diagnosis fitting ${randomBucket} category
 - "primaryInfo": Detailed clinical history with markdown headings:
   * ## BIODATA ${isPediatric ? '(child age, parent)' : ''}
@@ -88,7 +90,7 @@ OUTPUT: ${isPediatric ?
   * ## Social History
   * ## Review of Systems
   ${isPediatric ? '* ## Developmental History' : ''}
-- "openingLine": Natural first-person statement ${isPediatric ? 'from parent/child' : 'from patient'}
+- "openingLine": REQUIRED - Natural first-person statement ${isPediatric ? 'from parent/child' : 'from patient'} that will be the patient's first words in the consultation
 ${isPediatric ? `
 - "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": object, "developmentalStage": string, "communicationLevel": string}` : ''}
 

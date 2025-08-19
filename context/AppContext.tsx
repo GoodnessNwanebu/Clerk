@@ -69,6 +69,8 @@ interface AppContextType {
   setFeedback: (feedback: Feedback | ComprehensiveFeedback) => void;
   resetCase: () => void;
   completeCaseWithJWT: (makeVisible?: boolean) => Promise<boolean>;
+  completeCaseAndSave: () => Promise<boolean>;
+  toggleCaseVisibility: (caseId: string, makeVisible: boolean) => Promise<boolean>;
 }
 
 const initialCaseState: CaseState = {
@@ -126,19 +128,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
             const sessionValidation = await validateCaseSession(caseId);
 
             if (sessionValidation.isValid) {
-        setConversationStorage(storage);
+              setConversationStorage(storage);
               setCaseState((prev) => ({
-          ...prev,
+                ...prev,
+                caseId,
+                sessionId: sessionValidation.sessionId || null,
                 messages: savedData.conversation,
                 // Restore secondary context from localStorage
-                preliminaryDiagnosis:
-                  savedData.secondaryContext.preliminaryDiagnosis,
+                preliminaryDiagnosis: savedData.secondaryContext.preliminaryDiagnosis,
                 examinationPlan: savedData.secondaryContext.examinationPlan,
                 investigationPlan: savedData.secondaryContext.investigationPlan,
-                examinationResults:
-                  savedData.secondaryContext.examinationResults,
-                investigationResults:
-                  savedData.secondaryContext.investigationResults,
+                examinationResults: savedData.secondaryContext.examinationResults,
+                investigationResults: savedData.secondaryContext.investigationResults,
                 finalDiagnosis: savedData.secondaryContext.finalDiagnosis,
                 managementPlan: savedData.secondaryContext.managementPlan,
                 feedback: savedData.secondaryContext.feedback,
@@ -148,9 +149,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
               );
 
             } else {
-              // JWT session is invalid, clear the localStorage
-              console.log("JWT session invalid, clearing localStorage");
-              storage.clear();
+              // JWT session is invalid, but don't clear localStorage automatically
+              // This could be due to network issues, server problems, or temporary validation failures
+              // Only clear localStorage when user explicitly chooses to start a new simulation
+              console.warn("JWT session invalid during app load, but preserving localStorage for potential recovery");
+              console.log("User can manually clear localStorage by starting a new simulation");
             }
           }
         }
@@ -235,8 +238,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
       
-        // Generate a unique case ID for localStorage (secondary context)
-      const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Use the backend caseId for localStorage (secondary context)
+      const caseId = result.case.id;
       
         // Initialize localStorage for this case (secondary context only)
       const storage = new ConversationStorage(caseId);
@@ -479,9 +482,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setNavigationEntryPoint("");
   }, []);
 
-  // New case completion function with JWT validation and localStorage clearing
-  const completeCaseWithJWT = useCallback(
-    async (makeVisible: boolean = false): Promise<boolean> => {
+  // New case completion function that ALWAYS saves to DB and clears localStorage
+  const completeCaseAndSave = useCallback(
+    async (): Promise<boolean> => {
       if (!caseState.finalDiagnosis || !caseState.managementPlan) {
         console.error(
           "Cannot complete case: missing final diagnosis or management plan"
@@ -490,41 +493,77 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       try {
+        // Always save to DB with isVisible = false initially
         const result = await completeCase({
           finalDiagnosis: caseState.finalDiagnosis,
           managementPlan: caseState.managementPlan,
           examinationResults: caseState.examinationResults,
           investigationResults: caseState.investigationResults,
           messages: caseState.messages,
-          makeVisible,
+          makeVisible: false, // Always save, but not visible initially
+          caseId: caseState.caseId || undefined,
+          sessionId: caseState.sessionId || undefined,
         });
 
         if (result.success) {
-          console.log("Case completed successfully with JWT validation");
+          console.log("Case completed and saved to DB successfully");
 
           // Clear localStorage after successful completion
           if (conversationStorage) {
-            console.log(`🗑️ [AppContext.completeCaseWithJWT] Clearing localStorage after case completion for case: ${caseState.caseId}`);
+            console.log(`🗑️ [AppContext.completeCaseAndSave] Clearing localStorage after case completion for case: ${caseState.caseId}`);
             console.trace('Stack trace for case completion localStorage clear');
             conversationStorage.clear();
             setConversationStorage(null);
-            console.log(`✅ [AppContext.completeCaseWithJWT] Successfully cleared localStorage after case completion`);
+            console.log(`✅ [AppContext.completeCaseAndSave] Successfully cleared localStorage after case completion`);
           }
 
           // Reset case state
           setCaseState(initialCaseState);
 
-    return true;
-          } else {
+          return true;
+        } else {
           console.error("Case completion failed");
           return false;
-          }
-        } catch (error) {
+        }
+      } catch (error) {
         console.error("Error completing case:", error);
         return false;
       }
     },
     [caseState, conversationStorage]
+  );
+
+  // Function to toggle case visibility (for "Save Case" button)
+  const toggleCaseVisibility = useCallback(
+    async (caseId: string, makeVisible: boolean): Promise<boolean> => {
+      try {
+        const result = await updateCaseVisibility(caseId, makeVisible);
+        return result;
+      } catch (error) {
+        console.error("Error toggling case visibility:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Legacy function - now only handles visibility toggling
+  const completeCaseWithJWT = useCallback(
+    async (makeVisible: boolean = false): Promise<boolean> => {
+      if (!caseState.caseId) {
+        console.error("Cannot toggle visibility: missing case ID");
+        return false;
+      }
+
+      try {
+        const result = await toggleCaseVisibility(caseState.caseId, makeVisible);
+        return result;
+      } catch (error) {
+        console.error("Error toggling case visibility:", error);
+        return false;
+      }
+    },
+    [caseState.caseId, toggleCaseVisibility]
   );
 
   const resumeCase = useCallback(async (caseId: string) => {
@@ -540,6 +579,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           ...prev,
           caseId,
           sessionId: sessionValidation.sessionId || null,
+          department: savedData.department || null, // Restore department from localStorage
           messages: savedData.conversation,
           // Restore secondary context from localStorage
           preliminaryDiagnosis: savedData.secondaryContext.preliminaryDiagnosis,
@@ -588,6 +628,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setFeedback, 
     resetCase,
     completeCaseWithJWT,
+    completeCaseAndSave,
+    toggleCaseVisibility,
     navigationEntryPoint,
   };
 

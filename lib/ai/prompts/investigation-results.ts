@@ -13,18 +13,36 @@ QUANTITATIVE: {"name": string, "type": "quantitative", "category": "laboratory"|
 
 DESCRIPTIVE: {"name": string, "type": "descriptive", "category": "imaging"|"pathology"|"specialized", "urgency": "routine"|"urgent"|"critical", "findings": string, "impression": string, "recommendation": string, "abnormalFlags": string[], "reportType": "radiology"|"pathology"|"ecg"|"echo"|"specialist"}
 
+CRITICAL RULES:
+- ONLY generate results for tests that were EXPLICITLY requested in the plan
+- DO NOT add extra tests that were not requested
+- DO NOT assume additional tests were ordered
+
+SPECIFIC TEST MAPPINGS:
+- "Full blood count" or "FBC" → ONLY: Hemoglobin, PCV, WBC, Platelets
+- "Urea and electrolytes" or "U&E" → ONLY: Sodium, Potassium, Urea, Creatinine  
+- "Liver function tests" or "LFT" → ONLY: Bilirubin, ALT, AST
+- "Abdominal ultrasound" → ONLY: Abdominal ultrasound report
+- "Chest X-ray" → ONLY: Chest X-ray report
+- "ECG" → ONLY: ECG report
+- "Echocardiogram" or "Echo" → ONLY: Echocardiogram report
+
+REFERENCE RANGES:
+- PCV range: 36-46% (females), 40-50% (males)
+- Hemoglobin range: 12-16 g/dL (females), 13-17 g/dL (males)
+- WBC range: 4-11 x 10^9/L
+- Platelets range: 150-450 x 10^9/L
+- Sodium range: 135-145 mmol/L
+- Potassium range: 3.5-5.5 mmol/L
+- Urea range: 2.5-6.7 mmol/L
+- Creatinine range: 20-50 µmol/L
+- Bilirubin range: 0-17 µmol/L
+- ALT range: 0-30 U/L
+- AST range: 0-40 U/L
+
 GUIDELINES:
 - Generate medically plausible results based on patient's presenting symptoms
 - Results should be consistent with the patient's condition but not reveal the diagnosis
-- FBC: Hemoglobin, PCV, WBC, Platelets (quantitative)
-  * PCV range: 36-46% (females), 40-50% (males)
-  * Hemoglobin range: 12-16 g/dL (females), 13-17 g/dL (males)
-- U&E: Sodium, Potassium, Urea, Creatinine (quantitative)
-- LFT: Bilirubin, ALT, AST (quantitative)
-- Imaging: Detailed reports with findings and impressions
-- ECGs: Professional interpretation with rhythm, axis, intervals
-- Echo: Structured cardiac findings with measurements
-- Include ALL requested tests
 - Make some results abnormal if consistent with presenting symptoms
 - Use professional medical terminology
 ${patientAge ? `- Use age-appropriate reference ranges for pediatric patients` : ''}

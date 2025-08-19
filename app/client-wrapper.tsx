@@ -29,8 +29,19 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
+    // Wait for session to load before making any decisions
+    if (status === 'loading') {
+      return;
+    }
+    
     // Check if user has completed onboarding
     const hasOnboarded = typeof window !== 'undefined' ? localStorage.getItem('hasOnboarded') : null;
+    
+    // If user is authenticated but hasn't been marked as onboarded, mark them now
+    if (status === 'authenticated' && session && !hasOnboarded && typeof window !== 'undefined') {
+      console.log('✅ [OnboardingCheck] Auto-marking authenticated user as onboarded');
+      localStorage.setItem('hasOnboarded', 'true');
+    }
     
     // Don't redirect if user is already on the onboarding page
     if (pathname === '/onboarding') {
@@ -46,6 +57,14 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
     
     // If user is authenticated, consider them as having completed onboarding
     const shouldSkipOnboarding = hasOnboarded || (status === 'authenticated' && session);
+    
+    console.log('🔍 [OnboardingCheck] Status check:', {
+      status,
+      hasSession: !!session,
+      hasOnboarded,
+      shouldSkipOnboarding,
+      pathname
+    });
     
     // Redirect new users to onboarding with minimal delay
     if (!shouldSkipOnboarding) {

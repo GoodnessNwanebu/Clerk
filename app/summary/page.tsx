@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { getInvestigationResults, getExaminationResults, getComprehensiveCaseFeedback } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
@@ -31,7 +31,8 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 
 const SummaryScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback } = useAppContext();
+    const searchParams = useSearchParams();
+    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, completeCaseAndSave } = useAppContext();
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,30 @@ const SummaryScreen: React.FC = () => {
     const [investigationPlan, setInvestigationPlan] = useState(caseState.investigationPlan);
     const [finalDiagnosis, setFinalDiagnosis] = useState(caseState.finalDiagnosis || prelimDiagnosis);
     const [managementPlan, setManagementPlan] = useState(caseState.managementPlan);
+
+    // Check URL parameters and case state to determine initial phase
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        const hasExaminationResults = caseState.examinationResults && caseState.examinationResults.length > 0;
+        const hasInvestigationResults = caseState.investigationResults && caseState.investigationResults.length > 0;
+        
+        console.log('🔍 [SummaryScreen] Checking initial phase:', {
+            tab,
+            hasExaminationResults,
+            hasInvestigationResults,
+            examinationResultsCount: caseState.examinationResults?.length || 0,
+            investigationResultsCount: caseState.investigationResults?.length || 0
+        });
+        
+        // If URL has tab=examination or case has examination/investigation results, show results phase
+        if (tab === 'examination' || hasExaminationResults || hasInvestigationResults) {
+            console.log('🎯 [SummaryScreen] Setting phase to results');
+            setPhase('results');
+        } else {
+            console.log('🎯 [SummaryScreen] Setting phase to initial');
+            setPhase('initial');
+        }
+    }, [searchParams, caseState.examinationResults, caseState.investigationResults]);
 
     React.useEffect(() => {
       if (!caseState.department || !caseState.caseId) {
@@ -117,6 +142,13 @@ const SummaryScreen: React.FC = () => {
         
         try {
             setFinalData(finalDiagnosis, managementPlan);
+            
+            // Auto-complete and save case to DB before generating feedback
+            const caseCompleted = await completeCaseAndSave();
+            
+            if (!caseCompleted) {
+                throw new Error("Failed to complete and save case");
+            }
             
             // Retry feedback generation with exponential backoff
             let feedback: ComprehensiveFeedback | null = null;

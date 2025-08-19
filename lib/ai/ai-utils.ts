@@ -3,6 +3,7 @@ import { createAIClient } from './ai-wrapper';
 import type { PrimaryContext } from '../../types/diagnosis';
 import type { ExaminationResult } from '../../types/examination';
 import type { InvestigationResult } from '../../types/investigation';
+import { jsonrepair } from 'jsonrepair';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {
@@ -40,22 +41,14 @@ export const LOCATION_CONTEXTS: { [key: string]: string } = {
     'Brazil': 'Diverse cultural heritage, tropical climate, socioeconomic diversity'
 };
 
-// --- Helper to safely parse JSON from Gemini response ---
-export const parseJsonResponse = <T>(text: string, context: string): T => {
+// --- Helper to safely parse JSON from Gemini response using jsonrepair ---
+export function parseJsonResponse<T>(text: string, context: string): T {
     let jsonStr = text.trim();
     
-    // Remove markdown code blocks if present
-    const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-    const match = jsonStr.match(fenceRegex);
-    if (match && match[2]) {
-        jsonStr = match[2].trim();
-    }
-    
-    // Remove any leading/trailing non-JSON text
-    const jsonStart = jsonStr.indexOf('{');
-    const jsonEnd = jsonStr.lastIndexOf('}');
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+    // Extract JSON from markdown code blocks if present
+    const jsonMatch = jsonStr.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+        jsonStr = jsonMatch[1];
     }
     
     // Additional cleanup for common AI response artifacts
@@ -63,6 +56,7 @@ export const parseJsonResponse = <T>(text: string, context: string): T => {
     jsonStr = jsonStr.replace(/}[^}]*$/, '}'); // Remove anything after last }
     
     try {
+        // First try standard JSON parsing
         const parsedData = JSON.parse(jsonStr);
         
         // Validate that we got an object
@@ -76,19 +70,19 @@ export const parseJsonResponse = <T>(text: string, context: string): T => {
         console.error("Raw text from AI:", text);
         console.error("Attempted to parse:", jsonStr);
         
-        // Try one more time with more aggressive cleaning
         try {
-            // Remove all newlines and extra spaces that might break JSON
-            const cleanedJson = jsonStr.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-            const parsedData = JSON.parse(cleanedJson);
+            // Use jsonrepair to fix malformed JSON
+            const repairedJson = jsonrepair(jsonStr);
+            const parsedData = JSON.parse(repairedJson);
             
             if (typeof parsedData !== 'object' || parsedData === null) {
-                throw new Error('Response is not a valid JSON object');
+                throw new Error('Response is not a valid JSON object after repair');
             }
             
+            console.log("Successfully parsed JSON after repair");
             return parsedData as T;
-        } catch (secondError) {
-            console.error("Second parsing attempt failed:", secondError);
+        } catch (repairError) {
+            console.error("JSON repair failed:", repairError);
             
             // Provide more specific error messages
             if (e instanceof SyntaxError) {
@@ -105,7 +99,7 @@ export const generateAIResponse = async (prompt: string): Promise<string> => {
   try {
     const response = await ai.generateContent({
       model: MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      contents: [{ text: prompt }]
     });
     return response.text;
   } catch (error) {

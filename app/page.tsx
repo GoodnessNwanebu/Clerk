@@ -47,22 +47,13 @@ export default function HomePage() {
           // Use the most recent active case
           const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
           
-          // Try to automatically resume the case
-          const success = await resumeCase(mostRecent.id);
-          
-          if (success) {
-            // Auto-route to clerking page if resume was successful
-            router.push('/clerking');
-            return;
-          } else {
-            // If resume failed, show the modal as fallback
-            setSavedCaseInfo({
-              department: mostRecent.department.name,
-              lastUpdated: mostRecent.updatedAt,
-              caseId: mostRecent.id
-            });
-            setShowResumeModal(true);
-          }
+          // Show the resume modal instead of auto-resuming
+          setSavedCaseInfo({
+            department: mostRecent.department.name,
+            lastUpdated: mostRecent.updatedAt,
+            caseId: mostRecent.id
+          });
+          setShowResumeModal(true);
           return;
         }
         
@@ -77,7 +68,7 @@ export default function HomePage() {
           // Check if there's a conversation to resume
           if (mostRecent && mostRecent.conversation.length > 0) {
             setSavedCaseInfo({
-              department: 'Clinical Case', // Generic name since department is in JWT
+              department: mostRecent.department || 'Clinical Case', // Use stored department or generic name
               lastUpdated: mostRecent.lastUpdated,
               caseId: mostRecent.caseId
             });
@@ -184,14 +175,61 @@ export default function HomePage() {
       console.error('No case ID available for resume');
       return;
     }
-
-    setShowResumeModal(false);
     
     try {
       const success = await resumeCase(savedCaseInfo.caseId);
       if (success) {
-        // Navigate to clerking page after successful resume
-        router.push(`/clerking/${savedCaseInfo.caseId}`);
+        // Add a small delay to ensure case state is fully restored
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check case progress to determine where to route
+        const conversations = ConversationStorageUtils.getAllConversations();
+        const currentCase = conversations.find(c => c.caseId === savedCaseInfo.caseId);
+        
+        console.log('🔍 [handleResumeCase] Checking case data for routing:', {
+          caseId: savedCaseInfo.caseId,
+          currentCase: currentCase ? 'found' : 'not found',
+          hasFinalDiagnosis: currentCase?.secondaryContext?.finalDiagnosis ? 'yes' : 'no',
+          hasManagementPlan: currentCase?.secondaryContext?.managementPlan ? 'yes' : 'no',
+          hasExaminationResults: currentCase?.secondaryContext?.examinationResults && currentCase.secondaryContext.examinationResults.length > 0 ? 'yes' : 'no',
+          examinationResultsCount: currentCase?.secondaryContext?.examinationResults?.length || 0
+        });
+        
+        if (currentCase) {
+          // Check if case has final diagnosis and management plan (completed case)
+          const hasFinalDiagnosis = currentCase.secondaryContext.finalDiagnosis && currentCase.secondaryContext.finalDiagnosis.trim() !== '';
+          const hasManagementPlan = currentCase.secondaryContext.managementPlan && currentCase.secondaryContext.managementPlan.trim() !== '';
+          
+          if (hasFinalDiagnosis && hasManagementPlan) {
+            // Case is complete, check if examination results exist to determine which summary subscreen
+            const hasExaminationResults = currentCase.secondaryContext.examinationResults && 
+              Array.isArray(currentCase.secondaryContext.examinationResults) && 
+              currentCase.secondaryContext.examinationResults.length > 0;
+            
+            console.log('🎯 [handleResumeCase] Routing decision:', {
+              hasFinalDiagnosis,
+              hasManagementPlan,
+              hasExaminationResults,
+              route: hasExaminationResults ? '/summary?tab=examination' : '/summary'
+            });
+            
+            if (hasExaminationResults) {
+              // Route to summary with examination results (second subscreen)
+              router.push('/summary?tab=examination');
+            } else {
+              // Route to summary without examination results (first subscreen)
+              router.push('/summary');
+            }
+          } else {
+            // Case is in progress, route to clerking page
+            console.log('🎯 [handleResumeCase] Case in progress, routing to /clerking');
+            router.push('/clerking');
+          }
+        } else {
+          // Fallback to clerking page
+          console.log('🎯 [handleResumeCase] Case not found, fallback to /clerking');
+          router.push('/clerking');
+        }
       } else {
         console.error('Failed to resume case');
         // Could show an error message here

@@ -9,6 +9,7 @@ import type { CaseSession, SessionValidationResult } from './shared';
 // localStorage Storage Types
 interface LocalStorageCase {
   caseId: string;
+  department: string | null;
   secondaryContext: SecondaryContext;
   lastUpdated: string;
   isActive: boolean;

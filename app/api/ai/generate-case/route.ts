@@ -117,7 +117,35 @@ export async function POST(request: NextRequest) {
         // Validate required fields
         if (!caseData.openingLine) {
             console.error('❌ Missing openingLine in AI response');
-            throw new Error('AI response missing required openingLine field');
+            console.error('🔍 Attempting to generate openingLine from diagnosis...');
+            
+            // Try to generate openingLine from the diagnosis
+            try {
+                const openingLinePrompt = `Generate a natural first-person opening statement for a patient with ${caseData.diagnosis}. 
+                
+                The statement should be:
+                - Natural and conversational
+                - In first person (patient speaking)
+                - Related to the main symptoms of ${caseData.diagnosis}
+                - 1-2 sentences maximum
+                
+                Return ONLY the opening statement, no JSON formatting.`;
+                
+                const openingLineResponse = await ai.generateContent({
+                    model: MODEL,
+                    contents: [{ text: openingLinePrompt }],
+                });
+                
+                if (openingLineResponse.text && openingLineResponse.text.trim()) {
+                    caseData.openingLine = openingLineResponse.text.trim();
+                    console.log('✅ Generated openingLine:', caseData.openingLine);
+                } else {
+                    throw new Error('Failed to generate openingLine');
+                }
+            } catch (fallbackError) {
+                console.error('❌ Failed to generate openingLine fallback:', fallbackError);
+                throw new Error('AI response missing required openingLine field and fallback generation failed');
+            }
         }
 
         // Create case in database

@@ -188,6 +188,8 @@ export const completeCase = async (caseData: {
     investigationResults: any[];
     messages: any[];
     makeVisible?: boolean;
+    caseId?: string;
+    sessionId?: string;
 }): Promise<{ success: boolean; feedback: any; caseReport: any }> => {
     try {
         const response = await fetch('/api/cases/complete', {
@@ -195,7 +197,11 @@ export const completeCase = async (caseData: {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(caseData),
+            body: JSON.stringify({
+                ...caseData,
+                caseId: caseData.caseId,
+                sessionId: caseData.sessionId
+            }),
             credentials: 'include', // Include cookies for session
         });
 
@@ -373,6 +379,8 @@ export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | 
     // For the new cache-based system, we don't need to optimize context here
     // The API will handle context optimization using the session middleware
     const feedback = await fetchFromApi<Feedback>('feedback', { 
+        caseId: caseState.caseId,
+        sessionId: caseState.sessionId,
         caseState: {
             ...caseState,
             messages: caseState.messages.slice(-15) // Keep last 15 messages
@@ -390,6 +398,8 @@ export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<Con
         }
         
         const feedback = await fetchFromApi('detailed-feedback', { 
+            caseId: caseState.caseId,
+            sessionId: caseState.sessionId,
             caseState: {
                 ...caseState,
                 messages: caseState.messages.slice(-15) // Keep last 15 messages
@@ -423,6 +433,8 @@ export const getComprehensiveCaseFeedback = async (caseState: CaseState): Promis
         }
         
         const feedback = await fetchFromApi('comprehensive-feedback', { 
+            caseId: caseState.caseId,
+            sessionId: caseState.sessionId,
             caseState: {
                 ...caseState,
                 messages: caseState.messages.slice(-15) // Keep last 15 messages

@@ -14,16 +14,25 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Case state is required' }, { status: 400 });
             }
 
+            // Use secure primary context from cache instead of frontend case details
+            const { primaryContext } = sessionContext;
+            
             // Validate required data
-            if (!caseState.department || !caseState.caseDetails) {
+            if (!primaryContext.diagnosis || !caseState.department) {
                 return NextResponse.json({ 
                     error: 'Missing required case data for comprehensive feedback' 
                 }, { status: 400 });
             }
 
+            // Create the caseState with primary context for the AI prompt
+            const fullCaseState = {
+                ...caseState,
+                caseDetails: primaryContext // Use primary context as caseDetails
+            };
+
             const aiContext = 'getComprehensiveFeedback';
-            const surgicalTeachingContext = getSurgicalTeachingContext(caseState);
-            const userMessage = comprehensiveFeedbackPrompt(caseState, surgicalTeachingContext);
+            const surgicalTeachingContext = getSurgicalTeachingContext(fullCaseState);
+            const userMessage = comprehensiveFeedbackPrompt(fullCaseState, surgicalTeachingContext);
 
             const response = await ai.generateContent({
                 model: MODEL,

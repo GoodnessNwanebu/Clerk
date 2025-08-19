@@ -13,21 +13,26 @@ import { ConversationStorageUtils } from '../../lib/storage/localStorage';
 import { useInstallGuide } from '../../hooks/useInstallGuide';
 import PWATutorialModal from '../../components/PWATutorialModal';
 
-const FeedbackScreen: React.FC = () => {
-    const router = useRouter();
-    const { caseState, resetCase, completeCaseWithJWT, setNavigationEntryPoint } = useAppContext();
+export default function FeedbackPage() {
+    const { 
+        caseState, 
+        resetCase, 
+        setNavigationEntryPoint,
+        completeCaseAndSave,
+        toggleCaseVisibility
+    } = useAppContext();
+    
     const { feedback, department } = caseState;
     
-    const [expandedSections, setExpandedSections] = useState<{
-        clinicalOpportunities: boolean;
-        clinicalPearls: boolean;
-    }>({
+    const router = useRouter();
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState<any>(null);
+    const [expandedSections, setExpandedSections] = useState({
         clinicalOpportunities: false,
         clinicalPearls: false
     });
-    
-    const [showShareModal, setShowShareModal] = useState(false);
-    const [shareData, setShareData] = useState<ShareData | null>(null);
+    const [isCaseCompleted, setIsCaseCompleted] = useState(false);
+    const [isCaseVisible, setIsCaseVisible] = useState(false);
     
     // Install guide hook
     const {
@@ -38,19 +43,41 @@ const FeedbackScreen: React.FC = () => {
         handleCompleteInstallGuide
     } = useInstallGuide();
 
-    React.useEffect(() => {
-        if (!feedback || !department) {
-            router.push('/');
-        }
-        
-        // Load share data when component mounts
+    // Auto-complete case when feedback page loads
+    useEffect(() => {
+        const autoCompleteCase = async () => {
+            if (feedback && department && !isCaseCompleted) {
+                try {
+                    console.log('Auto-completing case on feedback page load');
+                    const success = await completeCaseAndSave();
+                    if (success) {
+                        setIsCaseCompleted(true);
+                        console.log('Case auto-completed successfully');
+                    } else {
+                        console.error('Failed to auto-complete case');
+                    }
+                } catch (error) {
+                    console.error('Error auto-completing case:', error);
+                }
+            }
+        };
+
+        autoCompleteCase();
+    }, [feedback, department, isCaseCompleted, completeCaseAndSave]);
+
+    // Load share data from localStorage
+    useEffect(() => {
         if (typeof window !== 'undefined') {
-            const storedShareData = localStorage.getItem('pendingShareData');
-            if (storedShareData) {
-                setShareData(JSON.parse(storedShareData));
+            const savedShareData = localStorage.getItem('pendingShareData');
+            if (savedShareData) {
+                try {
+                    setShareData(JSON.parse(savedShareData));
+                } catch (error) {
+                    console.error('Error parsing share data:', error);
+                }
             }
         }
-    }, [feedback, department, router]);
+    }, []);
 
     // Scroll-to-bottom install guide trigger
     useEffect(() => {
@@ -75,6 +102,11 @@ const FeedbackScreen: React.FC = () => {
     };
 
     const handleSaveCase = async () => {
+        if (!caseState.caseId) {
+            console.error('No case ID available for visibility toggle');
+            return;
+        }
+
         try {
             // Show loading state
             const saveButton = document.querySelector('[data-save-case]') as HTMLButtonElement;
@@ -83,9 +115,11 @@ const FeedbackScreen: React.FC = () => {
                 saveButton.textContent = 'Saving...';
             }
 
-            const success = await completeCaseWithJWT(true); // true = make visible
+            // Toggle visibility (make case visible in saved cases)
+            const success = await toggleCaseVisibility(caseState.caseId, true);
             
             if (success) {
+                setIsCaseVisible(true);
                 // Show success message
                 alert('Case saved successfully! Your case has been saved and will be available in your saved cases.');
                 
@@ -103,13 +137,11 @@ const FeedbackScreen: React.FC = () => {
                 // Show share modal after successful save
                 setShowShareModal(true);
             } else {
-                // This should rarely happen now due to retry mechanism
-                alert('Case saved in background. If you encounter any issues, please contact support.');
+                alert('Failed to save case. Please try again.');
             }
         } catch (error) {
             console.error('Error saving case:', error);
-            // Even if there's an error, the retry mechanism should handle it
-            alert('Case is being saved in the background. You can safely continue.');
+            alert('Failed to save case. Please try again.');
         }
     };
 
@@ -429,6 +461,4 @@ const FeedbackScreen: React.FC = () => {
             />
         </div>
     );
-};
-
-export default FeedbackScreen; 
+}; 

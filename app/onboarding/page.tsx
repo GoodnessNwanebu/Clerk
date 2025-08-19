@@ -48,6 +48,17 @@ const OnboardingScreen: React.FC = () => {
     setIsReady(true);
   }, []);
 
+  // If user is already authenticated, redirect to home immediately
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      console.log('✅ [OnboardingScreen] User already authenticated, redirecting to home');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hasOnboarded', 'true');
+      }
+      router.push('/');
+    }
+  }, [session, status, router]);
+
   const isCountryStep = step === onboardingSteps.length - 2; // Second to last step
   const isSignInStep = step === onboardingSteps.length - 1; // Last step
   const canContinue = isCountryStep ? selectedCountry !== '' : true;
@@ -105,6 +116,21 @@ const OnboardingScreen: React.FC = () => {
     return null; // Return nothing during SSR to avoid hydration issues
   }
 
+  // Show loading while checking authentication status
+  if (status === 'loading') {
+    return (
+      <div className="h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-500 text-transparent bg-clip-text mb-3">
+            ClerkSmart
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">Checking your session...</p>
+        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -122,11 +148,7 @@ const OnboardingScreen: React.FC = () => {
           
           {isSignInStep && (
             <div className="w-full max-w-sm space-y-4">
-              {status === 'loading' ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500"></div>
-                </div>
-              ) : session ? (
+              {session ? (
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                     {session.user?.image && (
