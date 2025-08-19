@@ -4,7 +4,7 @@ export const patientResponsePrompt = (systemInstruction: string, conversation: s
 CONVERSATION:
 ${conversation}
 
-${isPediatric ? 'Response (JSON):' : 'Patient response:'}`;
+Patient response:`;
 
 export const getPediatricSystemInstruction = (
     timeContext: string,
@@ -39,21 +39,14 @@ Examples:
    - Say "sudden worsening" not "acute exacerbation"
    - Use everyday language that patients actually use
 
-2. For EACH speaker's response, use this exact JSON format:
-   {
-     "messages": [
-       {
-         "response": "the actual response text",
-         "sender": "patient" or "parent",
-         "speakerLabel": "Child" or "Mother" or "Father"
-       }
-     ]
-   }
+2. Respond naturally as the patient or parent would speak
+   - Use direct dialogue only
+   - Speak in first person
+   - Be conversational and realistic
 
-3. When both need to respond:
-   - Return separate messages for each speaker
-   - Put them in the order they would naturally speak
-   - Each message should be complete on its own
+3. When both parent and child need to respond:
+   - Respond as the most appropriate speaker for the question
+   - If both perspectives are needed, combine them naturally in one response
 
 4. Use DIRECT DIALOGUE ONLY - no narrative descriptions or parentheticals
 

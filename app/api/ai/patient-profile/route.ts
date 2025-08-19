@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
             
             const aiContext = 'generatePatientProfile';
             
-            // Use secure primary context from JWT instead of frontend parameters
+            // Use secure primary context from cache instead of frontend parameters
             const { primaryContext } = sessionContext;
             
             // Get time context for temporal awareness

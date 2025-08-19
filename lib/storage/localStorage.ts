@@ -5,7 +5,7 @@ const STORAGE_PREFIX = 'clerksmart_case_'
 export interface LocalStorageCase {
   caseId: string
   conversation: Message[]
-  // Only store secondary context - primary context is in JWT
+  // Only store secondary context - primary context is in cache
   secondaryContext: {
     preliminaryDiagnosis: string
     examinationPlan: string
@@ -31,6 +31,8 @@ export class ConversationStorage {
   // Save conversation to localStorage (secondary context only)
   saveConversation(messages: Message[], caseState?: Partial<CaseState>): boolean {
     try {
+      console.log(`💾 [ConversationStorage.saveConversation] Saving conversation to localStorage for case: ${this.caseId}, messages: ${messages.length}`);
+      
       const data: LocalStorageCase = {
         caseId: this.caseId,
         conversation: messages,
@@ -47,6 +49,7 @@ export class ConversationStorage {
         lastUpdated: new Date().toISOString()
       }
       localStorage.setItem(this.storageKey, JSON.stringify(data))
+      console.log(`✅ [ConversationStorage.saveConversation] Successfully saved conversation to localStorage for case: ${this.caseId}`);
       return true
     } catch (error) {
       console.error('Failed to save conversation to localStorage:', error)
@@ -57,8 +60,13 @@ export class ConversationStorage {
   // Load conversation from localStorage
   loadConversation(): LocalStorageCase | null {
     try {
+      console.log(`📖 [ConversationStorage.loadConversation] Loading conversation from localStorage for case: ${this.caseId}, key: ${this.storageKey}`);
+      
       const data = localStorage.getItem(this.storageKey)
-      if (!data) return null
+      if (!data) {
+        console.log(`❌ [ConversationStorage.loadConversation] No data found in localStorage for case: ${this.caseId}`);
+        return null
+      }
       
       const parsed = JSON.parse(data) as LocalStorageCase
       
@@ -68,6 +76,7 @@ export class ConversationStorage {
         return null
       }
       
+      console.log(`✅ [ConversationStorage.loadConversation] Successfully loaded conversation from localStorage for case: ${this.caseId}, messages: ${parsed.conversation.length}`);
       return parsed
     } catch (error) {
       console.error('Failed to load conversation from localStorage:', error)
@@ -112,7 +121,10 @@ export class ConversationStorage {
   // Clear conversation from localStorage
   clear(): boolean {
     try {
+      console.log(`🗑️ [ConversationStorage.clear] Clearing localStorage for case: ${this.caseId}, key: ${this.storageKey}`);
+      console.trace('Stack trace for localStorage clear');
       localStorage.removeItem(this.storageKey)
+      console.log(`✅ [ConversationStorage.clear] Successfully cleared localStorage for case: ${this.caseId}`);
       return true
     } catch (error) {
       console.error('Failed to clear conversation from localStorage:', error)
@@ -171,6 +183,9 @@ export const ConversationStorageUtils = {
   // Clear all conversations
   clearAll(): boolean {
     try {
+      console.log(`🗑️ [ConversationStorageUtils.clearAll] Clearing ALL conversation localStorage data`);
+      console.trace('Stack trace for clearAll');
+      
       const keysToRemove: string[] = []
       
       for (let i = 0; i < localStorage.length; i++) {
@@ -180,7 +195,14 @@ export const ConversationStorageUtils = {
         }
       }
       
-      keysToRemove.forEach(key => localStorage.removeItem(key))
+      console.log(`🗑️ [ConversationStorageUtils.clearAll] Found ${keysToRemove.length} conversation keys to remove:`, keysToRemove);
+      
+      keysToRemove.forEach(key => {
+        console.log(`🗑️ [ConversationStorageUtils.clearAll] Removing key: ${key}`);
+        localStorage.removeItem(key)
+      })
+      
+      console.log(`✅ [ConversationStorageUtils.clearAll] Successfully cleared ${keysToRemove.length} conversation keys`);
       return true
     } catch (error) {
       console.error('Failed to clear all conversations:', error)

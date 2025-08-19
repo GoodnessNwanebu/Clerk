@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Message, PatientResponse } from '../../../../types';
+import { Message } from '../../../../types';
 import { getTimeContext } from '../../../../lib/shared/timeContext';
-import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
+import { ai, MODEL, handleApiError } from '../../../../lib/ai/ai-utils';
 import { 
     patientResponsePrompt, 
     getPediatricSystemInstruction, 
@@ -66,20 +66,14 @@ export async function POST(request: NextRequest) {
                 }],
             });
             
-            if (isPediatric) {
-                // Parse the JSON response for pediatric cases
-                const responseJson = parseJsonResponse<PatientResponse>(response.text, aiContext);
-                return NextResponse.json(responseJson);
-            } else {
-                // For regular cases, return the simple format
-                return NextResponse.json({ 
-                    messages: [{
-                        response: response.text.trim(),
-                        sender: 'patient',
-                        speakerLabel: ''
-                    }]
-                });
-            }
+            // Always treat response as plain text - no more JSON parsing issues
+            return NextResponse.json({ 
+                messages: [{
+                    response: response.text.trim(),
+                    sender: 'patient',
+                    speakerLabel: ''
+                }]
+            });
         } catch (error) {
             return handleApiError(error, 'getPatientResponse');
         }

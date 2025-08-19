@@ -46,6 +46,17 @@ const getReportIcon = (reportType: DescriptiveResult['reportType']) => {
 const QuantitativeBar: React.FC<{ result: QuantitativeResult; animate: boolean }> = ({ result, animate }) => {
   const { value, range, status } = result;
   
+  // Handle null range gracefully
+  if (!range) {
+    return (
+      <div className="relative h-4 sm:h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-full flex items-center justify-center">
+          <span className="text-xs text-slate-500 dark:text-slate-400">No range data</span>
+        </div>
+      </div>
+    );
+  }
+  
   // Improved logic: Progress bar should visually represent the relationship to normal range
   let progressBarWidth, indicatorPosition;
   
@@ -144,7 +155,7 @@ const QuantitativeResults: React.FC<{ results: QuantitativeResult[]; animate: bo
               </div>
             </div>
             <div className="text-right text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Ref: {result.range.low} - {result.range.high} {result.unit}
+              {result.range ? `Ref: ${result.range.low} - ${result.range.high} ${result.unit}` : 'No reference range available'}
             </div>
           </div>
         ))}

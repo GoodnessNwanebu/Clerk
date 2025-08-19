@@ -203,9 +203,12 @@ export default function HomePage() {
   };
 
   const handleDismissCase = () => {
+    console.log(`🗑️ [page.handleDismissCase] User dismissed resume modal, clearing localStorage`);
+    console.trace('Stack trace for dismiss case localStorage clear');
     setShowResumeModal(false);
     // Clear localStorage to start fresh
     ConversationStorageUtils.clearAll();
+    console.log(`✅ [page.handleDismissCase] Successfully cleared localStorage after dismissing case`);
   };
 
   const handleSavedCases = () => {

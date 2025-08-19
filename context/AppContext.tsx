@@ -48,7 +48,8 @@ interface AppContextType {
   generateNewCase: (department: Department) => Promise<void>;
   generateNewCaseWithDifficulty: (
     department: Department,
-    difficulty: DifficultyLevel
+    difficulty: DifficultyLevel,
+    subspecialty?: string
   ) => Promise<void>;
   generatePracticeCase: (
     department: Department,
@@ -207,7 +208,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const generateNewCaseWithDifficulty = useCallback(
-    async (department: Department, difficulty: DifficultyLevel) => {
+    async (department: Department, difficulty: DifficultyLevel, subspecialty?: string) => {
     setIsGeneratingCase(true);
     try {
         // Use JWT-based case generation (backend creates session and JWT)
@@ -219,7 +220,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           body: JSON.stringify({
             department: department.name,
             difficulty,
-            userCountry: userCountry || undefined
+            userCountry: userCountry || undefined,
+            subspecialty: subspecialty || undefined
           })
         });
 
@@ -502,8 +504,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
 
           // Clear localStorage after successful completion
           if (conversationStorage) {
+            console.log(`🗑️ [AppContext.completeCaseWithJWT] Clearing localStorage after case completion for case: ${caseState.caseId}`);
+            console.trace('Stack trace for case completion localStorage clear');
             conversationStorage.clear();
             setConversationStorage(null);
+            console.log(`✅ [AppContext.completeCaseWithJWT] Successfully cleared localStorage after case completion`);
           }
 
           // Reset case state

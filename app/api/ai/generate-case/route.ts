@@ -18,6 +18,14 @@ import { cachePrimaryContext } from '../../../../lib/cache/primary-context-cache
 
 export async function POST(request: NextRequest) {
     try {
+        const { department, difficulty = 'standard', userCountry, subspecialty } = await request.json();
+        
+        console.log('📋 Case generation request:', { department, difficulty, userCountry, subspecialty });
+        
+        if (!department) {
+            return NextResponse.json({ error: 'Department is required' }, { status: 400 });
+        }
+
         // Get user session with proper typing
         const session = await getServerSession(auth) as { user?: { email?: string } } | null;
         if (!session?.user?.email) {
@@ -25,13 +33,6 @@ export async function POST(request: NextRequest) {
                 { success: false, error: 'Unauthorized. Please sign in to continue.' },
                 { status: 401 }
             );
-        }
-
-        const body = await request.json();
-        const { department: departmentName, difficulty = 'standard', userCountry, practiceCondition } = body;
-        
-        if (!departmentName) {
-            return NextResponse.json({ success: false, error: 'Department name is required' }, { status: 400 });
         }
 
         // Get user from database
@@ -47,95 +48,83 @@ export async function POST(request: NextRequest) {
         }
 
         // Get department from database
-        const department = await prisma.department.findFirst({
-            where: { name: departmentName }
+        const departmentRecord = await prisma.department.findFirst({
+            where: { name: department }
         });
 
-        if (!department) {
+        if (!departmentRecord) {
             return NextResponse.json(
                 { success: false, error: 'Department not found' },
                 { status: 404 }
             );
         }
 
-        const context = practiceCondition ? 'generatePracticeCase' : 'generateClinicalCase';
+        const context = 'generateClinicalCase'; // Practice case generation is removed
         
         // Get time context for the user's location
         const timeContext = getTimeContext(userCountry);
         
         // Check if this is a pediatric case
-        const isPediatric = departmentName.toLowerCase().includes('pediatric') || departmentName.toLowerCase().includes('paediatric');
+        const isPediatric = departmentRecord.name.toLowerCase().includes('pediatric') || departmentRecord.name.toLowerCase().includes('paediatric');
         
         // Check if this is a surgical department
-        const isSurgical = departmentName.toLowerCase().includes('surgery') || departmentName.toLowerCase().includes('surgical');
-        const isCardiothoracic = departmentName.toLowerCase().includes('cardiothoracic') || departmentName.toLowerCase().includes('cardiac');
-        const isGeneralSurgery = departmentName.toLowerCase().includes('general surgery');
+        const isSurgical = departmentRecord.name.toLowerCase().includes('surgery') || departmentRecord.name.toLowerCase().includes('surgical');
+        const isCardiothoracic = departmentRecord.name.toLowerCase().includes('cardiothoracic') || departmentRecord.name.toLowerCase().includes('cardiac');
+        const isGeneralSurgery = departmentRecord.name.toLowerCase().includes('general surgery');
         
         let userMessage: string;
         
-        if (practiceCondition) {
-            // Practice case generation
-            const locationPrompt = getLocationPrompt(userCountry);
-            const difficultyPrompt = getDifficultyPrompt(difficulty);
-            
-            userMessage = `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
-            
-            ${locationPrompt}
-            
-            REQUIREMENTS:
-            - The case MUST be for the condition: "${practiceCondition}"
-            - The case should be solvable by a medical student
-            - Balance regional authenticity with educational value
-            - Create a realistic presentation of the specified condition${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
-            
-            The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
-
-            - "diagnosis": The most likely diagnosis for the case (should match or be very close to "${practiceCondition}").
-            - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-                - ## BIODATA
-                - ## Presenting Complaint
-                - ## History of Presenting Complaint
-                - ## Past Medical and Surgical History
-                - ## Drug History
-                - ## Family History
-                - ## Social History
-                - ## Review of Systems
-            - "openingLine": A natural, first-person statement from the patient that initiates the consultation.`;
-        } else {
-            // Regular case generation
-            // Randomly select a medical bucket
-            const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
-            
-            // Get optimized prompts
-            const locationPrompt = getLocationPrompt(userCountry);
-            const surgicalPrompt = getSurgicalPrompt(isSurgical, isCardiothoracic, isGeneralSurgery);
-            const pediatricPrompt = getPediatricPrompt(isPediatric);
-            const difficultyPrompt = getDifficultyPrompt(difficulty);
-            
-            userMessage = generateCasePrompt(
-                departmentName, 
-                randomBucket, 
-                timeContext.formattedContext, 
-                locationPrompt, 
-                surgicalPrompt, 
-                pediatricPrompt, 
-                isPediatric, 
-                isSurgical
-            ) + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
-        }
+        // Regular case generation
+        // Randomly select a medical bucket
+        const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
+        
+        // Get optimized prompts
+        const locationPrompt = getLocationPrompt(userCountry);
+        const surgicalPrompt = getSurgicalPrompt(isSurgical, isCardiothoracic, isGeneralSurgery);
+        const pediatricPrompt = getPediatricPrompt(isPediatric);
+        const difficultyPrompt = getDifficultyPrompt(difficulty);
+        
+        // Include subspecialty information if provided
+        const subspecialtyContext = subspecialty ? `\n\nSUBSCRIPTY CONTEXT: This case should be specifically tailored for ${subspecialty} subspecialty within ${departmentRecord.name}. Focus on conditions and presentations commonly seen in ${subspecialty}.` : '';
+        
+        userMessage = generateCasePrompt(
+            departmentRecord.name, 
+            randomBucket, 
+            timeContext.formattedContext, 
+            locationPrompt, 
+            surgicalPrompt, 
+            pediatricPrompt, 
+            isPediatric, 
+            isSurgical
+        ) + subspecialtyContext + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
 
         const response = await ai.generateContent({
             model: MODEL,
             contents: [{ text: userMessage }],
         });
         
+        console.log('🤖 AI Response:', response.text);
+        
         const caseData = parseJsonResponse<Case>(response.text, context);
+        
+        console.log('📋 Parsed case data:', {
+            diagnosis: caseData.diagnosis,
+            hasPrimaryInfo: !!caseData.primaryInfo,
+            hasOpeningLine: !!caseData.openingLine,
+            openingLine: caseData.openingLine
+        });
+
+        // Validate required fields
+        if (!caseData.openingLine) {
+            console.error('❌ Missing openingLine in AI response');
+            throw new Error('AI response missing required openingLine field');
+        }
 
         // Create case in database
         const caseRecord = await prisma.case.create({
             data: {
                 userId: user.id,
-                departmentId: department.id,
+                departmentId: departmentRecord.id,
                 diagnosis: caseData.diagnosis,
                 primaryInfo: caseData.primaryInfo,
                 openingLine: caseData.openingLine,
@@ -154,7 +143,7 @@ export async function POST(request: NextRequest) {
             patientProfile: caseData.patientProfile,
             pediatricProfile: caseData.pediatricProfile,
             isPediatric,
-            department: departmentName,
+            department: departmentRecord.name,
             difficultyLevel: difficulty as DifficultyLevel
         };
 
@@ -191,14 +180,14 @@ export async function POST(request: NextRequest) {
         });
         console.log('✅ Case updated with session ID');
 
-        // Create response with JWT cookie (primary context is secured in JWT, not exposed in response)
+        // Create response with session (primary context is secured in cache, not exposed in response)
         const responseData = {
             success: true,
             case: {
                 id: caseRecord.id,
                 sessionId,
                 
-                department: departmentName,
+                department: departmentRecord.name,
                 openingLine: caseData.openingLine,
                 isPediatric,
                 difficultyLevel: difficulty,

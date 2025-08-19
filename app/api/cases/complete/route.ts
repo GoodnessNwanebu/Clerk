@@ -11,7 +11,7 @@ import type {
   ComprehensiveFeedback 
 } from '../../../../types';
 
-// Case completion endpoint with JWT validation
+// Case completion endpoint with session validation
 export async function POST(request: NextRequest) {
   return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
     try {
@@ -79,22 +79,13 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Clear JWT cookie since case is completed
+      // Clear session since case is completed
       const response = NextResponse.json({
         success: true,
         caseId,
         message: 'Case completed successfully',
         feedback,
         caseReport
-      });
-
-      // Clear the JWT cookie
-      response.cookies.set('case-jwt', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 0,
-        path: '/'
       });
 
       return response;

@@ -75,12 +75,12 @@ const SummaryScreen: React.FC = () => {
             let examinationResults: ExaminationResult[] = [];
             if (examinationPlan.trim()) {
                 try {
-                    examinationResults = await getExaminationResults(examinationPlan);
+                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
                     setExaminationResults(examinationResults);
                 } catch (examError) {
                     console.warn('Failed to get examination results, retrying...', examError);
                     // Retry examination results
-                    examinationResults = await getExaminationResults(examinationPlan);
+                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
                     setExaminationResults(examinationResults);
                 }
             }
@@ -89,12 +89,12 @@ const SummaryScreen: React.FC = () => {
             let investigationResults: InvestigationResult[] = [];
             if (investigationPlan.trim()) {
                 try {
-                    investigationResults = await getInvestigationResults(investigationPlan);
+                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
                     setInvestigationResults(investigationResults);
                 } catch (invError) {
                     console.warn('Failed to get investigation results, retrying...', invError);
                     // Retry investigation results
-                    investigationResults = await getInvestigationResults(investigationPlan);
+                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
                     setInvestigationResults(investigationResults);
                 }
             }

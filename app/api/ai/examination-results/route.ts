@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
             const aiContext = 'getExaminationResults';
             
-            // Use secure primary context from JWT instead of frontend case details
+            // Use secure primary context from cache instead of frontend case details
             const { primaryContext } = sessionContext;
             
             // Extract patient context from primaryInfo (which contains biodata)

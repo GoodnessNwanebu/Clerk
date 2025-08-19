@@ -63,10 +63,10 @@ const DepartmentSelectionScreen: React.FC = () => {
     loadDepartments();
   }, []);
 
-  const handleDirectSelect = async (department: Department) => {
+  const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
     try {
-      await generateNewCaseWithDifficulty(department, difficulty);
+      await generateNewCaseWithDifficulty(department, difficulty, subspecialtyName);
       setNavigationEntryPoint('/departments');
       router.push('/clerking');
     } catch (err) {
@@ -105,7 +105,8 @@ const DepartmentSelectionScreen: React.FC = () => {
       avatar: subspecialty.avatar
     };
     
-    handleDirectSelect(departmentFromSubspecialty);
+    // Pass the subspecialty name to the case generation
+    handleDirectSelect(departmentFromSubspecialty, subspecialty.name);
   };
 
   return (

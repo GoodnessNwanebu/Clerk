@@ -136,17 +136,23 @@ const FeedbackScreen: React.FC = () => {
     };
     
     const clearLocalStorageAndGoHome = () => {
+        console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Clearing localStorage and going home`);
+        console.trace('Stack trace for feedback localStorage clear');
+        
         // Clear all case data
         if (typeof window !== 'undefined') {
+            console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Removing individual localStorage items`);
             localStorage.removeItem('clerkSmartConversation');
             localStorage.removeItem('clerkSmartCaseState');
             localStorage.removeItem('pendingShareData');
             // Clear all case storage to prevent resume modal
+            console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Calling ConversationStorageUtils.clearAll()`);
             ConversationStorageUtils.clearAll();
         }
         resetCase();
         setNavigationEntryPoint('');
         router.push('/');
+        console.log(`✅ [feedback.clearLocalStorageAndGoHome] Successfully cleared localStorage and navigated home`);
     };
     
     if (!feedback || !department) {

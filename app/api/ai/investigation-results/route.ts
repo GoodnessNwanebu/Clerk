@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
             const aiContext = 'getInvestigationResults';
             
-            // Use secure primary context from JWT instead of frontend case details
+            // Use secure primary context from cache instead of frontend case details
             const { primaryContext } = sessionContext;
             
             // Extract age information for pediatric cases

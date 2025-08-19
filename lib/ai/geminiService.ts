@@ -115,7 +115,7 @@ const handleApiError = async (response: Response, context: string) => {
     throw new Error(`${context}: ${errorText}`);
 };
 
-// Generic API call function for the new JWT-based backend
+// Generic API call function for the new cache-based backend
 const fetchFromApi = async <T>(endpoint: string, data: any): Promise<T> => {
     const response = await fetch(`/api/ai/${endpoint}`, {
         method: 'POST',
@@ -123,7 +123,7 @@ const fetchFromApi = async <T>(endpoint: string, data: any): Promise<T> => {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-        credentials: 'include', // Include cookies for JWT
+        credentials: 'include', // Include cookies for session
     });
 
     if (!response.ok) {
@@ -165,7 +165,7 @@ export const getActiveCases = async (): Promise<Array<{ id: string; sessionId: s
     try {
         const response = await fetch('/api/sessions', {
             method: 'GET',
-            credentials: 'include', // Include cookies for JWT
+            credentials: 'include', // Include cookies for session
         });
 
         if (!response.ok) {
@@ -180,7 +180,7 @@ export const getActiveCases = async (): Promise<Array<{ id: string; sessionId: s
     }
 };
 
-// Function to complete a case with JWT validation
+// Function to complete a case with session validation
 export const completeCase = async (caseData: {
     finalDiagnosis: string;
     managementPlan: string;
@@ -196,7 +196,7 @@ export const completeCase = async (caseData: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(caseData),
-            credentials: 'include', // Include cookies for JWT
+            credentials: 'include', // Include cookies for session
         });
 
         if (!response.ok) {
@@ -272,18 +272,18 @@ export const generateClinicalCase = async (departmentName: string, userCountry?:
 };
 
 export const generateClinicalCaseWithDifficulty = async (departmentName: string, difficulty: DifficultyLevel, userCountry?: string): Promise<Case> => {
-    const response = await fetch('/api/ai/generate-case', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            departmentName, 
-            difficulty, 
-            userCountry 
-        }),
-        credentials: 'include', // Include cookies for JWT
-    });
+            const response = await fetch('/api/ai/generate-case', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                departmentName, 
+                difficulty, 
+                userCountry 
+            }),
+            credentials: 'include', // Include cookies for session
+        });
 
     if (!response.ok) {
         await handleApiError(response, 'generateClinicalCaseWithDifficulty');
@@ -293,7 +293,7 @@ export const generateClinicalCaseWithDifficulty = async (departmentName: string,
     
     if (clinicalCase && typeof clinicalCase.primaryInfo === 'string') {
         // The backend now handles all case generation including profiles
-        // The JWT cookie is automatically set by the backend
+        // The session is automatically created by the backend
         return clinicalCase;
     }
     
@@ -351,24 +351,31 @@ export const getPatientResponse = async (
     throw new Error("Invalid response format from patient response API");
 };
 
-export const getInvestigationResults = async (plan: string): Promise<InvestigationResult[]> => {
-    const results = await fetchFromApi<InvestigationResult[]>('investigation-results', { plan });
+export const getInvestigationResults = async (plan: string, caseId?: string, sessionId?: string): Promise<InvestigationResult[]> => {
+    const results = await fetchFromApi<InvestigationResult[]>('investigation-results', { 
+        plan,
+        caseId,
+        sessionId
+    });
     return results;
 };
 
-export const getExaminationResults = async (plan: string): Promise<ExaminationResult[]> => {
-    const results = await fetchFromApi<ExaminationResult[]>('examination-results', { plan });
+export const getExaminationResults = async (plan: string, caseId?: string, sessionId?: string): Promise<ExaminationResult[]> => {
+    const results = await fetchFromApi<ExaminationResult[]>('examination-results', { 
+        plan,
+        caseId,
+        sessionId
+    });
     return results;
 };
 
 export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | null> => {
-    // Optimize context for feedback generation
-    const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails!);
-    
+    // For the new cache-based system, we don't need to optimize context here
+    // The API will handle context optimization using the session middleware
     const feedback = await fetchFromApi<Feedback>('feedback', { 
         caseState: {
             ...caseState,
-            messages: recentMessages
+            messages: caseState.messages.slice(-15) // Keep last 15 messages
         }
     });
     
@@ -378,19 +385,15 @@ export const getCaseFeedback = async (caseState: CaseState): Promise<Feedback | 
 export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<ConsultantTeachingNotes | null> => {
     try {
         // Validate caseState before making the API call
-        if (!caseState.department || !caseState.caseDetails) {
+        if (!caseState.department || !caseState.caseId) {
             throw new Error('Missing required case data for detailed feedback');
         }
         
-        // Optimize context for detailed feedback generation
-        const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails);
-        
-        const feedback = await fetchFromApi('getDetailedFeedback', { 
+        const feedback = await fetchFromApi('detailed-feedback', { 
             caseState: {
                 ...caseState,
-                messages: recentMessages
-            },
-            essentialInfo
+                messages: caseState.messages.slice(-15) // Keep last 15 messages
+            }
         });
         
         // Validate the response structure
@@ -415,19 +418,15 @@ export const getDetailedCaseFeedback = async (caseState: CaseState): Promise<Con
 export const getComprehensiveCaseFeedback = async (caseState: CaseState): Promise<ComprehensiveFeedback | null> => {
     try {
         // Validate caseState before making the API call
-        if (!caseState.department || !caseState.caseDetails) {
+        if (!caseState.department || !caseState.caseId) {
             throw new Error('Missing required case data for comprehensive feedback');
         }
         
-        // Optimize context for comprehensive feedback generation
-        const { recentMessages, essentialInfo } = optimizeContext(caseState.messages, caseState.caseDetails);
-        
-        const feedback = await fetchFromApi('getComprehensiveFeedback', { 
+        const feedback = await fetchFromApi('comprehensive-feedback', { 
             caseState: {
                 ...caseState,
-                messages: recentMessages
-            },
-            essentialInfo
+                messages: caseState.messages.slice(-15) // Keep last 15 messages
+            }
         });
         
         // Validate the response structure
