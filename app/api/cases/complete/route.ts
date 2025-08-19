@@ -3,6 +3,7 @@ import { requireActiveSession } from '../../../../lib/middleware/session-middlew
 import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 import { prisma } from '../../../../lib/database/prisma';
 import { generateCaseReport } from '../../../../lib/ai/ai-utils';
+import { invalidatePrimaryContext } from '../../../../lib/cache/primary-context-cache';
 import type { 
   CompleteCaseRequest, 
   CompleteCaseResponse, 
@@ -72,6 +73,9 @@ export async function POST(request: NextRequest) {
           // Don't clear sessionId yet - keep it for feedback generation
         }
       });
+
+      // Invalidate primary context cache to ensure fresh data for feedback generation
+      await invalidatePrimaryContext(caseId);
 
       // Don't deactivate session immediately - let feedback generation complete first
       // The session will be deactivated when the user navigates away or after a delay

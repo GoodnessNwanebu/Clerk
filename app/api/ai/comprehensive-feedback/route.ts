@@ -17,8 +17,9 @@ export async function POST(request: NextRequest) {
             // Use secure primary context from cache instead of frontend case details
             const { primaryContext } = sessionContext;
             
-            // Validate required data
-            if (!primaryContext.diagnosis || !caseState.department) {
+            // Validate required data - check for final diagnosis in caseState or fallback to primary context diagnosis
+            const finalDiagnosis = caseState.finalDiagnosis || primaryContext.diagnosis;
+            if (!finalDiagnosis || !caseState.department) {
                 return NextResponse.json({ 
                     error: 'Missing required case data for comprehensive feedback' 
                 }, { status: 400 });
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
             // Create the caseState with primary context for the AI prompt
             const fullCaseState = {
                 ...caseState,
+                finalDiagnosis: finalDiagnosis, // Ensure final diagnosis is included
                 caseDetails: primaryContext // Use primary context as caseDetails
             };
 

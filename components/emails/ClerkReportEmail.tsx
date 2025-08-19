@@ -10,7 +10,7 @@ import {
   Hr,
   Preview,
 } from '@react-email/components';
-import { ConsultantTeachingNotes } from '../types';
+import { ConsultantTeachingNotes } from '../../types';
 
 interface ClerkReportEmailProps {
   report: ConsultantTeachingNotes;

@@ -150,6 +150,9 @@ const SummaryScreen: React.FC = () => {
                 throw new Error("Failed to complete and save case");
             }
             
+            // Small delay to ensure cache invalidation has taken effect
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             // Retry feedback generation with exponential backoff
             let feedback: ComprehensiveFeedback | null = null;
             let retryCount = 0;
