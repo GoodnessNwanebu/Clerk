@@ -60,13 +60,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // First, update the case session to inactive
-      await prisma.caseSession.updateMany({
-        where: { caseId },
-        data: { isActive: false }
-      });
-
-      // Save completed case to database
+      // Save completed case to database first
       const completedCase = await prisma.case.update({
         where: { id: caseId },
         data: {
@@ -74,12 +68,14 @@ export async function POST(request: NextRequest) {
           managementPlan,
           isVisible: makeVisible, // User's visibility preference
           completedAt: new Date(),
-          isCompleted: true,
-          sessionId: null // Clear session after completion
+          isCompleted: true
+          // Don't clear sessionId yet - keep it for feedback generation
         }
       });
 
-      // Clear session since case is completed
+      // Don't deactivate session immediately - let feedback generation complete first
+      // The session will be deactivated when the user navigates away or after a delay
+
       const response = NextResponse.json({
         success: true,
         caseId,

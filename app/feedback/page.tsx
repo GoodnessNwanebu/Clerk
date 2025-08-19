@@ -156,20 +156,41 @@ export default function FeedbackPage() {
         // Don't reset case yet - let the share modal handle it
     };
     
-    const handleShare = () => {
+    const handleShare = async () => {
         if (shareData) {
             shareOnWhatsApp(shareData);
         }
-        clearLocalStorageAndGoHome();
+        await clearLocalStorageAndGoHome();
     };
     
-    const handleSkipShare = () => {
-        clearLocalStorageAndGoHome();
+    const handleSkipShare = async () => {
+        await clearLocalStorageAndGoHome();
     };
     
-    const clearLocalStorageAndGoHome = () => {
+    const clearLocalStorageAndGoHome = async () => {
         console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Clearing localStorage and going home`);
         console.trace('Stack trace for feedback localStorage clear');
+        
+        // Deactivate session after feedback is complete
+        if (caseState.sessionId) {
+            try {
+                console.log(`🔄 [feedback.clearLocalStorageAndGoHome] Deactivating session: ${caseState.sessionId}`);
+                await fetch('/api/sessions/invalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sessionId: caseState.sessionId,
+                        caseId: caseState.caseId
+                    }),
+                    credentials: 'include',
+                });
+                console.log(`✅ [feedback.clearLocalStorageAndGoHome] Session deactivated successfully`);
+            } catch (error) {
+                console.error('❌ [feedback.clearLocalStorageAndGoHome] Error deactivating session:', error);
+            }
+        }
         
         // Clear all case data
         if (typeof window !== 'undefined') {
