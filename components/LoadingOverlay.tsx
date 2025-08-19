@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
-import { getPearlsForDepartment } from '../constants';
+import { getPearlsForDepartment } from '../constants/constants';
 
 interface LoadingOverlayProps {
   message: string;

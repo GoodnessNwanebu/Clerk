@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAppContext } from '../../context/AppContext';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
-import { getPatientResponse } from '../../services/geminiService';
+import { getPatientResponse } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
 import { ClerkingTimer } from '../../components/ClerkingTimer';
 import { Message } from '../../types';
-import { getDepartmentConfig } from '../../lib/department-utils';
+import { getDepartmentConfig } from '../../lib/shared/department-utils';
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -28,7 +28,7 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 const ClerkingScreen: React.FC = () => {
   const router = useRouter();
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
-  const { caseState, addMessage, userCountry, saveConversationToDatabase, savePatientInfoToDatabase, navigationEntryPoint } = useAppContext();
+  const { caseState, addMessage, userCountry, navigationEntryPoint } = useAppContext();
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
   
   // Client-side safe function to get department config
@@ -230,9 +230,9 @@ const ClerkingScreen: React.FC = () => {
           </button>
           <div className="text-center flex-shrink-0">
             <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white">
-              {caseState.department.name.length > 15 
-                ? `${caseState.department.name.substring(0, 15)}...` 
-                : caseState.department.name
+              {caseState.department && caseState.department.length > 15 
+                ? `${caseState.department.substring(0, 15)}...` 
+                : caseState.department
               }
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
@@ -240,13 +240,9 @@ const ClerkingScreen: React.FC = () => {
           <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
             <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
             <button 
-              onClick={async () => {
-                // Save conversation and patient info to database in background
-                await Promise.all([
-                  saveConversationToDatabase(),
-                  savePatientInfoToDatabase()
-                ]);
-                // Navigate immediately (user doesn't see the save)
+              onClick={() => {
+                // Conversation and patient info are automatically saved to localStorage (secondary context)
+                // Primary context is secured in JWT cookies
                 router.push('/summary');
               }} 
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-lg hover:scale-105 transform transition-all duration-200 shadow-md hover:shadow-lg"
@@ -261,7 +257,7 @@ const ClerkingScreen: React.FC = () => {
         <div className="flex flex-col items-center mb-8 px-4">
             <div className="relative">
                 <Image 
-                  src={caseState.department ? getDepartmentAvatar(caseState.department.name) : '/avatars/default.svg'} 
+                  src={caseState.department ? getDepartmentAvatar(caseState.department) : '/avatars/default.svg'} 
                   alt="Patient Avatar" 
                   width={96} 
                   height={96}

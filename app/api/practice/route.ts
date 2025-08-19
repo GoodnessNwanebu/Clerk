@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Case } from '../../../types';
-import { createAIClient } from '../../../services/ai-wrapper';
+import { createAIClient } from '../../../lib/ai/ai-wrapper';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {

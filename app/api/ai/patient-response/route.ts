@@ -1,81 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Case, Message, PatientResponse } from '../../../../types';
-import { getTimeContext } from '../../../../utils/timeContext';
-import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai-utils';
+import { Message, PatientResponse } from '../../../../types';
+import { getTimeContext } from '../../../../lib/shared/timeContext';
+import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { 
     patientResponsePrompt, 
     getPediatricSystemInstruction, 
     getAdultSystemInstruction 
-} from '../../../../lib/prompts/patient-response';
+} from '../../../../lib/ai/prompts/patient-response';
+import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
+import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
 
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { history, caseDetails, userCountry, essentialInfo } = body;
-        
-        if (!history || !caseDetails) {
-            return NextResponse.json({ error: 'History and case details are required' }, { status: 400 });
-        }
-
-        const context = 'getPatientResponse';
-        
-        // Determine if this is a pediatric case
-        const isPediatric = caseDetails.isPediatric || caseDetails.pediatricProfile;
-        
-        // Get time context for temporal awareness in patient responses
-        const timeContext = getTimeContext(userCountry);
-        
-        let systemInstruction = '';
-        
-        if (isPediatric && caseDetails.pediatricProfile) {
-            const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = caseDetails.pediatricProfile;
+    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+        try {
+            const body = await request.json();
+            const { history, userCountry } = body;
             
-            systemInstruction = getPediatricSystemInstruction(
-                timeContext.formattedContext,
-                patientAge,
-                ageGroup,
-                respondingParent,
-                parentProfile,
-                developmentalStage,
-                communicationLevel
-            ) + `\n\nPRIMARY_INFORMATION:\n${caseDetails.primaryInfo}`;
-        } else {
-            // Regular adult case
-            systemInstruction = getAdultSystemInstruction(
-                timeContext.formattedContext,
-                caseDetails.diagnosis,
-                caseDetails.primaryInfo
-            );
-        }
-        
-        // Convert the history to a format suitable for the API
-        const conversation = history
-            .filter((msg: Message) => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
-            .map((msg: Message) => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
-            .join('\n\n');
-        
-        const response = await ai.generateContent({
-            model: MODEL,
-            contents: [{ 
-                text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric)
-            }],
-        });
-        
-        if (isPediatric) {
-            // Parse the JSON response for pediatric cases
-            const responseJson = parseJsonResponse<PatientResponse>(response.text, context);
-            return NextResponse.json(responseJson);
-        } else {
-            // For regular cases, return the simple format
-            return NextResponse.json({ 
-                messages: [{
-                    response: response.text.trim(),
-                    sender: 'patient',
-                    speakerLabel: ''
-                }]
+            if (!history) {
+                return NextResponse.json({ error: 'History is required' }, { status: 400 });
+            }
+
+            const aiContext = 'getPatientResponse';
+            
+            // Use secure primary context from JWT instead of frontend case details
+            const { primaryContext } = jwtContext;
+            
+            // Determine if this is a pediatric case
+            const isPediatric = primaryContext.isPediatric;
+            
+            // Get time context for temporal awareness in patient responses
+            const timeContext = getTimeContext(userCountry);
+            
+            let systemInstruction = '';
+            
+            if (isPediatric && primaryContext.pediatricProfile) {
+                const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = primaryContext.pediatricProfile;
+                
+                systemInstruction = getPediatricSystemInstruction(
+                    timeContext.formattedContext,
+                    patientAge,
+                    ageGroup,
+                    respondingParent,
+                    parentProfile,
+                    developmentalStage,
+                    communicationLevel
+                ) + `\n\nPRIMARY_INFORMATION:\n${primaryContext.primaryInfo}`;
+            } else {
+                // Regular adult case
+                systemInstruction = getAdultSystemInstruction(
+                    timeContext.formattedContext,
+                    primaryContext.diagnosis,
+                    primaryContext.primaryInfo
+                );
+            }
+            
+            // Convert the history to a format suitable for the API
+            const conversation = history
+                .filter((msg: Message) => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
+                .map((msg: Message) => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
+                .join('\n\n');
+            
+            const response = await ai.generateContent({
+                model: MODEL,
+                contents: [{ 
+                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric)
+                }],
             });
+            
+            if (isPediatric) {
+                // Parse the JSON response for pediatric cases
+                const responseJson = parseJsonResponse<PatientResponse>(response.text, aiContext);
+                return NextResponse.json(responseJson);
+            } else {
+                // For regular cases, return the simple format
+                return NextResponse.json({ 
+                    messages: [{
+                        response: response.text.trim(),
+                        sender: 'patient',
+                        speakerLabel: ''
+                    }]
+                });
+            }
+        } catch (error) {
+            return handleApiError(error, 'getPatientResponse');
         }
-    } catch (error) {
-        return handleApiError(error, 'getPatientResponse');
-    }
+    });
 } 

@@ -1,6 +1,13 @@
-'use client';
+"use client";
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+} from "react";
 import { 
   CaseState, 
   Department, 
@@ -9,12 +16,25 @@ import {
   ExaminationResult, 
   Feedback, 
   ComprehensiveFeedback,
-  DifficultyLevel 
-} from '../types';
-import { generateClinicalCase, generateClinicalCaseWithDifficulty, generatePracticeCase as generatePracticeCaseService } from '../services/geminiService';
-import { ConversationStorage } from '../lib/localStorage';
-import { getCaseFeedback, getDetailedCaseFeedback, getComprehensiveCaseFeedback } from '../services/geminiService';
-import { generateShareData } from '../lib/shareUtils';
+  DifficultyLevel,
+} from "../types";
+import {
+  generateClinicalCase,
+  generateClinicalCaseWithDifficulty,
+  generatePracticeCase as generatePracticeCaseService,
+  validateCaseSession,
+  getActiveCases,
+  completeCase,
+  getSavedCases,
+  updateCaseVisibility,
+} from "../lib/ai/geminiService";
+import { ConversationStorage } from "../lib/storage/localStorage";
+import {
+  getCaseFeedback,
+  getDetailedCaseFeedback,
+  getComprehensiveCaseFeedback,
+} from "../lib/ai/geminiService";
+import { generateShareData } from "../lib/shared/shareUtils";
 
 interface AppContextType {
   caseState: CaseState;
@@ -26,87 +46,133 @@ interface AppContextType {
   setUserCountry: (country: string) => void;
   setNavigationEntryPoint: (entryPoint: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
-  generateNewCaseWithDifficulty: (department: Department, difficulty: DifficultyLevel) => Promise<void>;
-  generatePracticeCase: (department: Department, condition: string, difficulty?: DifficultyLevel) => Promise<void>;
+  generateNewCaseWithDifficulty: (
+    department: Department,
+    difficulty: DifficultyLevel
+  ) => Promise<void>;
+  generatePracticeCase: (
+    department: Department,
+    condition: string,
+    difficulty?: DifficultyLevel
+  ) => Promise<void>;
+  resumeCase: (caseId: string) => Promise<boolean>;
   addMessage: (message: Message) => void;
-  setPreliminaryData: (diagnosis: string, examinationPlan: string, investigationPlan: string) => void;
+  setPreliminaryData: (
+    diagnosis: string,
+    examinationPlan: string,
+    investigationPlan: string
+  ) => void;
   setInvestigationResults: (results: InvestigationResult[]) => void;
   setExaminationResults: (results: ExaminationResult[]) => void;
   setFinalData: (diagnosis: string, plan: string) => void;
   setFeedback: (feedback: Feedback | ComprehensiveFeedback) => void;
   resetCase: () => void;
-  saveConversationToDatabase: () => Promise<void>;
-  saveCaseStateToDatabase: () => Promise<void>;
-  saveResultsToDatabase: () => Promise<void>;
-  saveFeedbackToDatabase: () => Promise<void>;
-  savePatientInfoToDatabase: () => Promise<void>;
-  saveCompletedCaseToDatabase: () => Promise<boolean>;
+  completeCaseWithJWT: (makeVisible?: boolean) => Promise<boolean>;
 }
 
 const initialCaseState: CaseState = {
   department: null,
-  caseDetails: null,
+  caseDetails: null, // This will be populated from JWT context
   messages: [],
-  preliminaryDiagnosis: '',
-  examinationPlan: '',
-  investigationPlan: '',
+  preliminaryDiagnosis: "",
+  examinationPlan: "",
+  investigationPlan: "",
   examinationResults: [],
   investigationResults: [],
-  finalDiagnosis: '',
-  managementPlan: '',
+  finalDiagnosis: "",
+  managementPlan: "",
   feedback: null,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [caseState, setCaseState] = useState<CaseState>(initialCaseState);
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [userEmail, setUserEmailState] = useState<string | null>(null);
   const [userCountry, setUserCountryState] = useState<string | null>(null);
-  const [navigationEntryPoint, setNavigationEntryPointState] = useState<string | null>(null);
-  const [conversationStorage, setConversationStorage] = useState<ConversationStorage | null>(null);
-  const isBrowser = typeof window !== 'undefined';
+  const [navigationEntryPoint, setNavigationEntryPointState] = useState<
+    string | null
+  >(null);
+  const [conversationStorage, setConversationStorage] =
+    useState<ConversationStorage | null>(null);
+  const isBrowser = typeof window !== "undefined";
 
-  // Restore case state from localStorage on mount
+  // Restore case state from localStorage on mount (secondary context only)
   useEffect(() => {
     if (!isBrowser) return;
     
+    const restoreCaseFromStorage = async () => {
+      try {
     // Try to find the most recent case in localStorage
     const keys = Object.keys(localStorage);
-    const caseKeys = keys.filter(key => key.startsWith('clerksmart_case_'));
+        const caseKeys = keys.filter((key) =>
+          key.startsWith("clerksmart_case_")
+        );
     
     if (caseKeys.length > 0) {
       // Get the most recent case
       const mostRecentKey = caseKeys.sort().pop()!;
-      const storage = new ConversationStorage(mostRecentKey.replace('clerksmart_case_', ''));
+          const caseId = mostRecentKey.replace("clerksmart_case_", "");
+          const storage = new ConversationStorage(caseId);
       const savedData = storage.loadConversation();
       
-      if (savedData && savedData.caseState.department) {
+          if (savedData && savedData.conversation.length > 0) {
+            // Validate JWT session before restoring
+            const isValidSession = await validateCaseSession(caseId);
+
+            if (isValidSession) {
         setConversationStorage(storage);
-        setCaseState(prev => ({
+              setCaseState((prev) => ({
           ...prev,
-          ...savedData.caseState,
-          messages: savedData.conversation
-        }));
+                messages: savedData.conversation,
+                // Restore secondary context from localStorage
+                preliminaryDiagnosis:
+                  savedData.secondaryContext.preliminaryDiagnosis,
+                examinationPlan: savedData.secondaryContext.examinationPlan,
+                investigationPlan: savedData.secondaryContext.investigationPlan,
+                examinationResults:
+                  savedData.secondaryContext.examinationResults,
+                investigationResults:
+                  savedData.secondaryContext.investigationResults,
+                finalDiagnosis: savedData.secondaryContext.finalDiagnosis,
+                managementPlan: savedData.secondaryContext.managementPlan,
+                feedback: savedData.secondaryContext.feedback,
+              }));
+              console.log(
+                "Case restored from localStorage with valid JWT session"
+              );
+            } else {
+              // JWT session is invalid, clear the localStorage
+              console.log("JWT session invalid, clearing localStorage");
+              storage.clear();
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error restoring case from localStorage:", error);
       }
-    }
+    };
+
+    restoreCaseFromStorage();
   }, [isBrowser]);
 
   useEffect(() => {
     if (!isBrowser) return;
     
-    const storedEmail = localStorage.getItem('userEmail');
+    const storedEmail = localStorage.getItem("userEmail");
     if (storedEmail) {
       setUserEmailState(storedEmail);
     }
 
-    const storedCountry = localStorage.getItem('userCountry');
+    const storedCountry = localStorage.getItem("userCountry");
     if (storedCountry) {
       setUserCountryState(storedCountry);
     }
 
-    const storedEntryPoint = localStorage.getItem('navigationEntryPoint');
+    const storedEntryPoint = localStorage.getItem("navigationEntryPoint");
     if (storedEntryPoint) {
       setNavigationEntryPointState(storedEntryPoint);
     }
@@ -114,67 +180,83 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const setUserEmail = (email: string) => {
     if (isBrowser) {
-      localStorage.setItem('userEmail', email);
+      localStorage.setItem("userEmail", email);
     }
     setUserEmailState(email);
   };
 
   const setUserCountry = (country: string) => {
     if (isBrowser) {
-      localStorage.setItem('userCountry', country);
+      localStorage.setItem("userCountry", country);
     }
     setUserCountryState(country);
   };
 
   const setNavigationEntryPoint = (entryPoint: string) => {
     if (isBrowser) {
-      localStorage.setItem('navigationEntryPoint', entryPoint);
+      localStorage.setItem("navigationEntryPoint", entryPoint);
     }
     setNavigationEntryPointState(entryPoint);
   };
   
   const generateNewCase = useCallback(async (department: Department) => {
     // Default to standard difficulty for backward compatibility
-    return generateNewCaseWithDifficulty(department, 'standard');
+    return generateNewCaseWithDifficulty(department, "standard");
   }, []);
 
-  const generateNewCaseWithDifficulty = useCallback(async (department: Department, difficulty: DifficultyLevel) => {
+  const generateNewCaseWithDifficulty = useCallback(
+    async (department: Department, difficulty: DifficultyLevel) => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await retryWithBackoff(
-        () => generateClinicalCaseWithDifficulty(department.name, difficulty, userCountry || undefined),
-        3, // 3 retries
-        1000, // 1s base delay
-        `Generate case for ${department.name}`
-      );
-      
-      if (!newCase) {
+        // Use JWT-based case generation (backend creates session and JWT)
+        const response = await fetch('/api/ai/generate-case', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            department: department.name,
+            difficulty,
+            userCountry: userCountry || undefined
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to generate a case for ${department.name}`);
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
         throw new Error(`Failed to generate a case for ${department.name}`);
       }
       
-      // Generate a unique case ID
+        // Generate a unique case ID for localStorage (secondary context)
       const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Initialize localStorage for this case
+        // Initialize localStorage for this case (secondary context only)
       const storage = new ConversationStorage(caseId);
       setConversationStorage(storage);
       
+        // Create initial case state with secondary context only
+        // Primary context comes from JWT cookies
       const newCaseState = {
         ...initialCaseState,
-        department,
-        caseDetails: newCase,
-        messages: [{
-            sender: 'system' as const,
-            text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
-            timestamp: new Date().toISOString()
-        }]
+          department: department.name,
+          caseDetails: null, // Primary context is in JWT
+          messages: [
+            {
+              sender: "system" as const,
+              text: `The patient is here today with the following complaint:\n\n"${result.openingLine}"`,
+              timestamp: new Date().toISOString(),
+            },
+          ],
       };
       
       setCaseState(newCaseState);
       
-      // Save initial state to localStorage
+        // Save initial state to localStorage (secondary context only)
       storage.saveConversation(newCaseState.messages, newCaseState);
-      
     } catch (error) {
         console.error("Error in generateNewCase:", error);
         // Rethrow the error to be caught by the caller UI
@@ -182,45 +264,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
         setIsGeneratingCase(false);
     }
-  }, [userCountry]);
+    },
+    [userCountry]
+  );
 
-  const generatePracticeCase = useCallback(async (department: Department, condition: string, difficulty: DifficultyLevel = 'standard') => {
+  const generatePracticeCase = useCallback(
+    async (
+      department: Department,
+      condition: string,
+      difficulty: DifficultyLevel = "standard"
+    ) => {
     setIsGeneratingCase(true);
     try {
-      const newCase = await retryWithBackoff(
-        () => generatePracticeCaseService(department.name, condition, difficulty, userCountry || undefined),
-        3, // 3 retries
-        1000, // 1s base delay
-        `Generate practice case for ${condition}`
-      );
-      
-      if (!newCase) {
-        throw new Error(`Failed to generate a practice case for ${condition} in ${department.name}`);
-      }
-      
-      // Generate a unique case ID
+        // Use JWT-based practice case generation (backend creates session and JWT)
+        const response = await fetch('/api/ai/generate-case', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            department: department.name,
+            difficulty,
+            userCountry: userCountry || undefined,
+            practiceCondition: condition
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to generate a practice case for ${condition} in ${department.name}`
+          );
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(
+            `Failed to generate a practice case for ${condition} in ${department.name}`
+          );
+        }
+
+        // Generate a unique case ID for localStorage (secondary context)
       const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Initialize localStorage for this case
+        // Initialize localStorage for this case (secondary context only)
       const storage = new ConversationStorage(caseId);
       setConversationStorage(storage);
       
+        // Create initial case state with secondary context only
+        // Primary context comes from JWT cookies
       const newCaseState = {
         ...initialCaseState,
-        department,
-        caseDetails: newCase,
-        messages: [{
-            sender: 'system' as const,
-            text: `The patient is here today with the following complaint:\n\n"${newCase.openingLine}"`,
-            timestamp: new Date().toISOString()
-        }]
+          department: department.name,
+          caseDetails: null, // Primary context is in JWT
+          messages: [
+            {
+              sender: "system" as const,
+              text: `The patient is here today with the following complaint:\n\n"${result.openingLine}"`,
+              timestamp: new Date().toISOString(),
+            },
+          ],
       };
       
       setCaseState(newCaseState);
       
-      // Save initial state to localStorage
+        // Save initial state to localStorage (secondary context only)
       storage.saveConversation(newCaseState.messages, newCaseState);
-      
     } catch (error) {
         console.error("Error in generatePracticeCase:", error);
         // Rethrow the error to be caught by the caller UI
@@ -228,9 +337,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
         setIsGeneratingCase(false);
     }
-  }, [userCountry]);
+    },
+    [userCountry]
+  );
   
-  const addMessage = useCallback((message: Message) => {
+  const addMessage = useCallback(
+    (message: Message) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, messages: [...prev.messages, message] };
       
@@ -241,425 +353,207 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       return newState;
     });
-  }, [conversationStorage, caseState.department]);
+    },
+    [conversationStorage, caseState.department]
+  );
 
-  const setPreliminaryData = useCallback((diagnosis: string, examinationPlan: string, investigationPlan: string) => {
+  const setPreliminaryData = useCallback(
+    (diagnosis: string, examinationPlan: string, investigationPlan: string) => {
     setCaseState((prev: CaseState) => {
-      const newState = { ...prev, preliminaryDiagnosis: diagnosis, examinationPlan, investigationPlan };
-      
-      // Save to localStorage in background
+        const newState = {
+          ...prev,
+          preliminaryDiagnosis: diagnosis,
+          examinationPlan,
+          investigationPlan,
+        };
+
+        // Save to localStorage in background (secondary context only)
       if (conversationStorage) {
-        conversationStorage.updateCaseState(newState);
+          conversationStorage.updateSecondaryContext({
+            preliminaryDiagnosis: diagnosis,
+            examinationPlan,
+            investigationPlan,
+          });
       }
       
       return newState;
     });
-  }, [conversationStorage]);
+    },
+    [conversationStorage]
+  );
 
-  const setInvestigationResults = useCallback((results: InvestigationResult[]) => {
+  const setInvestigationResults = useCallback(
+    (results: InvestigationResult[]) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, investigationResults: results };
       
-      // Save to localStorage in background
+        // Save to localStorage in background (secondary context only)
       if (conversationStorage) {
-        conversationStorage.updateCaseState(newState);
+          conversationStorage.updateSecondaryContext({
+            investigationResults: results,
+          });
       }
       
       return newState;
     });
-  }, [conversationStorage]);
+    },
+    [conversationStorage]
+  );
 
-  const setExaminationResults = useCallback((results: ExaminationResult[]) => {
+  const setExaminationResults = useCallback(
+    (results: ExaminationResult[]) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, examinationResults: results };
       
-      // Save to localStorage in background
+        // Save to localStorage in background (secondary context only)
       if (conversationStorage) {
-        conversationStorage.updateCaseState(newState);
+          conversationStorage.updateSecondaryContext({
+            examinationResults: results,
+          });
       }
       
       return newState;
     });
-  }, [conversationStorage]);
+    },
+    [conversationStorage]
+  );
 
-  const setFinalData = useCallback((diagnosis: string, plan: string) => {
+  const setFinalData = useCallback(
+    (diagnosis: string, plan: string) => {
     setCaseState((prev: CaseState) => {
-      const newState = { ...prev, finalDiagnosis: diagnosis, managementPlan: plan };
-      
-      // Save to localStorage in background
+        const newState = {
+          ...prev,
+          finalDiagnosis: diagnosis,
+          managementPlan: plan,
+        };
+
+        // Save to localStorage in background (secondary context only)
       if (conversationStorage) {
-        conversationStorage.updateCaseState(newState);
+          conversationStorage.updateSecondaryContext({
+            finalDiagnosis: diagnosis,
+            managementPlan: plan,
+          });
       }
       
       return newState;
     });
-  }, [conversationStorage]);
+    },
+    [conversationStorage]
+  );
 
-  const setFeedback = useCallback((feedback: Feedback | ComprehensiveFeedback) => {
+  const setFeedback = useCallback(
+    (feedback: Feedback | ComprehensiveFeedback) => {
     setCaseState((prev: CaseState) => {
       const newState = { ...prev, feedback };
       
       // Generate share data immediately when feedback is created
       const shareData = generateShareData(feedback, newState);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('pendingShareData', JSON.stringify(shareData));
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pendingShareData", JSON.stringify(shareData));
       }
       
-      // Save to localStorage in background
+        // Save to localStorage in background (secondary context only)
       if (conversationStorage) {
-        conversationStorage.updateCaseState(newState);
+          conversationStorage.updateSecondaryContext({
+            feedback,
+          });
       }
       
       return newState;
     });
-  }, [conversationStorage]);
+    },
+    [conversationStorage]
+  );
 
   const resetCase = useCallback(() => {
     setCaseState(initialCaseState);
     setConversationStorage(null);
-    setNavigationEntryPoint('');
+    setNavigationEntryPoint("");
   }, []);
 
-  // Background save functions
-  const saveConversationToDatabase = useCallback(async () => {
-    if (!conversationStorage || !userEmail || !caseState.messages.length) return;
-    
-    const saveOperation = () => fetch('/api/cases/batch-save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'saveConversation',
-        userEmail,
-        userCountry,
-        caseId: conversationStorage['caseId'],
-        messages: caseState.messages
-      })
-    });
-
-    try {
-      await retrySaveWithBackoff(saveOperation, 2, 500);
-      console.log('Conversation saved to database');
-    } catch (error) {
-      console.error('Failed to save conversation to database:', error);
-    }
-  }, [conversationStorage, userEmail, userCountry, caseState.messages]);
-
-  const saveCaseStateToDatabase = useCallback(async () => {
-    if (!conversationStorage || !userEmail) return;
-    
-    const saveOperation = () => fetch('/api/cases/batch-save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'saveCaseState',
-        userEmail,
-        userCountry,
-        caseId: conversationStorage['caseId'],
-        caseState: {
-          preliminaryDiagnosis: caseState.preliminaryDiagnosis,
-          examinationPlan: caseState.examinationPlan,
-          investigationPlan: caseState.investigationPlan,
-          finalDiagnosis: caseState.finalDiagnosis,
-          managementPlan: caseState.managementPlan
-        }
-      })
-    });
-
-    try {
-      await retrySaveWithBackoff(saveOperation, 2, 500);
-      console.log('Case state saved to database');
-    } catch (error) {
-      console.error('Failed to save case state to database:', error);
-    }
-  }, [conversationStorage, userEmail, userCountry, caseState]);
-
-  const saveResultsToDatabase = useCallback(async () => {
-    if (!conversationStorage || !userEmail) return;
-    
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveResults',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          examinationResults: caseState.examinationResults,
-          investigationResults: caseState.investigationResults
-        })
-      });
-
-      if (response.ok) {
-        console.log('Results saved to database');
+  // New case completion function with JWT validation and localStorage clearing
+  const completeCaseWithJWT = useCallback(
+    async (makeVisible: boolean = false): Promise<boolean> => {
+      if (!caseState.finalDiagnosis || !caseState.managementPlan) {
+        console.error(
+          "Cannot complete case: missing final diagnosis or management plan"
+        );
+        return false;
       }
-    } catch (error) {
-      console.error('Failed to save results to database:', error);
-    }
-  }, [conversationStorage, userEmail, userCountry, caseState.examinationResults, caseState.investigationResults]);
 
-  const saveFeedbackToDatabase = useCallback(async () => {
-    if (!conversationStorage || !userEmail || !caseState.feedback) return;
-    
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveFeedback',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          feedback: caseState.feedback
-        })
-      });
-
-      if (response.ok) {
-        console.log('Feedback saved to database');
-        // Clear localStorage after successful save
-        conversationStorage.clear();
-      }
-    } catch (error) {
-      console.error('Failed to save feedback to database:', error);
-    }
-  }, [conversationStorage, userEmail, userCountry, caseState.feedback]);
-
-  const savePatientInfoToDatabase = useCallback(async () => {
-    if (!conversationStorage || !userEmail || !caseState.caseDetails) return;
-    
-    try {
-      const response = await fetch('/api/cases/batch-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'savePatientInfo',
-          userEmail,
-          userCountry,
-          caseId: conversationStorage['caseId'],
-          patientInfo: {
-            diagnosis: caseState.caseDetails.diagnosis,
-            primaryInfo: caseState.caseDetails.primaryInfo,
-            openingLine: caseState.caseDetails.openingLine,
-            patientProfile: caseState.caseDetails.patientProfile,
-            pediatricProfile: caseState.caseDetails.pediatricProfile,
-            isPediatric: caseState.caseDetails.isPediatric
-          }
-        })
-      });
-
-      if (response.ok) {
-        console.log('Patient info saved to database');
-      }
-    } catch (error) {
-      console.error('Failed to save patient info to database:', error);
-    }
-  }, [conversationStorage, userEmail, userCountry, caseState.caseDetails]);
-
-  // Generic retry mechanism for all operations
-  const retryWithBackoff = async (
-    operation: () => Promise<any>,
-    maxRetries: number = 3,
-    baseDelay: number = 1000,
-    operationName: string = 'Operation'
-  ): Promise<any> => {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const result = await operation();
-        console.log(`${operationName} succeeded on attempt ${attempt + 1}`);
-        return result;
-      } catch (error) {
-        console.warn(`${operationName} failed on attempt ${attempt + 1}:`, error);
-        
-        if (attempt === maxRetries) {
-          throw error; // Re-throw on final attempt
-        }
-        
-        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-        console.log(`Retrying ${operationName} in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-    throw new Error(`${operationName} failed after ${maxRetries + 1} attempts`);
-  };
-
-  // Retry mechanism for save operations (keeps existing interface)
-  const retrySaveWithBackoff = async (
-    operation: () => Promise<Response>,
-    maxRetries: number = 3,
-    baseDelay: number = 1000
-  ): Promise<boolean> => {
-    try {
-      await retryWithBackoff(operation, maxRetries, baseDelay, 'Save operation');
-      return true;
-    } catch (error) {
-      console.error('Save operation failed after all retries:', error);
-      return false;
-    }
-  };
-
-  const saveCompletedCaseToDatabase = useCallback(async (): Promise<boolean> => {
-    if (!conversationStorage || !userEmail || !caseState.caseDetails || !caseState.feedback) return false;
-    
-    const saveOperation = () => fetch('/api/cases/batch-save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'saveCompletedCase',
-        userEmail,
-        userCountry,
-        caseId: conversationStorage['caseId'],
-        completedCase: {
-          department: caseState.department?.name,
-          condition: caseState.caseDetails?.diagnosis || '',
-          patientInfo: {
-            diagnosis: caseState.caseDetails?.diagnosis || '',
-            primaryInfo: caseState.caseDetails?.primaryInfo || '',
-            openingLine: caseState.caseDetails?.openingLine || '',
-            patientProfile: caseState.caseDetails?.patientProfile,
-            pediatricProfile: caseState.caseDetails?.pediatricProfile,
-            isPediatric: caseState.caseDetails?.isPediatric || false
-          },
-          messages: caseState.messages,
-          preliminaryDiagnosis: caseState.preliminaryDiagnosis,
-          examinationPlan: caseState.examinationPlan,
-          investigationPlan: caseState.investigationPlan,
+        const result = await completeCase({
           finalDiagnosis: caseState.finalDiagnosis,
           managementPlan: caseState.managementPlan,
           examinationResults: caseState.examinationResults,
           investigationResults: caseState.investigationResults,
-          feedback: caseState.feedback,
-          completedAt: new Date().toISOString()
-        }
-      })
-    });
+          messages: caseState.messages,
+          makeVisible,
+        });
 
-    // Try immediate save first
-    const immediateSuccess = await retrySaveWithBackoff(saveOperation, 2, 500);
-    if (immediateSuccess) {
-      console.log('Completed case saved to database immediately');
-      return true;
-    }
+        if (result.success) {
+          console.log("Case completed successfully with JWT validation");
 
-    // If immediate save fails, queue for background retry
-    console.log('Immediate save failed, queuing for background retry...');
-    queueBackgroundSave(saveOperation);
-    
-    // Return true to prevent user from seeing error
+          // Clear localStorage after successful completion
+          if (conversationStorage) {
+            conversationStorage.clear();
+            setConversationStorage(null);
+          }
+
+          // Reset case state
+          setCaseState(initialCaseState);
+
     return true;
-  }, [conversationStorage, userEmail, userCountry, caseState]);
-
-  // Background save queue
-  const backgroundSaveQueue: Array<() => Promise<Response>> = [];
-  let isProcessingBackgroundSaves = false;
-
-  const queueBackgroundSave = (saveOperation: () => Promise<Response>) => {
-    backgroundSaveQueue.push(saveOperation);
-    if (!isProcessingBackgroundSaves) {
-      processBackgroundSaves();
-    }
-  };
-
-  // Persistent storage for failed saves
-  const saveFailedOperationToStorage = (saveOperation: () => Promise<Response>, caseData: any) => {
-    try {
-      const failedSaves = JSON.parse(localStorage.getItem('clerkSmartFailedSaves') || '[]');
-      failedSaves.push({
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        caseData,
-        retryCount: 0
-      });
-      localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(failedSaves));
-      console.log('Failed save operation stored for later retry');
-    } catch (error) {
-      console.error('Failed to store failed save operation:', error);
-    }
-  };
-
-  const processBackgroundSaves = async () => {
-    if (isProcessingBackgroundSaves || backgroundSaveQueue.length === 0) return;
-    
-    isProcessingBackgroundSaves = true;
-    console.log(`Processing ${backgroundSaveQueue.length} background saves...`);
-
-    while (backgroundSaveQueue.length > 0) {
-      const saveOperation = backgroundSaveQueue.shift();
-      if (saveOperation) {
-        try {
-          const success = await retrySaveWithBackoff(saveOperation, 5, 2000);
-          if (success) {
-            console.log('Background save succeeded');
           } else {
-            console.error('Background save failed after all retries');
-            // Store failed operation for later retry
-            const caseData = {
-              userEmail,
-              userCountry,
-              caseId: conversationStorage?.['caseId'],
-              completedCase: {
-                department: caseState.department?.name,
-                condition: caseState.caseDetails?.diagnosis,
-                // ... other case data
-              }
-            };
-            saveFailedOperationToStorage(saveOperation, caseData);
+          console.error("Case completion failed");
+          return false;
           }
         } catch (error) {
-          console.error('Background save error:', error);
-        }
-        
-        // Add delay between background saves to avoid overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.error("Error completing case:", error);
+        return false;
       }
-    }
+    },
+    [caseState, conversationStorage]
+  );
 
-    isProcessingBackgroundSaves = false;
-    console.log('Background save processing complete');
-  };
+  const resumeCase = useCallback(async (caseId: string) => {
+    setIsGeneratingCase(true);
+    try {
+      const storage = new ConversationStorage(caseId);
+      const savedData = storage.loadConversation();
+      const isValidSession = await validateCaseSession(caseId);
 
-  // Process any failed saves from previous sessions on app load
-  useEffect(() => {
-    const processFailedSaves = async () => {
-      try {
-        const failedSaves = JSON.parse(localStorage.getItem('clerkSmartFailedSaves') || '[]');
-        if (failedSaves.length > 0) {
-          console.log(`Found ${failedSaves.length} failed saves to retry`);
-          
-          for (const failedSave of failedSaves) {
-            if (failedSave.retryCount < 3) {
-              // Reconstruct the save operation
-              const saveOperation = () => fetch('/api/cases/batch-save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'saveCompletedCase',
-                  ...failedSave.caseData
-                })
-              });
-
-              const success = await retrySaveWithBackoff(saveOperation, 2, 1000);
-              if (success) {
-                // Remove from failed saves
-                const updatedFailedSaves = failedSaves.filter((save: any) => save.id !== failedSave.id);
-                localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(updatedFailedSaves));
-                console.log('Recovered failed save from previous session');
+      if (savedData && savedData.conversation.length > 0 && isValidSession) {
+        setConversationStorage(storage);
+        setCaseState((prev) => ({
+          ...prev,
+          messages: savedData.conversation,
+          // Restore secondary context from localStorage
+          preliminaryDiagnosis: savedData.secondaryContext.preliminaryDiagnosis,
+          examinationPlan: savedData.secondaryContext.examinationPlan,
+          investigationPlan: savedData.secondaryContext.investigationPlan,
+          examinationResults: savedData.secondaryContext.examinationResults,
+          investigationResults: savedData.secondaryContext.investigationResults,
+          finalDiagnosis: savedData.secondaryContext.finalDiagnosis,
+          managementPlan: savedData.secondaryContext.managementPlan,
+          feedback: savedData.secondaryContext.feedback,
+        }));
+        console.log("Case resumed from localStorage with valid JWT session");
+        return true;
               } else {
-                // Increment retry count
-                failedSave.retryCount++;
-                localStorage.setItem('clerkSmartFailedSaves', JSON.stringify(failedSaves));
-              }
-            }
-          }
+        console.warn(
+          "Case not found or JWT session invalid for resume:",
+          caseId
+        );
+        return false;
         }
       } catch (error) {
-        console.error('Error processing failed saves:', error);
-      }
-    };
-
-    if (userEmail) {
-      processFailedSaves();
+      console.error("Error resuming case:", error);
+      return false;
+    } finally {
+      setIsGeneratingCase(false);
     }
-  }, [userEmail]);
+  }, []);
 
   const value = { 
     caseState, 
@@ -672,6 +566,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     generateNewCase, 
     generateNewCaseWithDifficulty, 
     generatePracticeCase, 
+    resumeCase,
     addMessage, 
     setPreliminaryData, 
     setInvestigationResults, 
@@ -679,26 +574,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setFinalData, 
     setFeedback, 
     resetCase,
-    saveConversationToDatabase,
-    saveCaseStateToDatabase,
-    saveResultsToDatabase,
-    saveFeedbackToDatabase,
-    savePatientInfoToDatabase,
-    saveCompletedCaseToDatabase,
-    navigationEntryPoint
+    completeCaseWithJWT,
+    navigationEntryPoint,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useAppContext = (): AppContextType => {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error("useAppContext must be used within an AppProvider");
   }
   return context;
 };

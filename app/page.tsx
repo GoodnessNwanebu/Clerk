@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../components/Icon';
-import { SettingsModal } from '../components/SettingsModal';
-import { ResumeCaseModal } from '../components/ResumeCaseModal';
-import { ConversationStorageUtils } from '../lib/localStorage';
+import { SettingsModal } from '../components/modals/SettingsModal';
+import { ResumeCaseModal } from '../components/modals/ResumeCaseModal';
+import { ConversationStorageUtils } from '../lib/storage/localStorage';
+import { getActiveCases } from '../lib/ai/geminiService';
 import PWATutorialModal from '../components/PWATutorialModal';
 
 const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onClick?: () => void; disabled?: boolean }> = ({ icon, title, subtitle, onClick, disabled }) => {
@@ -35,21 +36,45 @@ export default function HomePage() {
 
   // Check for saved case on mount
   useEffect(() => {
-    const conversations = ConversationStorageUtils.getAllConversations();
-    if (conversations.length > 0) {
-      // Find the most recent saved case
-      const mostRecent = conversations.sort((a, b) => 
-        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-      )[0];
-      
-      if (mostRecent && mostRecent.caseState.department) {
-        setSavedCaseInfo({
-          department: mostRecent.caseState.department.name,
-          lastUpdated: mostRecent.lastUpdated
-        });
-        setShowResumeModal(true);
+    const checkForResumableCase = async () => {
+      try {
+        // First check if there are any active cases from the backend
+        const activeCases = await getActiveCases();
+        
+        if (activeCases.length > 0) {
+          // Use the most recent active case
+          const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
+          setSavedCaseInfo({
+            department: mostRecent.department.name,
+            lastUpdated: mostRecent.updatedAt
+          });
+          setShowResumeModal(true);
+          return;
+        }
+        
+        // Fallback: Check localStorage for any saved conversations
+        const conversations = ConversationStorageUtils.getAllConversations();
+        if (conversations.length > 0) {
+          // Find the most recent saved case
+          const mostRecent = conversations.sort((a, b) => 
+            new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+          )[0];
+          
+          // Check if there's a conversation to resume
+          if (mostRecent && mostRecent.conversation.length > 0) {
+            setSavedCaseInfo({
+              department: 'Clinical Case', // Generic name since department is in JWT
+              lastUpdated: mostRecent.lastUpdated
+            });
+            setShowResumeModal(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for resumable cases:', error);
       }
-    }
+    };
+    
+    checkForResumableCase();
   }, []);
 
   // Simplified PWA tutorial logic

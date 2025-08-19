@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { getInvestigationResults, getExaminationResults, getComprehensiveCaseFeedback } from '../../services/geminiService';
+import { getInvestigationResults, getExaminationResults, getComprehensiveCaseFeedback } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
 import { InvestigationResults } from '../../components/InvestigationResults';
 import { ExaminationResults } from '../../components/ExaminationResults';
@@ -31,7 +31,7 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 
 const SummaryScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, saveCaseStateToDatabase, saveResultsToDatabase } = useAppContext();
+    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback } = useAppContext();
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -102,9 +102,8 @@ const SummaryScreen: React.FC = () => {
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
             
-            // Save case state and results to database in background
-            saveCaseStateToDatabase();
-            saveResultsToDatabase();
+            // Case state and results are automatically saved to localStorage (secondary context)
+            // Primary context is secured in JWT cookies
         } catch (err) {
             handleApiError(err);
         } finally {

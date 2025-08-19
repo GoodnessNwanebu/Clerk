@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from './Icon';
-import { SORTED_COUNTRIES, Country } from '../lib/countries';
+import { SORTED_COUNTRIES, Country } from '../constants/countries';
 
 interface CountrySelectProps {
   value: string;

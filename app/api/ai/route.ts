@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createOrGetUser, addMessage, saveExaminationResults, saveInvestigationResults, saveFeedback, saveDetailedFeedback } from '../../../lib/database';
+import { createOrGetUser, addMessage, saveExaminationResults, saveInvestigationResults, saveFeedback, saveDetailedFeedback } from '../../../lib/database/database';
 
 // --- Main Router Handler ---
 export async function POST(request: NextRequest) {

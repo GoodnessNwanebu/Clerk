@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ShareCard } from '../../components/ShareCard';
-import ShareModal from '../../components/ShareModal';
+import ShareModal from '../../components/modals/ShareModal';
 import { ShareData } from '../../types/share';
 
 export default function TestSharePage() {

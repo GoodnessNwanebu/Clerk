@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../constants';
+import { DEPARTMENTS } from '../../constants/constants';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
-import { SubspecialtyModal } from '../../components/SubspecialtyModal';
+import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const PracticeModeScreen: React.FC = () => {

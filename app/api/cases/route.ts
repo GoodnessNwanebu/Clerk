@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '../../../auth'
+import { auth } from '../../../lib/auth'
 import { 
   createCase, 
   getUserCases, 
   getCaseById, 
   updateCaseState,
   createOrGetUser 
-} from '../../../lib/database'
+} from '../../../lib/database/database'
 
 export async function POST(request: NextRequest) {
   try {

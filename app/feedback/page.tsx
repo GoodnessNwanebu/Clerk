@@ -6,16 +6,16 @@ import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
 import { ComprehensiveFeedback, Feedback } from '../../types';
 import ReactMarkdown from 'react-markdown';
-import ShareModal from '../../components/ShareModal';
-import { shareOnWhatsApp } from '../../lib/shareUtils';
+import ShareModal from '../../components/modals/ShareModal';
+import { shareOnWhatsApp } from '../../lib/shared/shareUtils';
 import { ShareData } from '../../types/share';
-import { ConversationStorageUtils } from '../../lib/localStorage';
+import { ConversationStorageUtils } from '../../lib/storage/localStorage';
 import { useInstallGuide } from '../../hooks/useInstallGuide';
 import PWATutorialModal from '../../components/PWATutorialModal';
 
 const FeedbackScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, resetCase, saveFeedbackToDatabase, saveCompletedCaseToDatabase, setNavigationEntryPoint } = useAppContext();
+    const { caseState, resetCase, completeCaseWithJWT, setNavigationEntryPoint } = useAppContext();
     const { feedback, department } = caseState;
     
     const [expandedSections, setExpandedSections] = useState<{
@@ -83,7 +83,7 @@ const FeedbackScreen: React.FC = () => {
                 saveButton.textContent = 'Saving...';
             }
 
-            const success = await saveCompletedCaseToDatabase();
+            const success = await completeCaseWithJWT(true); // true = make visible
             
             if (success) {
                 // Show success message
@@ -114,7 +114,8 @@ const FeedbackScreen: React.FC = () => {
     };
 
     const handleDone = async () => {
-        await saveFeedbackToDatabase();
+        // Feedback is already saved in localStorage (secondary context)
+        // Primary context is secured in JWT cookies
         setNavigationEntryPoint('');
         
         // Show share modal instead of going directly to home
@@ -177,7 +178,7 @@ const FeedbackScreen: React.FC = () => {
                             Final Diagnosis: <span className="font-semibold text-teal-600 dark:text-teal-400">{feedback.diagnosis}</span>
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
-                            {department.name}
+                            {department}
                         </p>
                     </div>
                 </div>
@@ -340,7 +341,7 @@ const FeedbackScreen: React.FC = () => {
                                 name={expandedSections.clinicalPearls ? "chevron-up" : "chevron-down"} 
                                 className="text-slate-500 dark:text-slate-400" 
                                 size={24}
-                            />
+                            />  
                         </button>
                         
                         {expandedSections.clinicalPearls && (

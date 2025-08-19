@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // User management
@@ -24,9 +25,10 @@ model User {
   emailVerified  DateTime?
 
   // Relations
-  accounts Account[]
-  sessions Session[]
-  cases    Case[]
+  accounts      Account[]
+  sessions      Session[]
+  cases         Case[]
+  caseSessions  CaseSession[] // New relation for case session management
 
   @@map("users")
 }
@@ -71,6 +73,24 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@map("sessions")
+}
+
+// Case sessions for JWT-based context management
+model CaseSession {
+  id          String   @id @default(cuid())
+  caseId      String
+  userId      String
+  sessionId   String   @unique // JWT session identifier
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("case_sessions")
 }
 
 // Medical departments and subspecialties
@@ -176,6 +196,10 @@ model Case {
   clinicalPearls       String? @db.Text
   aiGeneratedAt        DateTime? // When AI content was generated
   
+  // Session and visibility management
+  sessionId    String?  @unique // Active session ID for JWT validation
+  isVisible    Boolean  @default(true) // Controls case visibility for user retrieval
+  
   // Timestamps
   startedAt    DateTime @default(now())
   completedAt  DateTime?
@@ -189,6 +213,7 @@ model Case {
   examinationResults    ExaminationResult[]
   investigationResults  InvestigationResult[]
   feedback              Feedback?
+  caseSessions          CaseSession[] // New relation for session management
 
   @@map("cases")
 }
