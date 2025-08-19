@@ -72,7 +72,9 @@ interface AppContextType {
 
 const initialCaseState: CaseState = {
   department: null,
-  caseDetails: null, // This will be populated from JWT context
+  caseId: null,
+  sessionId: null,
+  caseDetails: null, // This will be populated from cache context
   messages: [],
   preliminaryDiagnosis: "",
   examinationPlan: "",
@@ -99,7 +101,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   const [conversationStorage, setConversationStorage] =
     useState<ConversationStorage | null>(null);
   const isBrowser = typeof window !== "undefined";
-
   // Restore case state from localStorage on mount (secondary context only)
   useEffect(() => {
     if (!isBrowser) return;
@@ -120,10 +121,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       const savedData = storage.loadConversation();
       
           if (savedData && savedData.conversation.length > 0) {
-            // Validate JWT session before restoring
-            const isValidSession = await validateCaseSession(caseId);
+            // Validate session before restoring
+            const sessionValidation = await validateCaseSession(caseId);
 
-            if (isValidSession) {
+            if (sessionValidation.isValid) {
         setConversationStorage(storage);
               setCaseState((prev) => ({
           ...prev,
@@ -144,6 +145,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
               console.log(
                 "Case restored from localStorage with valid JWT session"
               );
+
             } else {
               // JWT session is invalid, clear the localStorage
               console.log("JWT session invalid, clearing localStorage");
@@ -243,11 +245,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       const newCaseState = {
         ...initialCaseState,
           department: department.name,
-          caseDetails: null, // Primary context is in JWT
+          caseId: result.case.id,
+          sessionId: result.case.sessionId,
+          caseDetails: null, // Primary context is in cache
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${result.openingLine}"`,
+              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
               timestamp: new Date().toISOString(),
             },
           ],
@@ -316,11 +320,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       const newCaseState = {
         ...initialCaseState,
           department: department.name,
-          caseDetails: null, // Primary context is in JWT
+          caseId: result.case.id,
+          sessionId: result.case.sessionId,
+          caseDetails: null, // Primary context is in cache
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${result.openingLine}"`,
+              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
               timestamp: new Date().toISOString(),
             },
           ],
@@ -521,12 +527,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const storage = new ConversationStorage(caseId);
       const savedData = storage.loadConversation();
-      const isValidSession = await validateCaseSession(caseId);
+      const sessionValidation = await validateCaseSession(caseId);
 
-      if (savedData && savedData.conversation.length > 0 && isValidSession) {
+      if (savedData && savedData.conversation.length > 0 && sessionValidation.isValid) {
         setConversationStorage(storage);
         setCaseState((prev) => ({
           ...prev,
+          caseId,
+          sessionId: sessionValidation.sessionId || null,
           messages: savedData.conversation,
           // Restore secondary context from localStorage
           preliminaryDiagnosis: savedData.secondaryContext.preliminaryDiagnosis,
@@ -538,11 +546,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           managementPlan: savedData.secondaryContext.managementPlan,
           feedback: savedData.secondaryContext.feedback,
         }));
-        console.log("Case resumed from localStorage with valid JWT session");
+        console.log("Case resumed from localStorage with valid session");
         return true;
               } else {
         console.warn(
-          "Case not found or JWT session invalid for resume:",
+          "Case not found or session invalid for resume:",
           caseId
         );
         return false;

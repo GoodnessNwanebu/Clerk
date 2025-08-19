@@ -92,17 +92,18 @@ const ClerkingScreen: React.FC = () => {
   
   // Check if we have required case data before rendering
   useEffect(() => {
-    if (!caseState.department || !caseState.caseDetails) {
+    console.log('caseState', caseState);
+    if (!caseState.department) {
       router.push('/departments');
     }
-  }, [caseState.department, caseState.caseDetails, router]);
+  }, [caseState.department, router]);
   
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [caseState.messages, isListening, isPatientThinking, inputText]);
   
   const handleSendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || !caseState.caseDetails) return;
+    if (!text.trim()) return;
 
     setApiError(null);
     const studentMessage: Message = { sender: 'student', text, timestamp: new Date().toISOString() };
@@ -115,7 +116,12 @@ const ClerkingScreen: React.FC = () => {
     const updatedHistory = [...caseState.messages, studentMessage];
 
     try {
-        const response = await getPatientResponse(updatedHistory, caseState.caseDetails, userCountry || undefined);
+        const response = await getPatientResponse(
+            updatedHistory, 
+            userCountry || undefined,
+            caseState.caseId || undefined,
+            caseState.sessionId || undefined
+        );
         
         // The API now always returns a messages array format
         if (response.messages && Array.isArray(response.messages)) {
@@ -143,7 +149,7 @@ const ClerkingScreen: React.FC = () => {
     } finally {
         setIsPatientThinking(false);
     }
-  }, [addMessage, caseState.messages, caseState.caseDetails, userCountry]);
+  }, [addMessage, caseState.messages, userCountry]);
 
   // Effect to handle sending transcript from speech recognition
   useEffect(() => {
@@ -202,7 +208,7 @@ const ClerkingScreen: React.FC = () => {
   }
 
   // Early return after all hooks have been called
-  if (!caseState.department || !caseState.caseDetails) {
+  if (!caseState.department) {
     return null;
   }
 

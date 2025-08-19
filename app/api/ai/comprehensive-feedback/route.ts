@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CaseState, ComprehensiveFeedback } from '../../../../types';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { comprehensiveFeedbackPrompt, getSurgicalTeachingContext } from '../../../../lib/ai/prompts/feedback';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
-import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
 export async function POST(request: NextRequest) {
-    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+    return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
         try {
-            const body = await request.json();
-            const { caseState } = body;
+            const { caseState } = sessionContext.requestBody || {};
             
             if (!caseState) {
                 return NextResponse.json({ error: 'Case state is required' }, { status: 400 });

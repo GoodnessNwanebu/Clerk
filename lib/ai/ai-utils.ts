@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAIClient } from './ai-wrapper';
-import type { PrimaryContext, ExaminationResult, InvestigationResult } from '../types';
+import type { PrimaryContext } from '../../types/diagnosis';
+import type { ExaminationResult } from '../../types/examination';
+import type { InvestigationResult } from '../../types/investigation';
 
 // Ensure the API key is available in the server environment
 if (!process.env.GEMINI_API_KEY) {

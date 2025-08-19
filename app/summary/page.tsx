@@ -43,7 +43,7 @@ const SummaryScreen: React.FC = () => {
     const [managementPlan, setManagementPlan] = useState(caseState.managementPlan);
 
     React.useEffect(() => {
-      if (!caseState.department || !caseState.caseDetails) {
+      if (!caseState.department || !caseState.caseId) {
           router.push('/');
       }
     }, [caseState, router]);
@@ -61,8 +61,8 @@ const SummaryScreen: React.FC = () => {
             setError("Please enter an examination plan and/or investigation plan.");
             return;
         }
-        if (!caseState.caseDetails) {
-            setError("Case details are not available.");
+        if (!caseState.caseId) {
+            setError("Case ID is not available.");
             return;
         }
         setError(null);
@@ -75,12 +75,12 @@ const SummaryScreen: React.FC = () => {
             let examinationResults: ExaminationResult[] = [];
             if (examinationPlan.trim()) {
                 try {
-                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
+                    examinationResults = await getExaminationResults(examinationPlan);
                     setExaminationResults(examinationResults);
                 } catch (examError) {
                     console.warn('Failed to get examination results, retrying...', examError);
                     // Retry examination results
-                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
+                    examinationResults = await getExaminationResults(examinationPlan);
                     setExaminationResults(examinationResults);
                 }
             }
@@ -89,12 +89,12 @@ const SummaryScreen: React.FC = () => {
             let investigationResults: InvestigationResult[] = [];
             if (investigationPlan.trim()) {
                 try {
-                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
+                    investigationResults = await getInvestigationResults(investigationPlan);
                     setInvestigationResults(investigationResults);
                 } catch (invError) {
                     console.warn('Failed to get investigation results, retrying...', invError);
                     // Retry investigation results
-                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
+                    investigationResults = await getInvestigationResults(investigationPlan);
                     setInvestigationResults(investigationResults);
                 }
             }
@@ -154,7 +154,7 @@ const SummaryScreen: React.FC = () => {
         }
     };
     
-    if (!caseState.department || !caseState.caseDetails) {
+    if (!caseState.department || !caseState.caseId) {
         return null; // or a loading/error state
     }
 

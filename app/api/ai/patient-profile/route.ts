@@ -3,19 +3,18 @@ import { PatientProfile } from '../../../../types';
 import { getTimeContext } from '../../../../lib/shared/timeContext';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { patientProfilePrompt } from '../../../../lib/ai/prompts/patient-profile';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
-import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
 export async function POST(request: NextRequest) {
-    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+    return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
         try {
-            const body = await request.json();
-            const { userCountry, randomSeed } = body;
+            const { userCountry, randomSeed } = sessionContext.requestBody || {};
             
             const aiContext = 'generatePatientProfile';
             
             // Use secure primary context from JWT instead of frontend parameters
-            const { primaryContext } = jwtContext;
+            const { primaryContext } = sessionContext;
             
             // Get time context for temporal awareness
             const timeContext = getTimeContext(userCountry);

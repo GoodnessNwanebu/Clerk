@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '../components/Icon';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import { ResumeCaseModal } from '../components/modals/ResumeCaseModal';
+import { useAppContext } from '../context/AppContext';
 import { ConversationStorageUtils } from '../lib/storage/localStorage';
 import { getActiveCases } from '../lib/ai/geminiService';
 import PWATutorialModal from '../components/PWATutorialModal';
@@ -29,9 +30,10 @@ const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onCl
 
 export default function HomePage() {
   const router = useRouter();
+  const { resumeCase } = useAppContext();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
-  const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string } | null>(null);
+  const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string; caseId?: string } | null>(null);
   const [showPWATutorial, setShowPWATutorial] = useState(false);
 
   // Check for saved case on mount
@@ -44,11 +46,23 @@ export default function HomePage() {
         if (activeCases.length > 0) {
           // Use the most recent active case
           const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
-          setSavedCaseInfo({
-            department: mostRecent.department.name,
-            lastUpdated: mostRecent.updatedAt
-          });
-          setShowResumeModal(true);
+          
+          // Try to automatically resume the case
+          const success = await resumeCase(mostRecent.id);
+          
+          if (success) {
+            // Auto-route to clerking page if resume was successful
+            router.push('/clerking');
+            return;
+          } else {
+            // If resume failed, show the modal as fallback
+            setSavedCaseInfo({
+              department: mostRecent.department.name,
+              lastUpdated: mostRecent.updatedAt,
+              caseId: mostRecent.id
+            });
+            setShowResumeModal(true);
+          }
           return;
         }
         
@@ -64,7 +78,8 @@ export default function HomePage() {
           if (mostRecent && mostRecent.conversation.length > 0) {
             setSavedCaseInfo({
               department: 'Clinical Case', // Generic name since department is in JWT
-              lastUpdated: mostRecent.lastUpdated
+              lastUpdated: mostRecent.lastUpdated,
+              caseId: mostRecent.caseId
             });
             setShowResumeModal(true);
           }
@@ -75,7 +90,7 @@ export default function HomePage() {
     };
     
     checkForResumableCase();
-  }, []);
+  }, [resumeCase, router]);
 
   // Simplified PWA tutorial logic
   useEffect(() => {
@@ -164,10 +179,27 @@ export default function HomePage() {
     }
   };
 
-  const handleResumeCase = () => {
+  const handleResumeCase = async () => {
+    if (!savedCaseInfo?.caseId) {
+      console.error('No case ID available for resume');
+      return;
+    }
+
     setShowResumeModal(false);
-    // Don't clear the navigation entry point - let it be restored from localStorage
-    router.push('/clerking');
+    
+    try {
+      const success = await resumeCase(savedCaseInfo.caseId);
+      if (success) {
+        // Navigate to clerking page after successful resume
+        router.push(`/clerking/${savedCaseInfo.caseId}`);
+      } else {
+        console.error('Failed to resume case');
+        // Could show an error message here
+      }
+    } catch (error) {
+      console.error('Error resuming case:', error);
+      // Could show an error message here
+    }
   };
 
   const handleDismissCase = () => {

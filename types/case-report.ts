@@ -8,6 +8,8 @@ import type { Feedback, ComprehensiveFeedback } from './feedback';
 // Case State Types
 interface CaseState {
   department: string | null;
+  caseId: string | null;
+  sessionId: string | null;
   caseDetails: any | null;
   messages: Message[];
   preliminaryDiagnosis: string;

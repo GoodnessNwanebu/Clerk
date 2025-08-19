@@ -1,4 +1,4 @@
-// Authentication and JWT Types
+// Authentication and Session Types
 
 import type { PrimaryContext } from './diagnosis';
 import type { CaseSession, SessionValidationResult } from './shared';
@@ -22,29 +22,11 @@ interface Session {
   updatedAt: Date;
 }
 
-// JWT Types
-interface CaseJWT {
-  caseId: string;
-  userId: string;
-  sessionId: string;
-  primaryContext: PrimaryContext;
-  iat: number;
-  exp: number;
-}
-
-// JWT Validation Result
-interface JWTValidationResult {
-  isValid: boolean;
-  decoded?: CaseJWT;
-  error?: string;
-}
-
 // Session Management Types
 interface CreateSessionRequest {
   caseId: string;
   userId: string;
-  primaryContext: PrimaryContext;
-  expiresIn?: number; // seconds, default 7 days
+  expiresIn?: number; // seconds, default 1 hour
 }
 
 interface SessionValidationRequest {
@@ -69,45 +51,31 @@ interface SessionResponse {
 
 // Error Types
 interface AuthError {
-  code: 'UNAUTHORIZED' | 'INVALID_SESSION' | 'SESSION_EXPIRED' | 'INVALID_JWT' | 'CASE_NOT_FOUND';
+  code: 'UNAUTHORIZED' | 'INVALID_SESSION' | 'SESSION_EXPIRED' | 'CASE_NOT_FOUND';
   message: string;
   details?: Record<string, unknown>;
 }
 
-// Cookie Types
-interface JWTCookieOptions {
-  httpOnly: boolean;
-  secure: boolean;
-  sameSite: 'strict' | 'lax' | 'none';
-  maxAge: number;
-  path: string;
+// Cache Types
+interface CachedPrimaryContext {
+  primaryContext: PrimaryContext;
+  caseId: string;
+  userId: string;
+  sessionId: string;
+  cachedAt: Date;
+  expiresAt: Date;
 }
-
-// Default cookie options
-const DEFAULT_JWT_COOKIE_OPTIONS: JWTCookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-  path: '/'
-};
 
 export type {
   User,
   Session,
-  CaseJWT,
-  JWTValidationResult,
   CreateSessionRequest,
   SessionValidationRequest,
   AuthResponse,
   SessionResponse,
   AuthError,
-  JWTCookieOptions,
+  CachedPrimaryContext,
   PrimaryContext,
   CaseSession,
   SessionValidationResult
-};
-
-export {
-  DEFAULT_JWT_COOKIE_OPTIONS
 };

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { auth } from '../../../../lib/auth';
-import { CaseJWTManager } from '../../../../lib/jwt/case-jwt';
 import { prisma } from '../../../../lib/database/prisma';
+import { validateCaseSession } from '../../../../lib/session/session-manager';
 import type { 
   ValidateCaseSessionRequest,
   ValidateCaseSessionResponse
@@ -25,9 +25,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<ValidateC
     const body = await request.json() as ValidateCaseSessionRequest;
     
     // Validate request
-    if (!body.sessionId || !body.caseId) {
+    if (!body.caseId) {
       return NextResponse.json(
-        { success: false, isValid: false, error: 'Missing required fields' },
+        { success: false, isValid: false, error: 'Missing case ID' },
         { status: 400 }
       );
     }
@@ -44,73 +44,33 @@ export async function POST(request: NextRequest): Promise<NextResponse<ValidateC
       );
     }
 
-    // Get JWT from cookies
-    const cookies = request.headers.get('cookie') || '';
-    const jwtToken = CaseJWTManager.extractJWTFromCookies(cookies);
-
-    if (!jwtToken) {
-      return NextResponse.json(
-        { success: false, isValid: false, error: 'No session token found' },
-        { status: 401 }
-      );
-    }
-
-    // Validate JWT
-    const jwtValidation = CaseJWTManager.validateCaseJWT(jwtToken);
-    if (!jwtValidation.isValid || !jwtValidation.decoded) {
-      return NextResponse.json(
-        { success: false, isValid: false, error: jwtValidation.error || 'Invalid session token' },
-        { status: 401 }
-      );
-    }
-
-    const { caseId, userId, sessionId: jwtSessionId, primaryContext } = jwtValidation.decoded;
-
-    // Verify user owns the session
-    if (userId !== user.id) {
-      return NextResponse.json(
-        { success: false, isValid: false, error: 'Session does not belong to user' },
-        { status: 403 }
-      );
-    }
-
-    // Verify case ID matches
-    if (caseId !== body.caseId) {
-      return NextResponse.json(
-        { success: false, isValid: false, error: 'Case ID mismatch' },
-        { status: 403 }
-      );
-    }
-
-    // Verify session ID matches
-    if (jwtSessionId !== body.sessionId) {
-      return NextResponse.json(
-        { success: false, isValid: false, error: 'Session ID mismatch' },
-        { status: 403 }
-      );
-    }
-
-    // Check if session exists in database and is active
+    // Find active session for this case and user
     const caseSession = await prisma.caseSession.findFirst({
       where: {
-        sessionId: body.sessionId,
         caseId: body.caseId,
         userId: user.id,
-        isActive: true
+        isActive: true,
+        expiresAt: { gt: new Date() }
       }
     });
 
     if (!caseSession) {
       return NextResponse.json(
-        { success: false, isValid: false, error: 'Session not found or inactive' },
-        { status: 404 }
+        { success: false, isValid: false, error: 'No active session found' },
+        { status: 401 }
       );
     }
 
-    // Check if session is expired
-    if (caseSession.expiresAt < new Date()) {
+    // Validate session using session manager
+    const sessionValidation = await validateCaseSession({
+      sessionId: caseSession.sessionId,
+      userId: user.id,
+      caseId: body.caseId
+    });
+
+    if (!sessionValidation.isValid) {
       return NextResponse.json(
-        { success: false, isValid: false, error: 'Session has expired' },
+        { success: false, isValid: false, error: sessionValidation.error || 'Invalid session' },
         { status: 401 }
       );
     }
@@ -118,12 +78,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ValidateC
     return NextResponse.json({
       success: true,
       isValid: true,
-      session: caseSession,
-      primaryContext
+      sessionId: caseSession.sessionId,
+      expiresAt: caseSession.expiresAt
     });
 
   } catch (error) {
-    console.error('Session validation error:', error);
+    console.error('Error validating session:', error);
     return NextResponse.json(
       { success: false, isValid: false, error: 'Internal server error' },
       { status: 500 }

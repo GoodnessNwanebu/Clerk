@@ -7,14 +7,13 @@ import {
     getPediatricSystemInstruction, 
     getAdultSystemInstruction 
 } from '../../../../lib/ai/prompts/patient-response';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
-import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
 export async function POST(request: NextRequest) {
-    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+    return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
         try {
-            const body = await request.json();
-            const { history, userCountry } = body;
+            const { history, userCountry } = sessionContext.requestBody || {};
             
             if (!history) {
                 return NextResponse.json({ error: 'History is required' }, { status: 400 });
@@ -22,8 +21,8 @@ export async function POST(request: NextRequest) {
 
             const aiContext = 'getPatientResponse';
             
-            // Use secure primary context from JWT instead of frontend case details
-            const { primaryContext } = jwtContext;
+            // Use secure primary context from cache instead of frontend case details
+            const { primaryContext } = sessionContext;
             
             // Determine if this is a pediatric case
             const isPediatric = primaryContext.isPediatric;

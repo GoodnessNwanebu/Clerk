@@ -133,8 +133,8 @@ const fetchFromApi = async <T>(endpoint: string, data: any): Promise<T> => {
     return response.json();
 };
 
-// Function to validate JWT session for case resumption
-export const validateCaseSession = async (caseId: string): Promise<boolean> => {
+// Function to validate session and get session info for case resumption
+export const validateCaseSession = async (caseId: string): Promise<{ isValid: boolean; sessionId?: string }> => {
     try {
         const response = await fetch('/api/sessions/validate', {
             method: 'POST',
@@ -142,18 +142,21 @@ export const validateCaseSession = async (caseId: string): Promise<boolean> => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ caseId }),
-            credentials: 'include', // Include cookies for JWT
+            credentials: 'include',
         });
 
         if (!response.ok) {
-            return false;
+            return { isValid: false };
         }
 
         const result = await response.json();
-        return result.isValid === true;
+        return { 
+            isValid: result.isValid === true,
+            sessionId: result.sessionId
+        };
     } catch (error) {
         console.error('Error validating case session:', error);
-        return false;
+        return { isValid: false };
     }
 };
 
@@ -324,29 +327,36 @@ export const generatePracticeCase = async (departmentName: string, condition: st
     throw new Error("The server returned an invalid case format.");
 };
 
-export const getPatientResponse = async (history: Message[], caseDetails: Case, userCountry?: string): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
-    // Optimize context for better performance and reliability
-    const { recentMessages } = optimizeContext(history, caseDetails);
-    
-    const responseData = await fetchFromApi<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }>('patient-response', { 
-        history: recentMessages, 
-        userCountry
+export const getPatientResponse = async (
+    history: Message[], 
+    userCountry?: string,
+    caseId?: string,
+    sessionId?: string
+): Promise<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }> => {
+    // Keep last 15 messages for immediate context (API will handle further optimization)
+    const recentMessages = history.slice(-15);
+
+    const responseData = await fetchFromApi<{ messages: { response: string; sender: 'patient' | 'parent'; speakerLabel: string }[] }>('patient-response', {
+        history: recentMessages,
+        userCountry,
+        caseId,
+        sessionId
     });
-    
+
     // The API now always returns a messages array format
     if (responseData && typeof responseData === 'object' && responseData.messages && Array.isArray(responseData.messages)) {
         return responseData;
     }
-    
+
     throw new Error("Invalid response format from patient response API");
 };
 
-export const getInvestigationResults = async (plan: string, caseDetails: Case): Promise<InvestigationResult[]> => {
+export const getInvestigationResults = async (plan: string): Promise<InvestigationResult[]> => {
     const results = await fetchFromApi<InvestigationResult[]>('investigation-results', { plan });
     return results;
 };
 
-export const getExaminationResults = async (plan: string, caseDetails: Case): Promise<ExaminationResult[]> => {
+export const getExaminationResults = async (plan: string): Promise<ExaminationResult[]> => {
     const results = await fetchFromApi<ExaminationResult[]>('examination-results', { plan });
     return results;
 };

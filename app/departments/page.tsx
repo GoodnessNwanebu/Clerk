@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../constants/constants';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
 const DepartmentCard: React.FC<{ department: Department; onClick: () => void; disabled: boolean }> = ({ department, onClick, disabled }) => (
   <div
@@ -24,10 +24,10 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
       <p className="text-white mt-2">{department.description}</p>
       <div className="flex-grow" />
       <div className="mt-6 flex items-center justify-end text-white/80 group-hover:text-white transition-colors">
-        <span className={department.subspecialties ? 'underline' : ''}>
-          {department.subspecialties ? 'Choose Subspecialty' : 'Start Case'}
+        <span className={hasSubspecialties(department.name) ? 'underline' : ''}>
+          {hasSubspecialties(department.name) ? 'Choose Subspecialty' : 'Start Case'}
         </span>
-        <Icon name={department.subspecialties ? "chevron-right" : "arrow-right"} size={20} className="ml-2" />
+        <Icon name={hasSubspecialties(department.name) ? "chevron-right" : "arrow-right"} size={20} className="ml-2" />
       </div>
     </div>
     <div className={`absolute inset-0 bg-black/20 ${!disabled && 'group-hover:bg-black/10'} transition-colors duration-300`}></div>
@@ -41,6 +41,27 @@ const DepartmentSelectionScreen: React.FC = () => {
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch departments from API
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        setIsLoading(true);
+        const dbDepartments = await fetchDepartments();
+        const transformedDepartments = transformDepartmentsForFrontend(dbDepartments);
+        setDepartments(transformedDepartments);
+      } catch (error) {
+        console.error('Error loading departments:', error);
+        setError('Failed to load departments. Please refresh the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDepartments();
+  }, []);
 
   const handleDirectSelect = async (department: Department) => {
     setError(null);
@@ -64,7 +85,7 @@ const DepartmentSelectionScreen: React.FC = () => {
   };
 
   const handleDepartmentSelect = (department: Department) => {
-    if (department.subspecialties) {
+    if (hasSubspecialties(department.name)) {
       setSelectedDepartment(department);
       setShowSubspecialtyModal(true);
     } else {
@@ -73,8 +94,11 @@ const DepartmentSelectionScreen: React.FC = () => {
   };
 
   const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+    // Get the parent department name for the backend
+    const parentDepartmentName = getParentDepartment(subspecialty.name);
+    
     const departmentFromSubspecialty: Department = {
-      name: subspecialty.name,
+      name: parentDepartmentName, // Use parent department name for backend
       icon: subspecialty.icon,
       gradient: subspecialty.gradient,
       description: subspecialty.description,
@@ -148,9 +172,16 @@ const DepartmentSelectionScreen: React.FC = () => {
         </div>
         
         <main className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 max-w-5xl mx-auto">
-          {DEPARTMENTS.map((dept) => (
-            <DepartmentCard key={dept.name} department={dept} onClick={() => handleDepartmentSelect(dept)} disabled={isGeneratingCase} />
-          ))}
+          {isLoading ? (
+            <div className="col-span-3 text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+              <p className="mt-4 text-slate-600 dark:text-slate-400">Loading departments...</p>
+            </div>
+          ) : (
+            departments.map((dept) => (
+              <DepartmentCard key={dept.name} department={dept} onClick={() => handleDepartmentSelect(dept)} disabled={isGeneratingCase} />
+            ))
+          )}
         </main>
         {error && (
             <div className="mt-8 text-center bg-red-900/50 border border-red-400 text-red-300 px-4 py-3 rounded-lg max-w-md mx-auto">

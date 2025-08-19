@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ExaminationResult } from '../../../../types';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { examinationResultsPrompt } from '../../../../lib/ai/prompts/examination-results';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
-import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
 export async function POST(request: NextRequest) {
-    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+    return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
         try {
-            const body = await request.json();
-            const { plan } = body;
+            const { plan } = sessionContext.requestBody || {};
             
             if (!plan) {
                 return NextResponse.json({ error: 'Plan is required' }, { status: 400 });
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
             const aiContext = 'getExaminationResults';
             
             // Use secure primary context from JWT instead of frontend case details
-            const { primaryContext } = jwtContext;
+            const { primaryContext } = sessionContext;
             
             // Extract patient context from primaryInfo (which contains biodata)
             // The primaryInfo contains markdown-formatted patient information

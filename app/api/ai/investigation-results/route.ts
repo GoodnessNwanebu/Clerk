@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InvestigationResult } from '../../../../types';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { investigationResultsPrompt } from '../../../../lib/ai/prompts/investigation-results';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
-import type { JWTMiddlewareContext } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
 export async function POST(request: NextRequest) {
-    return requireActiveSession(request, async (jwtContext: JWTMiddlewareContext) => {
+    return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
         try {
-            const body = await request.json();
-            const { plan } = body;
+            const { plan } = sessionContext.requestBody || {};
             
             if (!plan) {
                 return NextResponse.json({ error: 'Plan is required' }, { status: 400 });
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
             const aiContext = 'getInvestigationResults';
             
             // Use secure primary context from JWT instead of frontend case details
-            const { primaryContext } = jwtContext;
+            const { primaryContext } = sessionContext;
             
             // Extract age information for pediatric cases
             let patientAge: number | null = null;

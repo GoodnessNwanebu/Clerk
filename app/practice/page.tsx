@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../constants/constants';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
 const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
@@ -20,6 +20,27 @@ const PracticeModeScreen: React.FC = () => {
   const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch departments from API
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        setIsLoading(true);
+        const dbDepartments = await fetchDepartments();
+        const transformedDepartments = transformDepartmentsForFrontend(dbDepartments);
+        setDepartments(transformedDepartments);
+      } catch (error) {
+        console.error('Error loading departments:', error);
+        setError('Failed to load departments. Please refresh the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDepartments();
+  }, []);
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
@@ -59,7 +80,7 @@ const PracticeModeScreen: React.FC = () => {
   };
 
   const handleDepartmentSelect = (department: Department) => {
-    if (department.subspecialties) {
+    if (hasSubspecialties(department.name)) {
       setSelectedMainDepartment(department);
       setShowSubspecialtyModal(true);
     } else {
@@ -71,8 +92,11 @@ const PracticeModeScreen: React.FC = () => {
   };
 
   const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+    // Get the parent department name for the backend
+    const parentDepartmentName = getParentDepartment(subspecialty.name);
+    
     const departmentFromSubspecialty: Department = {
-      name: subspecialty.name,
+      name: parentDepartmentName, // Use parent department name for backend
       icon: subspecialty.icon,
       gradient: subspecialty.gradient,
       description: subspecialty.description,
@@ -174,7 +198,7 @@ const PracticeModeScreen: React.FC = () => {
                   
                   {showDepartmentDropdown && (
                     <div className="absolute z-10 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-80 overflow-y-auto">
-                      {DEPARTMENTS.map((dept) => (
+                      {departments.map((dept) => (
                         <button
                           key={dept.name}
                           onClick={() => handleDepartmentSelect(dept)}
@@ -187,9 +211,9 @@ const PracticeModeScreen: React.FC = () => {
                             <Icon name={dept.icon} size={20} />
                             <span className="font-medium text-left">{dept.name}</span>
                           </div>
-                          {dept.subspecialties && (
-                            <Icon name="chevron-right" size={16} />
-                          )}
+                                                     {hasSubspecialties(dept.name) && (
+                             <Icon name="chevron-right" size={16} />
+                           )}
                         </button>
                       ))}
                     </div>
@@ -197,11 +221,11 @@ const PracticeModeScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Desktop Grid */}
-              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {DEPARTMENTS.map((dept) => {
-                  // Only highlight the button if it's the main department that was used for selection
-                  const isSelected = selectedMainDepartment?.name === dept.name;
+                             {/* Desktop Grid */}
+               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                 {departments.map((dept) => {
+                   // Only highlight the button if it's the main department that was used for selection
+                   const isSelected = selectedMainDepartment?.name === dept.name;
                   
                   return (
                     <button
@@ -226,9 +250,9 @@ const PracticeModeScreen: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        {dept.subspecialties && (
-                          <Icon name="chevron-right" size={16} className="ml-auto" />
-                        )}
+                                                 {hasSubspecialties(dept.name) && (
+                           <Icon name="chevron-right" size={16} className="ml-auto" />
+                         )}
                       </div>
                     </button>
                   );

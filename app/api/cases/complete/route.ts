@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveSession } from '../../../../lib/middleware/jwt-middleware';
+import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
+import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 import { prisma } from '../../../../lib/database/prisma';
 import { generateCaseReport } from '../../../../lib/ai/ai-utils';
 import type { 
@@ -12,9 +13,9 @@ import type {
 
 // Case completion endpoint with JWT validation
 export async function POST(request: NextRequest) {
-  return requireActiveSession(request, async (jwtContext) => {
+  return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
     try {
-      const body: CompleteCaseRequest = await request.json();
+      const body: CompleteCaseRequest = sessionContext.requestBody || {};
       const { 
         finalDiagnosis, 
         managementPlan, 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
         makeVisible = false 
       } = body;
 
-      const { caseSession, primaryContext } = jwtContext;
+      const { caseSession, primaryContext } = sessionContext;
       const caseId = caseSession.caseId;
 
       // Validate required fields
