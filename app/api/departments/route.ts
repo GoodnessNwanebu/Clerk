@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/database/prisma';
 
+// Cache headers for static data
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400', // 1 hour cache, 24 hour stale-while-revalidate
+};
+
 export async function GET(request: NextRequest) {
   try {
     // Fetch all departments with their subspecialties
@@ -31,6 +36,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       departments: transformedDepartments,
+    }, {
+      headers: CACHE_HEADERS
     });
 
   } catch (error) {

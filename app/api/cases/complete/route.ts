@@ -4,6 +4,15 @@ import type { SessionMiddlewareContext } from '../../../../lib/middleware/sessio
 import { prisma } from '../../../../lib/database/prisma';
 import { generateCaseReport } from '../../../../lib/ai/ai-utils';
 import { invalidatePrimaryContext } from '../../../../lib/cache/primary-context-cache';
+import { comprehensiveFeedbackPrompt, getSurgicalContext } from '../../../../lib/ai/prompts/feedback';
+import { ai, MODEL, parseJsonResponse } from '../../../../lib/ai/ai-utils';
+import { 
+  saveMessagesFromLocalStorage,
+  saveExaminationResultsFromLocalStorage,
+  saveInvestigationResultsFromLocalStorage,
+  saveComprehensiveFeedback,
+  saveCaseReport
+} from '../../../../lib/database/database';
 import type { 
   CompleteCaseRequest, 
   CompleteCaseResponse, 
@@ -37,8 +46,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      console.log('🔄 [complete] Starting comprehensive feedback generation...');
+      
       // Generate comprehensive feedback using secure primary context
-      const feedback = await generateComprehensiveFeedback({
+      const feedback = await generateComprehensiveFeedbackDirect({
         primaryContext,
         secondaryContext: {
           messages,
@@ -48,8 +59,11 @@ export async function POST(request: NextRequest) {
           investigationResults
         }
       });
+      
+      console.log('✅ [complete] Comprehensive feedback generated successfully');
 
       // Generate standard medical case report (rounds format)
+      console.log('🔄 [complete] Generating case report...');
       const caseReport = await generateCaseReport({
         primaryContext,
         secondaryContext: {
@@ -60,8 +74,20 @@ export async function POST(request: NextRequest) {
           investigationResults
         }
       });
+      console.log('✅ [complete] Case report generated successfully');
 
-      // Save completed case to database first
+      // Save completed case to database with comprehensive logging
+      console.log('🔄 [complete] Saving case to database...');
+      console.log('📊 [complete] Case data:', {
+        caseId,
+        finalDiagnosis: finalDiagnosis?.substring(0, 100) + '...',
+        managementPlan: managementPlan?.substring(0, 100) + '...',
+        makeVisible,
+        examinationResultsCount: examinationResults?.length || 0,
+        investigationResultsCount: investigationResults?.length || 0,
+        messagesCount: messages?.length || 0
+      });
+      
       const completedCase = await prisma.case.update({
         where: { id: caseId },
         data: {
@@ -73,9 +99,46 @@ export async function POST(request: NextRequest) {
           // Don't clear sessionId yet - keep it for feedback generation
         }
       });
+      console.log('✅ [complete] Case saved to database successfully');
+
+      // Save all data from localStorage to database
+      console.log('🔄 [complete] Saving all data from localStorage to database...');
+
+      // Save messages
+      if (messages && messages.length > 0) {
+        console.log(`📝 [complete] Saving ${messages.length} messages...`);
+        await saveMessagesFromLocalStorage(caseId, messages);
+        console.log('✅ [complete] Messages saved to database');
+      }
+
+      // Save examination results
+      if (examinationResults && examinationResults.length > 0) {
+        console.log(`🔍 [complete] Saving ${examinationResults.length} examination results...`);
+        await saveExaminationResultsFromLocalStorage(caseId, examinationResults);
+        console.log('✅ [complete] Examination results saved to database');
+      }
+
+      // Save investigation results
+      if (investigationResults && investigationResults.length > 0) {
+        console.log(`🔬 [complete] Saving ${investigationResults.length} investigation results...`);
+        await saveInvestigationResultsFromLocalStorage(caseId, investigationResults);
+        console.log('✅ [complete] Investigation results saved to database');
+      }
+
+      // Save feedback
+      console.log('📊 [complete] Saving comprehensive feedback...');
+      await saveComprehensiveFeedback(caseId, feedback);
+      console.log('✅ [complete] Feedback saved to database');
+
+      // Save case report
+      console.log('📋 [complete] Saving case report...');
+      await saveCaseReport(caseId, caseReport);
+      console.log('✅ [complete] Case report saved to database');
 
       // Invalidate primary context cache to ensure fresh data for feedback generation
+      console.log('🔄 [complete] Invalidating primary context cache...');
       await invalidatePrimaryContext(caseId);
+      console.log('✅ [complete] Primary context cache invalidated');
 
       // Don't deactivate session immediately - let feedback generation complete first
       // The session will be deactivated when the user navigates away or after a delay
@@ -100,42 +163,61 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// Helper function to generate comprehensive feedback
-async function generateComprehensiveFeedback(context: {
+// Helper function to generate comprehensive feedback directly
+async function generateComprehensiveFeedbackDirect(context: {
   primaryContext: any;
   secondaryContext: any;
 }): Promise<ComprehensiveFeedback> {
   try {
-    // Call the comprehensive feedback AI endpoint
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai/comprehensive-feedback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        caseState: {
-          department: context.primaryContext.department,
-          caseDetails: context.primaryContext,
-          messages: context.secondaryContext.messages,
-          finalDiagnosis: context.secondaryContext.finalDiagnosis,
-          managementPlan: context.secondaryContext.managementPlan,
-          examinationResults: context.secondaryContext.examinationResults,
-          investigationResults: context.secondaryContext.investigationResults
-        }
-      })
+    console.log('🔄 [generateComprehensiveFeedbackDirect] Starting AI feedback generation...');
+    
+    // Create caseState for the AI prompt
+    const caseState = {
+      department: context.primaryContext.department,
+      caseId: context.primaryContext.caseId,
+      sessionId: context.primaryContext.sessionId,
+      caseDetails: context.primaryContext,
+      messages: context.secondaryContext.messages,
+      finalDiagnosis: context.secondaryContext.finalDiagnosis,
+      managementPlan: context.secondaryContext.managementPlan,
+      examinationResults: context.secondaryContext.examinationResults,
+      investigationResults: context.secondaryContext.investigationResults,
+      preliminaryDiagnosis: context.secondaryContext.preliminaryDiagnosis,
+      examinationPlan: context.secondaryContext.examinationPlan,
+      investigationPlan: context.secondaryContext.investigationPlan,
+      feedback: null
+    };
+    
+    // Get surgical context for the prompt
+    const surgicalContext = getSurgicalContext(caseState);
+    
+    // Generate the comprehensive feedback prompt
+    const prompt = comprehensiveFeedbackPrompt(caseState, surgicalContext);
+    
+    console.log('🔄 [generateComprehensiveFeedbackDirect] Calling AI service...');
+    
+    // Call the AI service directly
+    const response = await ai.generateContent({
+      model: MODEL,
+      contents: [{ text: prompt }],
     });
-
-    if (!response.ok) {
-      throw new Error(`AI feedback generation failed: ${response.statusText}`);
+    
+    if (!response.text) {
+      throw new Error('AI response was empty');
     }
-
-    const feedback = await response.json();
+    
+    console.log('✅ [generateComprehensiveFeedbackDirect] AI feedback generated successfully');
+    
+    // Parse the JSON response from the AI
+    const feedback = parseJsonResponse<ComprehensiveFeedback>(response.text, 'generateComprehensiveFeedbackDirect');
+    
     return feedback;
+    
   } catch (error) {
     console.error('Error generating comprehensive feedback:', error);
     // Return fallback feedback structure
     return {
-      diagnosis: context.primaryContext.diagnosis,
+      diagnosis: context.primaryContext.diagnosis || 'Unknown',
       keyLearningPoint: 'Key learning point from the case',
       whatYouDidWell: ['Good history taking', 'Appropriate examination', 'Logical reasoning'],
       clinicalReasoning: 'Analysis of clinical reasoning',

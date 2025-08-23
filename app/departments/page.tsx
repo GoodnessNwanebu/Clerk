@@ -36,32 +36,11 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
 
 const DepartmentSelectionScreen: React.FC = () => {
   const router = useRouter();
-  const { generateNewCaseWithDifficulty, isGeneratingCase, setNavigationEntryPoint } = useAppContext();
+  const { generateNewCaseWithDifficulty, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch departments from API
-  useEffect(() => {
-    const loadDepartments = async () => {
-      try {
-        setIsLoading(true);
-        const dbDepartments = await fetchDepartments();
-        const transformedDepartments = transformDepartmentsForFrontend(dbDepartments);
-        setDepartments(transformedDepartments);
-      } catch (error) {
-        console.error('Error loading departments:', error);
-        setError('Failed to load departments. Please refresh the page.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadDepartments();
-  }, []);
 
   const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
@@ -173,7 +152,7 @@ const DepartmentSelectionScreen: React.FC = () => {
         </div>
         
         <main className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 max-w-5xl mx-auto">
-          {isLoading ? (
+          {isLoadingDepartments ? (
             <div className="col-span-3 text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
               <p className="mt-4 text-slate-600 dark:text-slate-400">Loading departments...</p>
@@ -187,6 +166,24 @@ const DepartmentSelectionScreen: React.FC = () => {
         {error && (
             <div className="mt-8 text-center bg-red-900/50 border border-red-400 text-red-300 px-4 py-3 rounded-lg max-w-md mx-auto">
                 <p>{error}</p>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                >
+                    Retry
+                </button>
+            </div>
+        )}
+        
+        {!isLoadingDepartments && departments.length === 0 && !error && (
+            <div className="mt-8 text-center bg-yellow-900/50 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg max-w-md mx-auto">
+                <p>No departments available. Please refresh the page.</p>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm"
+                >
+                    Refresh
+                </button>
             </div>
         )}
       </div>

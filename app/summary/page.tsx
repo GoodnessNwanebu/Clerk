@@ -43,6 +43,32 @@ const SummaryScreen: React.FC = () => {
     const [finalDiagnosis, setFinalDiagnosis] = useState(caseState.finalDiagnosis || prelimDiagnosis);
     const [managementPlan, setManagementPlan] = useState(caseState.managementPlan);
 
+    // Update case state when text inputs change
+    const handlePrelimDiagnosisChange = (value: string) => {
+        setPrelimDiagnosis(value);
+        setPreliminaryData(value, examinationPlan, investigationPlan);
+    };
+
+    const handleExaminationPlanChange = (value: string) => {
+        setExaminationPlan(value);
+        setPreliminaryData(prelimDiagnosis, value, investigationPlan);
+    };
+
+    const handleInvestigationPlanChange = (value: string) => {
+        setInvestigationPlan(value);
+        setPreliminaryData(prelimDiagnosis, examinationPlan, value);
+    };
+
+    const handleFinalDiagnosisChange = (value: string) => {
+        setFinalDiagnosis(value);
+        setFinalData(value, managementPlan);
+    };
+
+    const handleManagementPlanChange = (value: string) => {
+        setManagementPlan(value);
+        setFinalData(finalDiagnosis, value);
+    };
+
     // Check URL parameters and case state to determine initial phase
     useEffect(() => {
         const tab = searchParams.get('tab');
@@ -143,45 +169,16 @@ const SummaryScreen: React.FC = () => {
         try {
             setFinalData(finalDiagnosis, managementPlan);
             
-            // Auto-complete and save case to DB before generating feedback
+            // Auto-complete and save case to DB - this now includes comprehensive feedback generation
             const caseCompleted = await completeCaseAndSave();
             
             if (!caseCompleted) {
                 throw new Error("Failed to complete and save case");
             }
             
-            // Small delay to ensure cache invalidation has taken effect
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Retry feedback generation with exponential backoff
-            let feedback: ComprehensiveFeedback | null = null;
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            while (!feedback && retryCount <= maxRetries) {
-                try {
-                    feedback = await getComprehensiveCaseFeedback({
-                        ...caseState,
-                        finalDiagnosis,
-                        managementPlan
-                    });
-                } catch (feedbackError) {
-                    retryCount++;
-                    if (retryCount <= maxRetries) {
-                        console.warn(`Feedback generation failed, retrying ${retryCount}/${maxRetries}...`, feedbackError);
-                        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1))); // Exponential backoff
-                    } else {
-                        throw feedbackError;
-                    }
-                }
-            }
-
-            if (feedback) {
-                setFeedback(feedback);
-                router.push('/feedback');
-            } else {
-                throw new Error("Could not generate feedback at this time.");
-            }
+            // The completeCaseAndSave function now handles feedback generation internally
+            // and sets the feedback in the context, so we can navigate directly to feedback page
+            router.push('/feedback');
         } catch (err) {
             handleApiError(err);
         } finally {
@@ -210,15 +207,15 @@ const SummaryScreen: React.FC = () => {
                     <>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Preliminary Diagnosis</label>
-                            <textarea value={prelimDiagnosis} onChange={(e) => setPrelimDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
+                            <textarea value={prelimDiagnosis} onChange={(e) => handlePrelimDiagnosisChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Examinations</label>
-                            <textarea value={examinationPlan} onChange={(e) => setExaminationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., General examination, Cardiovascular examination, Respiratory examination..."></textarea>
+                            <textarea value={examinationPlan} onChange={(e) => handleExaminationPlanChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., General examination, Cardiovascular examination, Respiratory examination..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Investigation Plan</label>
-                            <textarea value={investigationPlan} onChange={(e) => setInvestigationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
+                            <textarea value={investigationPlan} onChange={(e) => handleInvestigationPlanChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleRequestResults} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
@@ -249,11 +246,11 @@ const SummaryScreen: React.FC = () => {
                         )}
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Final Diagnosis</label>
-                            <textarea value={finalDiagnosis} onChange={(e) => setFinalDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Confirm or update your diagnosis..."></textarea>
+                            <textarea value={finalDiagnosis} onChange={(e) => handleFinalDiagnosisChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Confirm or update your diagnosis..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Management Plan</label>
-                            <textarea value={managementPlan} onChange={(e) => setManagementPlan(e.target.value)} rows={6} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Outline your treatment approach..."></textarea>
+                            <textarea value={managementPlan} onChange={(e) => handleManagementPlanChange(e.target.value)} rows={6} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Outline your treatment approach..."></textarea>
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleSubmitForFeedback} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">

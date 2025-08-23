@@ -26,7 +26,8 @@ export async function GET(
         },
         feedback: true,
         examinationResults: true,
-        investigationResults: true
+        investigationResults: true,
+        caseReport: true
       }
     });
 

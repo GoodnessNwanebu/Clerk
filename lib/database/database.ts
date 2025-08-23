@@ -54,6 +54,24 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   })
 }
 
+// Ensure user exists in database (for API routes)
+export async function ensureUserExists(email: string, name?: string, image?: string): Promise<User> {
+  return await prisma.user.upsert({
+    where: { email },
+    update: {
+      name: name || undefined,
+      image: image || undefined,
+      emailVerified: new Date(), // Mark as verified since we're ensuring they exist
+    },
+    create: {
+      email,
+      name: name || undefined,
+      image: image || undefined,
+      emailVerified: new Date(),
+    },
+  })
+}
+
 // Session Management
 export async function createSession(userId: string): Promise<Session> {
   return await prisma.session.create({
@@ -411,4 +429,148 @@ export async function getUserStats(userId: string) {
     completionRate: totalCases > 0 ? (completedCases / totalCases) * 100 : 0,
     departmentBreakdown: departments
   }
+}
+
+// Save messages from localStorage
+export async function saveMessagesFromLocalStorage(
+  caseId: string, 
+  messages: any[]
+): Promise<any> {
+  // Delete existing messages for this case
+  await prisma.message.deleteMany({ where: { caseId } });
+  
+  if (messages.length === 0) return [];
+  
+  // Create new messages
+  const data = messages.map(msg => ({
+    caseId,
+    sender: msg.sender,
+    text: msg.text,
+    speakerLabel: msg.speakerLabel || null,
+    timestamp: new Date(msg.timestamp)
+  }));
+  
+  return await prisma.message.createMany({ data });
+}
+
+// Save examination results from localStorage
+export async function saveExaminationResultsFromLocalStorage(
+  caseId: string, 
+  results: any[]
+): Promise<any> {
+  // Delete existing results
+  await prisma.examinationResult.deleteMany({ where: { caseId } });
+  
+  if (results.length === 0) return [];
+  
+  // Create new results
+  const data = results.map(result => ({
+    caseId,
+    name: result.name,
+    type: result.type,
+    category: result.category,
+    urgency: result.urgency,
+    value: result.value,
+    unit: result.unit,
+    rangeLow: result.range?.low,
+    rangeHigh: result.range?.high,
+    status: result.status,
+    findings: result.findings,
+    impression: result.impression,
+    recommendation: result.recommendation,
+    abnormalFlags: result.abnormalFlags || [],
+    reportType: result.reportType
+  }));
+  
+  return await prisma.examinationResult.createMany({ data });
+}
+
+// Save investigation results from localStorage
+export async function saveInvestigationResultsFromLocalStorage(
+  caseId: string, 
+  results: any[]
+): Promise<any> {
+  // Delete existing results
+  await prisma.investigationResult.deleteMany({ where: { caseId } });
+  
+  if (results.length === 0) return [];
+  
+  // Create new results
+  const data = results.map(result => ({
+    caseId,
+    name: result.name,
+    type: result.type,
+    category: result.category,
+    urgency: result.urgency,
+    value: result.value,
+    unit: result.unit,
+    rangeLow: result.range?.low,
+    rangeHigh: result.range?.high,
+    status: result.status,
+    findings: result.findings,
+    impression: result.impression,
+    recommendation: result.recommendation,
+    abnormalFlags: result.abnormalFlags || [],
+    reportType: result.reportType
+  }));
+  
+  return await prisma.investigationResult.createMany({ data });
+}
+
+// Save comprehensive feedback
+export async function saveComprehensiveFeedback(
+  caseId: string, 
+  feedback: any
+): Promise<Feedback> {
+  return await prisma.feedback.upsert({
+    where: { caseId },
+    update: {
+      diagnosis: feedback.diagnosis,
+      keyLearningPoint: feedback.keyLearningPoint,
+      whatYouDidWell: feedback.whatYouDidWell,
+      whatCouldBeImproved: feedback.clinicalOpportunities?.areasForImprovement || [],
+      clinicalTip: feedback.clinicalReasoning,
+      clinicalPearls: feedback.clinicalPearls,
+      missedOpportunities: feedback.clinicalOpportunities?.missedOpportunities || []
+    },
+    create: {
+      caseId,
+      diagnosis: feedback.diagnosis,
+      keyLearningPoint: feedback.keyLearningPoint,
+      whatYouDidWell: feedback.whatYouDidWell,
+      whatCouldBeImproved: feedback.clinicalOpportunities?.areasForImprovement || [],
+      clinicalTip: feedback.clinicalReasoning,
+      clinicalPearls: feedback.clinicalPearls,
+      missedOpportunities: feedback.clinicalOpportunities?.missedOpportunities || []
+    }
+  });
+}
+
+// Save case report
+export async function saveCaseReport(
+  caseId: string, 
+  caseReport: any
+): Promise<any> {
+  return await prisma.caseReport.upsert({
+    where: { caseId },
+    update: {
+      patientInfo: caseReport.patientInfo,
+      examination: caseReport.examination,
+      investigations: caseReport.investigations,
+      assessment: caseReport.assessment,
+      management: caseReport.management,
+      learningPoints: caseReport.learningPoints || [],
+      isVisible: caseReport.isVisible !== undefined ? caseReport.isVisible : true
+    },
+    create: {
+      caseId,
+      patientInfo: caseReport.patientInfo,
+      examination: caseReport.examination,
+      investigations: caseReport.investigations,
+      assessment: caseReport.assessment,
+      management: caseReport.management,
+      learningPoints: caseReport.learningPoints || [],
+      isVisible: caseReport.isVisible !== undefined ? caseReport.isVisible : true
+    }
+  });
 } 

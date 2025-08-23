@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { auth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/database/prisma';
+import { ensureUserExists } from '../../../../lib/database/database';
 
 export async function GET(request: NextRequest) {
   try {
     // Get user session
-    const session = await getServerSession(auth) as { user?: { email?: string } } | null;
+    const session = await getServerSession(auth) as { user?: { email?: string; name?: string; image?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -14,19 +15,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
+    // Get or create user from database
+    let user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
+      console.log('🔄 Creating new user for email:', session.user.email);
+      try {
+        user = await ensureUserExists(
+          session.user.email,
+          session.user.name || undefined,
+          session.user.image || undefined
+        );
+        console.log('✅ User created successfully:', user.id);
+      } catch (error) {
+        console.error('❌ Error creating user:', error);
+        return NextResponse.json(
+          { success: false, error: 'Failed to create user account' },
+          { status: 500 }
+        );
+      }
     }
 
-    // Fetch completed cases for the user
+    // Fetch completed cases for the user with all related data
     const completedCases = await prisma.case.findMany({
       where: {
         userId: user.id,
@@ -38,7 +50,14 @@ export async function GET(request: NextRequest) {
           select: {
             name: true
           }
-        }
+        },
+        messages: {
+          orderBy: { timestamp: 'asc' }
+        },
+        examinationResults: true,
+        investigationResults: true,
+        feedback: true,
+        caseReport: true
       },
       orderBy: {
         savedAt: 'desc'
@@ -53,7 +72,13 @@ export async function GET(request: NextRequest) {
         name: caseRecord.department.name
       },
       savedAt: caseRecord.savedAt?.toISOString() || caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString(),
-      completedAt: caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString()
+      completedAt: caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString(),
+      // Include all the saved data
+      messages: caseRecord.messages,
+      examinationResults: caseRecord.examinationResults,
+      investigationResults: caseRecord.investigationResults,
+      feedback: caseRecord.feedback,
+      caseReport: caseRecord.caseReport
     }));
 
     return NextResponse.json({

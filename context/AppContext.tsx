@@ -35,6 +35,7 @@ import {
   getComprehensiveCaseFeedback,
 } from "../lib/ai/geminiService";
 import { generateShareData } from "../lib/shared/shareUtils";
+import { fetchDepartments, transformDepartmentsForFrontend } from '../lib/services/departmentService';
 
 interface AppContextType {
   caseState: CaseState;
@@ -71,6 +72,12 @@ interface AppContextType {
   completeCaseWithJWT: (makeVisible?: boolean) => Promise<boolean>;
   completeCaseAndSave: () => Promise<boolean>;
   toggleCaseVisibility: (caseId: string, makeVisible: boolean) => Promise<boolean>;
+  
+  // Department caching
+  departments: Department[];
+  isLoadingDepartments: boolean;
+  loadDepartments: () => Promise<void>;
+  refreshDepartments: () => Promise<void>;
 }
 
 const initialCaseState: CaseState = {
@@ -103,6 +110,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   >(null);
   const [conversationStorage, setConversationStorage] =
     useState<ConversationStorage | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
   const isBrowser = typeof window !== "undefined";
   // Restore case state from localStorage on mount (secondary context only)
   useEffect(() => {
@@ -493,6 +502,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       try {
+        console.log("🔄 [AppContext.completeCaseAndSave] Starting case completion...");
+        
         // Always save to DB with isVisible = false initially
         const result = await completeCase({
           finalDiagnosis: caseState.finalDiagnosis,
@@ -506,7 +517,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         });
 
         if (result.success) {
-          console.log("Case completed and saved to DB successfully");
+          console.log("✅ [AppContext.completeCaseAndSave] Case completed and saved to DB successfully");
+          
+          // Set the feedback from the complete API response
+          if (result.feedback) {
+            console.log("🔄 [AppContext.completeCaseAndSave] Setting feedback from complete API...");
+            setFeedback(result.feedback);
+            console.log("✅ [AppContext.completeCaseAndSave] Feedback set successfully");
+          }
 
           // Clear localStorage after successful completion
           if (conversationStorage) {
@@ -517,16 +535,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
             console.log(`✅ [AppContext.completeCaseAndSave] Successfully cleared localStorage after case completion`);
           }
 
-          // Reset case state
-          setCaseState(initialCaseState);
+          // Reset case state but preserve feedback
+          setCaseState(prev => ({
+            ...initialCaseState,
+            feedback: result.feedback || prev.feedback
+          }));
 
           return true;
         } else {
-          console.error("Case completion failed");
+          console.error("❌ [AppContext.completeCaseAndSave] Case completion failed");
           return false;
         }
       } catch (error) {
-        console.error("Error completing case:", error);
+        console.error("❌ [AppContext.completeCaseAndSave] Error completing case:", error);
         return false;
       }
     },
@@ -608,6 +629,65 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
+  const loadDepartments = useCallback(async () => {
+    setIsLoadingDepartments(true);
+    try {
+      // Try to load from localStorage first
+      if (isBrowser) {
+        const cachedDepartments = localStorage.getItem('cachedDepartments');
+        const cacheTimestamp = localStorage.getItem('cachedDepartmentsTimestamp');
+        
+        // Check if cache is less than 24 hours old
+        if (cachedDepartments && cacheTimestamp) {
+          const cacheAge = Date.now() - parseInt(cacheTimestamp);
+          const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+          
+          if (cacheAge < maxAge) {
+            try {
+              const parsedDepartments = JSON.parse(cachedDepartments);
+              setDepartments(parsedDepartments);
+              setIsLoadingDepartments(false);
+              console.log('✅ Loaded departments from cache');
+              return;
+            } catch (parseError) {
+              console.warn('Failed to parse cached departments, fetching fresh data');
+            }
+          }
+        }
+      }
+      
+      // Fetch fresh data from API
+      const fetchedDepartments = await fetchDepartments();
+      const transformedDepartments = transformDepartmentsForFrontend(fetchedDepartments);
+      setDepartments(transformedDepartments);
+      
+      // Cache the departments
+      if (isBrowser) {
+        localStorage.setItem('cachedDepartments', JSON.stringify(transformedDepartments));
+        localStorage.setItem('cachedDepartmentsTimestamp', Date.now().toString());
+        console.log('✅ Cached departments for future use');
+      }
+    } catch (error) {
+      console.error("Error loading departments:", error);
+      setDepartments([]); // Clear departments on error
+    } finally {
+      setIsLoadingDepartments(false);
+    }
+  }, [isBrowser]);
+
+  const refreshDepartments = useCallback(async () => {
+    // Clear cache and force refresh
+    if (isBrowser) {
+      localStorage.removeItem('cachedDepartments');
+      localStorage.removeItem('cachedDepartmentsTimestamp');
+    }
+    await loadDepartments();
+  }, [isBrowser, loadDepartments]);
+
+  useEffect(() => {
+    loadDepartments();
+  }, [loadDepartments]);
+
   const value = { 
     caseState, 
     isGeneratingCase, 
@@ -631,6 +711,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     completeCaseAndSave,
     toggleCaseVisibility,
     navigationEntryPoint,
+    departments,
+    isLoadingDepartments,
+    loadDepartments,
+    refreshDepartments,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

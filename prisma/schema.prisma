@@ -213,6 +213,7 @@ model Case {
   examinationResults    ExaminationResult[]
   investigationResults  InvestigationResult[]
   feedback              Feedback?
+  caseReport            CaseReport?
   caseSessions          CaseSession[] // New relation for session management
 
   @@map("cases")
@@ -319,4 +320,36 @@ model Feedback {
   updatedAt DateTime @updatedAt
 
   @@map("feedback")
+}
+
+// Case reports for completed cases
+model CaseReport {
+  id          String   @id @default(cuid())
+  caseId      String   @unique
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  // Patient information
+  patientInfo Json     // Structured patient data
+  
+  // Examination findings
+  examination Json     // Structured examination data
+  
+  // Investigation results
+  investigations Json  // Structured investigation data
+  
+  // Assessment and diagnosis
+  assessment Json      // Structured assessment data
+  
+  // Management plan
+  management Json      // Structured management data
+  
+  // Learning points
+  learningPoints String[] // Array of learning points
+  
+  // Visibility and timestamps
+  isVisible    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("case_reports")
 }

@@ -66,12 +66,53 @@ export async function POST(request: NextRequest) {
                 }],
             });
             
-            // Always treat response as plain text - no more JSON parsing issues
+            // Parse the response to determine speaker for pediatric cases
+            let speakerLabel = '';
+            let sender = 'patient';
+            
+            if (isPediatric && primaryContext.pediatricProfile) {
+                const { respondingParent } = primaryContext.pediatricProfile;
+                
+                // Check if the response indicates who is speaking
+                const responseText = response.text.trim().toLowerCase();
+                
+                if (responseText.includes('mother') || responseText.includes('mom') || responseText.includes('mum')) {
+                    speakerLabel = 'Mother';
+                    sender = 'parent';
+                } else if (responseText.includes('father') || responseText.includes('dad')) {
+                    speakerLabel = 'Father';
+                    sender = 'parent';
+                } else if (responseText.includes('child') || responseText.includes('patient')) {
+                    speakerLabel = 'Child';
+                    sender = 'patient';
+                } else {
+                    // Default to the responding parent if no clear indication
+                    speakerLabel = respondingParent === 'mother' ? 'Mother' : 'Father';
+                    sender = 'parent';
+                }
+                
+                console.log('🔄 [patient-response] Pediatric case - determined speaker:', {
+                    responseText: responseText.substring(0, 50) + '...',
+                    respondingParent,
+                    determinedSpeakerLabel: speakerLabel,
+                    determinedSender: sender
+                });
+            } else {
+                console.log('🔄 [patient-response] Non-pediatric case or missing pediatric profile');
+            }
+            
+            console.log('🔄 [patient-response] Returning message with speakerLabel:', {
+                sender: sender,
+                speakerLabel: speakerLabel,
+                isPediatric: isPediatric,
+                responsePreview: response.text.trim().substring(0, 50) + '...'
+            });
+            
             return NextResponse.json({ 
                 messages: [{
                     response: response.text.trim(),
-                    sender: 'patient',
-                    speakerLabel: ''
+                    sender: sender as 'patient' | 'parent',
+                    speakerLabel: speakerLabel
                 }]
             });
         } catch (error) {

@@ -11,7 +11,7 @@ import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, g
 
 const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
-  const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint } = useAppContext();
+  const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
@@ -20,27 +20,6 @@ const PracticeModeScreen: React.FC = () => {
   const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch departments from API
-  useEffect(() => {
-    const loadDepartments = async () => {
-      try {
-        setIsLoading(true);
-        const dbDepartments = await fetchDepartments();
-        const transformedDepartments = transformDepartmentsForFrontend(dbDepartments);
-        setDepartments(transformedDepartments);
-      } catch (error) {
-        console.error('Error loading departments:', error);
-        setError('Failed to load departments. Please refresh the page.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadDepartments();
-  }, []);
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
