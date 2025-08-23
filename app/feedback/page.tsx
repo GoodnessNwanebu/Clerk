@@ -18,8 +18,8 @@ export default function FeedbackPage() {
         caseState, 
         resetCase, 
         setNavigationEntryPoint,
-        completeCaseAndSave,
-        toggleCaseVisibility
+        toggleCaseVisibility,
+        setFeedback
     } = useAppContext();
     
     const { feedback, department } = caseState;
@@ -31,8 +31,8 @@ export default function FeedbackPage() {
         clinicalOpportunities: false,
         clinicalPearls: false
     });
-    const [isCaseCompleted, setIsCaseCompleted] = useState(false);
     const [isCaseVisible, setIsCaseVisible] = useState(false);
+    const [departmentName, setDepartmentName] = useState<string | null>(department);
     
     // Install guide hook
     const {
@@ -43,27 +43,21 @@ export default function FeedbackPage() {
         handleCompleteInstallGuide
     } = useInstallGuide();
 
-    // Auto-complete case when feedback page loads
+    // Debug logging for feedback page state
     useEffect(() => {
-        const autoCompleteCase = async () => {
-            if (feedback && department && !isCaseCompleted) {
-                try {
-                    console.log('Auto-completing case on feedback page load');
-                    const success = await completeCaseAndSave();
-                    if (success) {
-                        setIsCaseCompleted(true);
-                        console.log('Case auto-completed successfully');
-                    } else {
-                        console.error('Failed to auto-complete case');
-                    }
-                } catch (error) {
-                    console.error('Error auto-completing case:', error);
-                }
-            }
-        };
-
-        autoCompleteCase();
-    }, [feedback, department, isCaseCompleted, completeCaseAndSave]);
+        console.log('🔄 [feedback] Page loaded with state:', {
+            hasFeedback: !!feedback,
+            hasDepartment: !!department,
+            hasDepartmentName: !!departmentName,
+            caseId: caseState.caseId,
+            feedbackKeys: feedback ? Object.keys(feedback) : null,
+            feedbackPreview: feedback ? {
+                diagnosis: feedback.diagnosis,
+                keyLearningPoint: feedback.keyLearningPoint?.substring(0, 100) + '...',
+                whatYouDidWell: feedback.whatYouDidWell?.length || 0
+            } : null
+        });
+    }, [feedback, department, departmentName, caseState.caseId]);
 
     // Load share data from localStorage
     useEffect(() => {
@@ -208,9 +202,94 @@ export default function FeedbackPage() {
         console.log(`✅ [feedback.clearLocalStorageAndGoHome] Successfully cleared localStorage and navigated home`);
     };
     
-    if (!feedback || !department) {
-        return null;
+    // Manual debug function to load data from API
+    const loadFeedbackDataFromAPI = async () => {
+        if (!caseState.caseId) {
+            console.error('❌ [feedback] No case ID available for API call');
+            return;
+        }
+
+        try {
+            console.log('🔄 [feedback] Manually loading data from API for case:', caseState.caseId);
+            const response = await fetch(`/api/cases/${caseState.caseId}`);
+            console.log('🔄 [feedback] API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔄 [feedback] API response data:', data);
+                
+                if (data.success && data.case) {
+                    // Set the feedback from the API response
+                    if (data.case.feedback) {
+                        setFeedback(data.case.feedback);
+                        console.log('✅ [feedback] Feedback loaded from API');
+                    } else {
+                        console.log('❌ [feedback] No feedback found in API response');
+                    }
+                    
+                    // Set the department from the API response
+                    if (data.case.department?.name) {
+                        setDepartmentName(data.case.department.name);
+                        console.log('✅ [feedback] Department loaded from API');
+                    } else {
+                        console.log('❌ [feedback] No department found in API response');
+                    }
+                } else {
+                    console.log('❌ [feedback] API response not successful:', data);
+                }
+            } else {
+                console.error('❌ [feedback] API call failed with status:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ [feedback] Error loading data from API:', error);
+        }
+    };
+
+    // Auto-load data if missing (but don't auto-complete case)
+    useEffect(() => {
+        if (!feedback && caseState.caseId) {
+            console.log('🔄 [feedback] Auto-loading feedback data from API...');
+            loadFeedbackDataFromAPI();
+        }
+    }, [caseState.caseId]); // Only depend on caseId, not feedback to avoid loops
+
+    // Debug logging
+    console.log('🔄 [feedback] Current state:', {
+        hasFeedback: !!feedback,
+        hasDepartment: !!department,
+        hasDepartmentName: !!departmentName,
+        caseId: caseState.caseId,
+        feedbackKeys: feedback ? Object.keys(feedback) : null
+    });
+
+    // Show loading state while we're trying to load data
+    if (!feedback) {
+        return (
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading feedback...</p>
+                    <div className="text-xs text-slate-500 mt-2 space-y-1">
+                        <p>Case ID: {caseState.caseId || 'None'}</p>
+                        <p>Department: {department || 'None'}</p>
+                        <p>Department Name: {departmentName || 'None'}</p>
+                        <p>Has Feedback: {feedback ? 'Yes' : 'No'}</p>
+                    </div>
+                    
+                    {/* Debug button */}
+                    <button 
+                        onClick={loadFeedbackDataFromAPI}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    >
+                        Debug: Load from API
+                    </button>
+                </div>
+            </div>
+        );
     }
+
+    // If we have feedback but no department name, show a fallback
+    const displayDepartment = departmentName || department || 'Unknown Department';
 
     // Type guard to check if feedback is comprehensive
     const isComprehensiveFeedback = (f: any): f is ComprehensiveFeedback => {
@@ -237,7 +316,7 @@ export default function FeedbackPage() {
                             Final Diagnosis: <span className="font-semibold text-teal-600 dark:text-teal-400">{feedback.diagnosis}</span>
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
-                            {department}
+                            {displayDepartment}
                         </p>
                     </div>
                 </div>

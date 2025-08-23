@@ -93,11 +93,11 @@ const SummaryScreen: React.FC = () => {
         }
     }, [searchParams, caseState.examinationResults, caseState.investigationResults]);
 
-    React.useEffect(() => {
-      if (!caseState.department || !caseState.caseId) {
-          router.push('/');
-      }
-    }, [caseState, router]);
+    // React.useEffect(() => {
+    //   if (!caseState.department || !caseState.caseId) {
+    //       router.push('/');
+    //   }
+    // }, [caseState, router]);
 
     const handleApiError = (err: unknown) => {
         let message = "An unknown error occurred.";
