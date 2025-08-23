@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../../../components/Icon';
+import { CaseTabContent } from '../../../components/CaseTabContent';
 
 interface CaseData {
   id: string;
@@ -14,43 +15,89 @@ interface CaseData {
   completedAt: string;
   timeSpent: number;
   clinicalSummary: string;
-  keyFindings: Array<{
-    finding: string;
-    significance: string;
-    rationale: string;
+  patientProfile?: {
+    age: string;
+    occupation: string;
+    educationLevel: string;
+    gender: string;
+  };
+  messages: Array<{
+    id: string;
+    text: string;
+    sender: string;
+    timestamp: string;
+    speakerLabel?: string;
+  }>;
+  examinationResults: Array<{
+    id: string;
+    name: string;
     category: string;
+    type: string;
+    value?: string;
+    unit?: string;
+    findings?: string;
+    interpretation?: string;
   }>;
-  investigations: Array<{
-    investigation: string;
-    rationale: string;
-    expectedFindings: string;
-    clinicalSignificance: string;
+  investigationResults: Array<{
+    id: string;
+    name: string;
+    category: string;
+    type: string;
+    value?: string;
+    unit?: string;
+    findings?: string;
+    interpretation?: string;
   }>;
-  enhancedManagementPlan: Array<{
-    intervention: string;
-    rationale: string;
-    timing: string;
-    expectedOutcome: string;
-  }>;
-  clinicalOpportunities: Array<{
-    opportunity: string;
-    clinicalSignificance: string;
-    learningPoint: string;
-  }>;
-  clinicalPearls: string;
-  aiGeneratedAt: string;
-  feedback: {
+  feedback?: {
+    diagnosis: string;
+    clinicalReasoning: string;
     keyLearningPoint: string;
     whatYouDidWell: string[];
     whatCouldBeImproved: string[];
-    clinicalReasoning: string;
     clinicalPearls: string[];
     missedOpportunities?: Array<{
       opportunity: string;
       clinicalSignificance: string;
     }>;
   };
+  caseReport?: {
+    id: string;
+    patientInfo: {
+      age: string;
+      gender: string;
+      presentingComplaint: string;
+      historyOfPresentingIllness: string;
+      pastMedicalHistory: string;
+      medications: string;
+      allergies: string;
+      socialHistory: string;
+      familyHistory: string;
+    };
+    examination: {
+      generalExamination: string;
+      systemicExamination: string;
+      findings: string[];
+    };
+    investigations: {
+      requested: string[];
+      results: string[];
+    };
+    assessment: {
+      differentialDiagnosis: string[];
+      finalDiagnosis: string;
+      reasoning: string;
+    };
+    management: {
+      immediate: string[];
+      shortTerm: string[];
+      longTerm: string[];
+      followUp: string;
+    };
+    learningPoints: string[];
+  };
 }
+
+type TabType = 'overview' | 'patient' | 'examination' | 'investigations' | 'assessment' | 'management' | 'feedback' | 'conversation';
 
 export default function CaseReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -58,6 +105,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   useEffect(() => {
     const loadParams = async () => {
@@ -135,6 +183,17 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
     return `${hours}h ${remainingMinutes}m`;
   };
 
+  const tabs: Array<{ id: TabType; label: string; icon: string }> = [
+    { id: 'overview', label: 'Overview', icon: 'file-text' },
+    { id: 'patient', label: 'Patient Info', icon: 'user' },
+    { id: 'examination', label: 'Examination', icon: 'stethoscope' },
+    { id: 'investigations', label: 'Investigations', icon: 'microscope' },
+    { id: 'assessment', label: 'Assessment', icon: 'brain' },
+    { id: 'management', label: 'Management', icon: 'clipboard-list' },
+    { id: 'feedback', label: 'Feedback', icon: 'message-square' },
+    { id: 'conversation', label: 'Conversation', icon: 'message-circle' },
+  ];
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
@@ -179,7 +238,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white">
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-6">
+        <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-4">
             <button 
               onClick={() => router.push('/saved-cases')} 
@@ -201,7 +260,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                {caseData.diagnosis}
+                {caseData.feedback?.diagnosis || caseData.diagnosis}
               </h1>
               <div className="text-sm text-slate-500 dark:text-slate-400">
                 Case #{caseData.id}
@@ -231,233 +290,36 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
         </div>
       </header>
 
+      {/* Tabs */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-24 z-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex space-x-1 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Icon name={tab.icon} size={16} />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Clinical Summary */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-            <Icon name="file-text" size={20} className="mr-2" />
-            Clinical Summary
-          </h2>
-          
-          <div className="prose prose-slate dark:prose-invert max-w-none">
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-              {caseData.clinicalSummary}
-            </p>
-          </div>
-        </div>
-
-        {/* Key Findings */}
-        {caseData.keyFindings && caseData.keyFindings.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-              <Icon name="search" size={20} className="mr-2" />
-              Key Findings
-            </h2>
-            
-            <div className="space-y-3">
-              {caseData.keyFindings.map((finding, index) => (
-                <div key={index} className="border-l-4 border-teal-500 pl-4 py-2">
-                  <div className="font-medium text-slate-900 dark:text-white">
-                    {finding.finding}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    <span className="font-medium">Significance:</span> {finding.significance}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    <span className="font-medium">Rationale:</span> {finding.rationale}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                    Category: {finding.category}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Investigations */}
-        {caseData.investigations && caseData.investigations.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-              <Icon name="microscope" size={20} className="mr-2" />
-              Investigations
-            </h2>
-            
-            <div className="space-y-4">
-              {caseData.investigations.map((investigation, index) => (
-                <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <div className="mb-2">
-                    <h3 className="font-medium text-slate-900 dark:text-white">
-                      {investigation.investigation}
-                    </h3>
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                    <span className="font-medium">Rationale:</span> {investigation.rationale}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                    <span className="font-medium">Expected Findings:</span> {investigation.expectedFindings}
-                  </div>
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <span className="font-medium">Clinical Significance:</span> {investigation.clinicalSignificance}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Management Plan */}
-        {caseData.enhancedManagementPlan && caseData.enhancedManagementPlan.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-              <Icon name="stethoscope" size={20} className="mr-2" />
-              Management Plan
-            </h2>
-            
-            <div className="space-y-4">
-              {caseData.enhancedManagementPlan.map((intervention, index) => (
-                <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-slate-900 dark:text-white">
-                      {intervention.intervention}
-                    </h3>
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {intervention.timing}
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                    <span className="font-medium">Rationale:</span> {intervention.rationale}
-                  </div>
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <span className="font-medium">Expected Outcome:</span> {intervention.expectedOutcome}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Clinical Opportunities */}
-        {caseData.clinicalOpportunities && caseData.clinicalOpportunities.length > 0 && (
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl p-6 mb-6 shadow-sm border border-red-200 dark:border-red-800">
-            <h2 className="text-lg font-semibold text-red-700 dark:text-red-400 mb-4 flex items-center">
-              <Icon name="alert-triangle" size={20} className="mr-2" />
-              Clinical Opportunities
-            </h2>
-            
-            <div className="space-y-3">
-              {caseData.clinicalOpportunities.map((opportunity, index) => (
-                <div key={index} className="border-l-4 border-red-500 pl-4 py-2">
-                  <div className="font-medium text-slate-900 dark:text-white">
-                    {opportunity.opportunity}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    <span className="font-medium">Clinical Significance:</span> {opportunity.clinicalSignificance}
-                  </div>
-                  <div className="text-sm text-slate-700 dark:text-slate-300 mt-1">
-                    <span className="font-medium">Learning Point:</span> {opportunity.learningPoint}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Clinical Pearls */}
-        {caseData.clinicalPearls && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-6 mb-6 shadow-sm border border-amber-200 dark:border-amber-800">
-            <h2 className="text-lg font-semibold text-amber-700 dark:text-amber-400 mb-4 flex items-center">
-              <Icon name="lightbulb" size={20} className="mr-2" />
-              Clinical Pearls
-            </h2>
-            
-            <div className="prose prose-slate dark:prose-invert max-w-none">
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                {caseData.clinicalPearls}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <hr className="border-slate-200 dark:border-slate-700 my-6" />
-
-        {/* Key Learning Point */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-3">Key Learning Point</h2>
-          <p className="text-slate-900 dark:text-white leading-relaxed">{caseData.feedback.keyLearningPoint}</p>
-        </div>
-
-        {/* What You Did Well */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-            <Icon name="check-circle" size={20} className="mr-2 text-green-500" />
-            What You Did Well
-          </h2>
-          <ul className="space-y-3">
-            {caseData.feedback.whatYouDidWell.map((point, index) => (
-              <li key={index} className="flex items-start">
-                <Icon name="check" size={16} className="mr-3 mt-0.5 text-green-500 flex-shrink-0" />
-                <span className="text-slate-900 dark:text-white">{point}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Missed Opportunities */}
-        {caseData.feedback.missedOpportunities && caseData.feedback.missedOpportunities.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-              <Icon name="alert-triangle" size={20} className="mr-2 text-amber-500" />
-              Missed Opportunities
-            </h2>
-            <div className="space-y-4">
-              {caseData.feedback.missedOpportunities.map((opportunity, index) => (
-                <div key={index} className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                  <p className="font-semibold text-amber-800 dark:text-amber-200 mb-2">{opportunity.opportunity}</p>
-                  <p className="text-amber-700 dark:text-amber-300 text-sm italic">
-                    <strong>Clinical significance:</strong> {opportunity.clinicalSignificance}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <hr className="border-slate-200 dark:border-slate-700 my-6" />
-
-        {/* Clinical Reasoning */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-3">Clinical Reasoning</h2>
-          <p className="text-slate-900 dark:text-white leading-relaxed">{caseData.feedback.clinicalReasoning}</p>
-        </div>
-
-        <hr className="border-slate-200 dark:border-slate-700 my-6" />
-
-        {/* Clinical Pearls */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
-            <Icon name="lightbulb" size={20} className="mr-2 text-purple-500" />
-            Clinical Pearls
-          </h2>
-          <div className="space-y-3">
-            {caseData.feedback.clinicalPearls.map((pearl, index) => (
-              <div key={index} className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg">
-                <p className="text-green-800 dark:text-green-200 font-medium">• {pearl}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center py-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            These teaching notes were generated by ClerkSmart to support your clinical learning journey.
-          </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            © {new Date().getFullYear()} ClerkSmart
-          </p>
-        </div>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <CaseTabContent
+          activeTab={activeTab}
+          caseData={caseData}
+          formatDate={formatDate}
+          formatTimeSpent={formatTimeSpent}
+        />
       </div>
     </div>
   );

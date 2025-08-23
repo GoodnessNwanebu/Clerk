@@ -20,6 +20,30 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
   const [showShareCard, setShowShareCard] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
 
+  // Debug function to test canvas color rendering
+  const debugCanvasColors = useCallback(() => {
+    if (!shareCardRef.current) return;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    canvas.width = 100;
+    canvas.height = 100;
+    
+    // Test various color formats
+    ctx.fillStyle = '#14b8a6'; // Hex
+    ctx.fillRect(0, 0, 50, 50);
+    
+    ctx.fillStyle = 'rgb(20, 184, 166)'; // RGB
+    ctx.fillRect(50, 0, 50, 50);
+    
+    ctx.fillStyle = 'rgba(20, 184, 166, 0.8)'; // RGBA
+    ctx.fillRect(0, 50, 50, 50);
+    
+    console.log('Canvas color test completed');
+  }, []);
+
   // Generate image preview when modal opens
   const generateImage = useCallback(async () => {
     if (!shareData) return;
@@ -32,9 +56,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       setShowShareCard(true);
       
       // Wait for the component to render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       if (shareCardRef.current) {
+        // Debug canvas colors first
+        debugCanvasColors();
+        
         // Capture the ShareCard with html2canvas
         const canvas = await html2canvas(shareCardRef.current, {
           width: 1080,
@@ -43,7 +70,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          ignoreElements: () => {
+          logging: false, // Disable logging for cleaner output
+          removeContainer: true, // Remove temporary container
+          foreignObjectRendering: false, // Disable for better compatibility
+          ignoreElements: (element) => {
             // Ignore any elements that might cause issues
             return false;
           },
@@ -54,9 +84,35 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
               * {
                 color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
+                -webkit-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              /* Ensure all colors are rendered as RGB/hex */
+              [style*="oklch"] {
+                color: inherit !important;
               }
             `;
             clonedDoc.head.appendChild(style);
+            
+            // Force all elements to use computed styles
+            const allElements = clonedDoc.querySelectorAll('*');
+            allElements.forEach((element) => {
+              const computedStyle = window.getComputedStyle(element);
+              if (element instanceof HTMLElement) {
+                // Force background color
+                if (computedStyle.backgroundColor && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                  element.style.backgroundColor = computedStyle.backgroundColor;
+                }
+                // Force text color
+                if (computedStyle.color) {
+                  element.style.color = computedStyle.color;
+                }
+                // Force border color
+                if (computedStyle.borderColor && computedStyle.borderColor !== 'rgba(0, 0, 0, 0)') {
+                  element.style.borderColor = computedStyle.borderColor;
+                }
+              }
+            });
           }
         });
         
@@ -82,7 +138,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       setIsGeneratingImage(false);
       setShowShareCard(false); // Hide the ShareCard after capture
     }
-  }, [shareData, retryCount]);
+  }, [shareData, retryCount, debugCanvasColors]);
 
   useEffect(() => {
     if (isOpen && shareData && !imagePreview && retryCount === 0) {
@@ -151,7 +207,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
             left: '-9999px', 
             top: '-9999px',
             width: '1080px',
-            height: '1350px'
+            height: '1350px',
+            backgroundColor: '#ffffff' // Ensure white background
           }}
         >
           <ShareCard shareData={shareData} />
@@ -159,12 +216,16 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
       )}
       
       <div 
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-700 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-700 ease-in-out"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       >
         <div 
-          className={`rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out ${isTransitioning ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'}`}
-          style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }}
+          className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out"
+          style={{ 
+            backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+            transform: isTransitioning ? 'scale(0.9) translateY(16px)' : 'scale(1) translateY(0)',
+            opacity: isTransitioning ? 0 : 1
+          }}
         >
         
         {/* Header */}

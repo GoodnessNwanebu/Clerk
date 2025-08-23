@@ -16,7 +16,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
     <div 
       className={`w-[1080px] h-[1350px] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative ${className}`}
       style={{
-        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)'
+        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+        backgroundColor: '#f8fafc' // Fallback for canvas compatibility
       }}
     >
       {/* Background decorative elements - positioned exactly like original */}
@@ -26,7 +27,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           style={{
             top: '100px',
             right: '100px',
-            background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'
+            background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+            backgroundColor: '#14b8a6' // Fallback for canvas compatibility
           }}
         />
         <div 
@@ -34,7 +36,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           style={{
             bottom: '200px',
             left: '100px',
-            background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'
+            background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+            backgroundColor: '#14b8a6' // Fallback for canvas compatibility
           }}
         />
       </div>
@@ -62,7 +65,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
             <div 
               className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
               style={{
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                backgroundColor: '#fbbf24' // Fallback for canvas compatibility
               }}
             >
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +90,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           <div 
             className="rounded-2xl p-12 flex flex-col justify-center min-h-0 max-w-4xl w-full"
             style={{
-              background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%)'
+              background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%)',
+              backgroundColor: '#d1fae5' // Fallback for canvas compatibility
             }}
           >
             <p 
@@ -157,7 +162,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({ shareData, className = '' 
           <div 
             className="rounded-2xl p-6 shadow-lg max-w-4xl w-full"
             style={{
-              background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)'
+              background: 'linear-gradient(90deg, #14b8a6 0%, #0d9488 100%)',
+              backgroundColor: '#14b8a6' // Fallback for canvas compatibility
             }}
           >
             <p className="text-3xl font-semibold text-white mb-2 text-center">

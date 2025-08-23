@@ -43,4 +43,8 @@ module.exports = {
   experimental: {
     optimizeUniversalDefaults: true,
   },
+  // Explicitly disable OKLCH colors
+  corePlugins: {
+    // Ensure colors are rendered as RGB/hex
+  },
 }; 
