@@ -190,7 +190,7 @@ export const completeCase = async (caseData: {
     makeVisible?: boolean;
     caseId?: string;
     sessionId?: string;
-}): Promise<{ success: boolean; feedback: any; caseReport: any }> => {
+}): Promise<{ success: boolean; feedback: any; caseReport: any; caseId?: string }> => {
     try {
         const response = await fetch('/api/cases/complete', {
             method: 'POST',
@@ -213,7 +213,8 @@ export const completeCase = async (caseData: {
         return {
             success: result.success,
             feedback: result.feedback,
-            caseReport: result.caseReport
+            caseReport: result.caseReport,
+            caseId: result.caseId // Include the case ID from the API response
         };
     } catch (error) {
         console.error('Error completing case:', error);
