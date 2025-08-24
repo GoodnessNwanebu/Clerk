@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { AccountValidation } from '../components/AccountValidation';
+import { useAppContext } from '../context/AppContext';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -21,6 +22,21 @@ const LoadingScreen = () => (
     </div>
   </div>
 );
+
+// Component to sync session email with AppContext
+function SessionEmailSync() {
+  const { data: session } = useSession();
+  const { setUserEmail } = useAppContext();
+  
+  useEffect(() => {
+    if (session?.user?.email) {
+      console.log('🔄 Syncing session email to AppContext:', session.user.email);
+      setUserEmail(session.user.email);
+    }
+  }, [session?.user?.email, setUserEmail]);
+  
+  return null;
+}
 
 // Inner component that can use session
 function OnboardingCheck({ children }: { children: React.ReactNode }) {
@@ -96,6 +112,7 @@ export default function ClientWrapper({
     <SessionProvider>
       <OnboardingCheck>
         <AccountValidation>
+          <SessionEmailSync />
           {children}
         </AccountValidation>
       </OnboardingCheck>

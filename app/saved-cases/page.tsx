@@ -19,6 +19,9 @@ export default function SavedCasesPage() {
   
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
 
+  // Debug logging
+  console.log('🔄 SavedCasesPage render:', { userEmail, casesCount: completedCases.length, isLoading, error });
+
   const handleViewCase = (caseId: string) => {
     router.push(`/saved-cases/${caseId}`);
   };
