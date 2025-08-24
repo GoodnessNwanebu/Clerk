@@ -124,6 +124,15 @@ export const generateSingleDiagnosisPrompt = (
     - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
     - Avoid patients using exact drug names or dosages
     - Match communication style to education level and health literacy
+    ${isPediatric ? `
+    PEDIATRIC SPECIFIC GUIDELINES:
+    - For infants (0-12 months): Parent provides most history, child non-verbal
+    - For toddlers (1-3 years): Parent provides history, child may use basic words
+    - For preschoolers (3-5 years): Parent provides history, child may use simple sentences
+    - For school-age (6-12 years): Child can communicate directly, parent supplements
+    - For adolescents (13+ years): Child communicates like adult, may want privacy
+    - Include developmental milestones appropriate for age
+    - Parent communication should reflect their education level and health literacy` : ''}
     
     COMMON DIAGNOSIS VARIATIONS (use these if the exact term doesn't fit):
     - "MI" or "Myocardial Infarction" → use "Myocardial Infarction"
@@ -134,11 +143,13 @@ export const generateSingleDiagnosisPrompt = (
     - "UTI" → use "Urinary Tract Infection"
     - "PNA" or "Pneumonia" → use "Pneumonia"
     
-    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}.
+    The output MUST be a single, perfectly valid JSON object with this exact structure: ${isPediatric ? 
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}}` :
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}`}.
 
     - "diagnosis": MUST be "${condition}" or a very close variation (see variations above)
     - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-        - ## BIODATA
+        - ## BIODATA ${isPediatric ? '(child age, parent)' : ''}
         - ## Presenting Complaint
         - ## History of Presenting Complaint
         - ## Past Medical and Surgical History
@@ -146,8 +157,11 @@ export const generateSingleDiagnosisPrompt = (
         - ## Family History
         - ## Social History
         - ## Review of Systems
-    - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
-    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}
+        ${isPediatric ? '- ## Developmental History' : ''}
+    - "openingLine": A natural, first-person statement ${isPediatric ? 'from parent/child' : 'from patient'} that initiates the consultation.
+    ${isPediatric ? `
+    - "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}` : `
+    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}`}
 
     REMEMBER: The diagnosis MUST be "${condition}" or a very close variation. Do not generate a case for a different condition.`;
 };
@@ -199,6 +213,15 @@ export const generateCustomCasePrompt = (
     - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
     - Avoid patients using exact drug names or dosages
     - Match communication style to education level and health literacy
+    ${isPediatric ? `
+    PEDIATRIC SPECIFIC GUIDELINES:
+    - For infants (0-12 months): Parent provides most history, child non-verbal
+    - For toddlers (1-3 years): Parent provides history, child may use basic words
+    - For preschoolers (3-5 years): Parent provides history, child may use simple sentences
+    - For school-age (6-12 years): Child can communicate directly, parent supplements
+    - For adolescents (13+ years): Child communicates like adult, may want privacy
+    - Include developmental milestones appropriate for age
+    - Parent communication should reflect their education level and health literacy` : ''}
     
     CONTEXT MATCHING GUIDELINES:
     - If the scenario mentions chest pain → the case must involve chest pain
@@ -207,11 +230,13 @@ export const generateCustomCasePrompt = (
     - If the scenario mentions specific conditions → those conditions must be central to the case
     - If the scenario mentions specific symptoms → those symptoms must be prominent in the case
     
-    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}.
+    The output MUST be a single, perfectly valid JSON object with this exact structure: ${isPediatric ? 
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}}` :
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}`}.
 
     - "diagnosis": The most likely diagnosis based on the provided case description (must align with the scenario)
     - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
-        - ## BIODATA
+        - ## BIODATA ${isPediatric ? '(child age, parent)' : ''}
         - ## Presenting Complaint
         - ## History of Presenting Complaint
         - ## Past Medical and Surgical History
@@ -219,8 +244,11 @@ export const generateCustomCasePrompt = (
         - ## Family History
         - ## Social History
         - ## Review of Systems
-    - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
-    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}
+        ${isPediatric ? '- ## Developmental History' : ''}
+    - "openingLine": A natural, first-person statement ${isPediatric ? 'from parent/child' : 'from patient'} that initiates the consultation.
+    ${isPediatric ? `
+    - "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}` : `
+    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}`}
 
     REMEMBER: The generated case MUST closely match the medical context of the provided scenario. Do not deviate from the core medical problem described.`;
 };
