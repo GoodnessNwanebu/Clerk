@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from './Icon';
+import ReactMarkdown from 'react-markdown';
 
 interface CaseData {
   id: string;
@@ -228,16 +229,20 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
           <div className="space-y-6">
             <div>
               <h3 className="font-medium text-slate-900 dark:text-white mb-2">General Examination</h3>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {caseData.caseReport.examination.generalExamination}
-              </p>
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <ReactMarkdown>
+                  {caseData.caseReport.examination.generalExamination}
+                </ReactMarkdown>
+              </div>
             </div>
 
             <div>
               <h3 className="font-medium text-slate-900 dark:text-white mb-2">Systemic Examination</h3>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {caseData.caseReport.examination.systemicExamination}
-              </p>
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <ReactMarkdown>
+                  {caseData.caseReport.examination.systemicExamination}
+                </ReactMarkdown>
+              </div>
             </div>
 
             {caseData.caseReport.examination.findings.length > 0 && (
@@ -389,9 +394,11 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
 
             <div>
               <h3 className="font-medium text-slate-900 dark:text-white mb-2">Clinical Reasoning</h3>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {caseData.caseReport.assessment.reasoning}
-              </p>
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <ReactMarkdown>
+                  {caseData.caseReport.assessment.reasoning}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         </div>
@@ -451,9 +458,11 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
 
             <div>
               <h3 className="font-medium text-slate-900 dark:text-white mb-2">Follow-up</h3>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {caseData.caseReport.management.followUp}
-              </p>
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <ReactMarkdown>
+                  {caseData.caseReport.management.followUp}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         </div>
@@ -472,7 +481,11 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
           {/* Key Learning Point */}
           <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-3">Key Learning Point</h2>
-            <p className="text-slate-900 dark:text-white leading-relaxed">{caseData.feedback.keyLearningPoint}</p>
+            <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+              <ReactMarkdown>
+                {caseData.feedback.keyLearningPoint}
+              </ReactMarkdown>
+            </div>
           </div>
 
           {/* What You Did Well */}
@@ -483,9 +496,15 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
             </h2>
             <ul className="space-y-3">
               {caseData.feedback.whatYouDidWell.map((point, index) => (
-                <li key={index} className="flex items-start">
-                  <Icon name="check" size={16} className="mr-3 mt-0.5 text-green-500 flex-shrink-0" />
-                  <span className="text-slate-900 dark:text-white">{point}</span>
+                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <Icon name="check-circle" className="text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" size={16}/>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>
+                        {point}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -499,9 +518,15 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
             </h2>
             <ul className="space-y-3">
               {caseData.feedback.whatCouldBeImproved.map((point, index) => (
-                <li key={index} className="flex items-start">
-                  <Icon name="arrow-right" size={16} className="mr-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                  <span className="text-slate-900 dark:text-white">{point}</span>
+                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <Icon name="x-circle" className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" size={16}/>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>
+                        {point}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -513,13 +538,20 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
               <Icon name="lightbulb" size={20} className="mr-2 text-purple-500" />
               Clinical Pearls
             </h2>
-            <div className="space-y-3">
+            <ul className="space-y-3">
               {caseData.feedback.clinicalPearls.map((pearl, index) => (
-                <div key={index} className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg">
-                  <p className="text-green-800 dark:text-green-200 font-medium">• {pearl}</p>
-                </div>
+                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <Icon name="star" className="text-emerald-500 dark:text-emerald-400 flex-shrink-0 mt-0.5" size={16}/>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>
+                        {pearl}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
           {/* Missed Opportunities */}
@@ -529,16 +561,24 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                 <Icon name="alert-triangle" size={20} className="mr-2 text-red-500" />
                 Missed Opportunities
               </h2>
-              <div className="space-y-4">
+              <ul className="space-y-4">
                 {caseData.feedback.missedOpportunities.map((opportunity, index) => (
-                  <div key={index} className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
-                    <p className="font-semibold text-red-800 dark:text-red-200 mb-2">{opportunity.opportunity}</p>
-                    <p className="text-red-700 dark:text-red-300 text-sm italic">
-                      <strong>Clinical significance:</strong> {opportunity.clinicalSignificance}
-                    </p>
-                  </div>
+                  <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                    <div className="space-y-2">
+                      <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-900 dark:text-white font-medium leading-relaxed">
+                        <ReactMarkdown>
+                          {opportunity.opportunity}
+                        </ReactMarkdown>
+                      </div>
+                      <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        <ReactMarkdown>
+                          {`**Clinical significance:** ${opportunity.clinicalSignificance}`}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
         </>

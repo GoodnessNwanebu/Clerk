@@ -46,35 +46,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('🔄 [complete] Starting comprehensive feedback generation...');
+      console.log('🔄 [complete] Starting parallel feedback and case report generation...');
       
-      // Generate comprehensive feedback using secure primary context
-      const feedback = await generateComprehensiveFeedbackDirect({
-        primaryContext,
-        secondaryContext: {
-          messages,
-          finalDiagnosis,
-          managementPlan,
-          examinationResults,
-          investigationResults
-        }
-      });
+      // Generate comprehensive feedback and case report in parallel
+      const [feedback, caseReport] = await Promise.all([
+        generateComprehensiveFeedbackDirect({
+          primaryContext,
+          secondaryContext: {
+            messages,
+            finalDiagnosis,
+            managementPlan,
+            examinationResults,
+            investigationResults
+          }
+        }),
+        generateCaseReport({
+          primaryContext,
+          secondaryContext: {
+            messages,
+            finalDiagnosis,
+            managementPlan,
+            examinationResults,
+            investigationResults
+          }
+        })
+      ]);
       
-      console.log('✅ [complete] Comprehensive feedback generated successfully');
-
-      // Generate standard medical case report (rounds format)
-      console.log('🔄 [complete] Generating case report...');
-      const caseReport = await generateCaseReport({
-        primaryContext,
-        secondaryContext: {
-          messages,
-          finalDiagnosis,
-          managementPlan,
-          examinationResults,
-          investigationResults
-        }
-      });
-      console.log('✅ [complete] Case report generated successfully');
+      console.log('✅ [complete] Both feedback and case report generated successfully');
 
       // Save completed case to database with comprehensive logging
       console.log('🔄 [complete] Saving case to database...');

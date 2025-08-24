@@ -87,8 +87,9 @@ const ClerkingScreen: React.FC = () => {
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
 
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
-
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+
 
 
 
@@ -134,15 +135,35 @@ const ClerkingScreen: React.FC = () => {
 
   useEffect(() => {
 
-    const handleScroll = () => {
+    const handleWindowScroll = () => {
 
       setIsHeaderSticky(window.scrollY > 50);
+
+    };
+
+
+
+    const handleChatScroll = () => {
+
+      const chatContainer = mainRef.current;
+
+      if (!chatContainer) return;
 
       
 
       // Check if user has scrolled up from bottom (threshold of 100px from bottom)
 
-      const isNearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+      const scrollTop = chatContainer.scrollTop;
+
+      const scrollHeight = chatContainer.scrollHeight;
+
+      const clientHeight = chatContainer.clientHeight;
+
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+      
+
+      console.log('Chat scroll:', { scrollTop, scrollHeight, clientHeight, isNearBottom });
 
       setShowScrollToBottom(!isNearBottom);
 
@@ -150,11 +171,89 @@ const ClerkingScreen: React.FC = () => {
 
 
 
-    window.addEventListener('scroll', handleScroll);
+    // Listen to window scroll for sticky header
 
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleWindowScroll);
+
+    
+
+    // Listen to chat container scroll for scroll-to-bottom button
+
+    const chatContainer = mainRef.current;
+
+    if (chatContainer) {
+
+      chatContainer.addEventListener('scroll', handleChatScroll);
+
+      // Also check initial state
+
+      handleChatScroll();
+
+    }
+
+
+
+    return () => {
+
+      window.removeEventListener('scroll', handleWindowScroll);
+
+      if (chatContainer) {
+
+        chatContainer.removeEventListener('scroll', handleChatScroll);
+
+      }
+
+    };
 
   }, []);
+
+  
+
+  // Ensure scroll listener is attached when mainRef is available
+
+  useEffect(() => {
+
+    const chatContainer = mainRef.current;
+
+    if (chatContainer) {
+
+      const handleChatScroll = () => {
+
+        const scrollTop = chatContainer.scrollTop;
+
+        const scrollHeight = chatContainer.scrollHeight;
+
+        const clientHeight = chatContainer.clientHeight;
+
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+        
+
+        console.log('Chat scroll (from effect):', { scrollTop, scrollHeight, clientHeight, isNearBottom });
+
+        setShowScrollToBottom(!isNearBottom);
+
+      };
+
+      
+
+      chatContainer.addEventListener('scroll', handleChatScroll);
+
+      // Check initial state
+
+      handleChatScroll();
+
+      
+
+      return () => {
+
+        chatContainer.removeEventListener('scroll', handleChatScroll);
+
+      };
+
+    }
+
+  }, [mainRef.current]);
 
 
 
@@ -176,7 +275,63 @@ const ClerkingScreen: React.FC = () => {
 
   const scrollToBottom = useCallback(() => {
 
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const chatContainer = mainRef.current;
+
+    if (chatContainer) {
+
+      chatContainer.scrollTo({
+
+        top: chatContainer.scrollHeight,
+
+        behavior: 'smooth'
+
+      });
+
+    }
+
+  }, []);
+
+  
+
+  // Handle chat scroll for scroll-to-bottom button
+
+  useEffect(() => {
+
+    const chatContainer = mainRef.current;
+
+    if (!chatContainer) return;
+
+    
+
+    const handleChatScroll = () => {
+
+      const scrollTop = chatContainer.scrollTop;
+
+      const scrollHeight = chatContainer.scrollHeight;
+
+      const clientHeight = chatContainer.clientHeight;
+
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 150;
+
+      setShowScrollToBottom(!isNearBottom);
+
+    };
+
+    
+
+    chatContainer.addEventListener('scroll', handleChatScroll);
+
+    // Check initial state
+
+    handleChatScroll();
+
+    
+
+    return () => {
+
+      chatContainer.removeEventListener('scroll', handleChatScroll);
+
+    };
 
   }, []);
 
@@ -658,31 +813,27 @@ const ClerkingScreen: React.FC = () => {
 
 
 
-        {/* Floating Scroll to Bottom Button */}
+        {/* Scroll to Bottom Button */}
 
-        <button
+        {showScrollToBottom && (
 
-          onClick={scrollToBottom}
+          <button
 
-          className={`fixed bottom-32 left-1/2 transform -translate-x-1/2 z-20 w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 ${
+            onClick={scrollToBottom}
 
-            showScrollToBottom 
+            className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-20 w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
 
-              ? 'opacity-100 scale-100 translate-y-0' 
+            aria-label="Scroll to bottom"
 
-              : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+            style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
 
-          }`}
+          >
 
-          aria-label="Scroll to bottom"
+            <Icon name="arrow-down" size={20} />
 
-          style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
+          </button>
 
-        >
-
-          <Icon name="arrow-down" size={20} />
-
-        </button>
+        )}
 
       </main>
 

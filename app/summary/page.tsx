@@ -122,33 +122,47 @@ const SummaryScreen: React.FC = () => {
         try {
             setPreliminaryData(prelimDiagnosis, examinationPlan, investigationPlan);
             
-            // Get examination results if examination plan is provided
-            let examinationResults: ExaminationResult[] = [];
+            // Generate examination and investigation results in parallel
+            const promises = [];
+            
+            // Add examination results promise if plan is provided
             if (examinationPlan.trim()) {
-                try {
-                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                    setExaminationResults(examinationResults);
-                } catch (examError) {
-                    console.warn('Failed to get examination results, retrying...', examError);
-                    // Retry examination results
-                    examinationResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                    setExaminationResults(examinationResults);
-                }
+                promises.push(
+                    getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
+                        .then(results => {
+                            setExaminationResults(results);
+                            return { type: 'examination', results };
+                        })
+                        .catch(async (examError) => {
+                            console.warn('Failed to get examination results, retrying...', examError);
+                            // Retry examination results
+                            const retryResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                            setExaminationResults(retryResults);
+                            return { type: 'examination', results: retryResults };
+                        })
+                );
             }
             
-            // Get investigation results if investigation plan is provided
-            let investigationResults: InvestigationResult[] = [];
+            // Add investigation results promise if plan is provided
             if (investigationPlan.trim()) {
-                try {
-                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                    setInvestigationResults(investigationResults);
-                } catch (invError) {
-                    console.warn('Failed to get investigation results, retrying...', invError);
-                    // Retry investigation results
-                    investigationResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                    setInvestigationResults(investigationResults);
-                }
+                promises.push(
+                    getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
+                        .then(results => {
+                            setInvestigationResults(results);
+                            return { type: 'investigation', results };
+                        })
+                        .catch(async (invError) => {
+                            console.warn('Failed to get investigation results, retrying...', invError);
+                            // Retry investigation results
+                            const retryResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                            setInvestigationResults(retryResults);
+                            return { type: 'investigation', results: retryResults };
+                        })
+                );
             }
+            
+            // Wait for all promises to complete
+            await Promise.all(promises);
             
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
@@ -169,15 +183,14 @@ const SummaryScreen: React.FC = () => {
         try {
             setFinalData(finalDiagnosis, managementPlan);
             
-            // Auto-complete and save case to DB - this now includes comprehensive feedback generation
+            // Start case completion and feedback generation
             const caseCompleted = await completeCaseAndSave();
             
             if (!caseCompleted) {
                 throw new Error("Failed to complete and save case");
             }
             
-            // The completeCaseAndSave function now handles feedback generation internally
-            // and sets the feedback in the context, so we can navigate directly to feedback page
+            // Navigate to feedback page immediately - case report continues in background
             router.push('/feedback');
         } catch (err) {
             handleApiError(err);
@@ -206,7 +219,7 @@ const SummaryScreen: React.FC = () => {
                 {phase === 'initial' && (
                     <>
                         <div>
-                            <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Preliminary Diagnosis</label>
+                            <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Differential Diagnosis</label>
                             <textarea value={prelimDiagnosis} onChange={(e) => handlePrelimDiagnosisChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
                         </div>
                         <div>

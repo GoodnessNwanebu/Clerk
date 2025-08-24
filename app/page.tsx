@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '../components/Icon';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import { ResumeCaseModal } from '../components/modals/ResumeCaseModal';
+import { AuthRequiredModal } from '../components/modals/AuthRequiredModal';
 import { useAppContext } from '../context/AppContext';
+import { useAuthCheck } from '../hooks/useAuthCheck';
 import { ConversationStorageUtils } from '../lib/storage/localStorage';
 import { getActiveCases } from '../lib/ai/geminiService';
 import PWATutorialModal from '../components/PWATutorialModal';
@@ -31,6 +33,7 @@ const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onCl
 export default function HomePage() {
   const router = useRouter();
   const { resumeCase } = useAppContext();
+  const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute, isAuthenticated } = useAuthCheck();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string; caseId?: string } | null>(null);
@@ -40,21 +43,24 @@ export default function HomePage() {
   useEffect(() => {
     const checkForResumableCase = async () => {
       try {
-        // First check if there are any active cases from the backend
-        const activeCases = await getActiveCases();
-        
-        if (activeCases.length > 0) {
-          // Use the most recent active case
-          const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
+        // Only check backend for active cases if user is authenticated
+        if (isAuthenticated) {
+          // First check if there are any active cases from the backend
+          const activeCases = await getActiveCases();
           
-          // Show the resume modal instead of auto-resuming
-          setSavedCaseInfo({
-            department: mostRecent.department.name,
-            lastUpdated: mostRecent.updatedAt,
-            caseId: mostRecent.id
-          });
-          setShowResumeModal(true);
-          return;
+          if (activeCases.length > 0) {
+            // Use the most recent active case
+            const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
+            
+            // Show the resume modal instead of auto-resuming
+            setSavedCaseInfo({
+              department: mostRecent.department.name,
+              lastUpdated: mostRecent.updatedAt,
+              caseId: mostRecent.id
+            });
+            setShowResumeModal(true);
+            return;
+          }
         }
         
         // Fallback: Check localStorage for any saved conversations
@@ -81,7 +87,7 @@ export default function HomePage() {
     };
     
     checkForResumableCase();
-  }, [resumeCase, router]);
+  }, [resumeCase, router, isAuthenticated]);
 
   // Simplified PWA tutorial logic
   useEffect(() => {
@@ -250,7 +256,10 @@ export default function HomePage() {
   };
 
   const handleSavedCases = () => {
-    router.push('/saved-cases');
+    checkAuthAndExecute(
+      () => router.push('/saved-cases'),
+      'Please sign in to view your saved cases'
+    );
   };
 
   const handlePWATutorialComplete = () => {
@@ -277,6 +286,11 @@ export default function HomePage() {
         isOpen={showPWATutorial}
         onClose={handlePWATutorialClose}
         onComplete={handlePWATutorialComplete}
+      />
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={hideAuthModal}
+        message={authMessage}
       />
       <div className=" bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex flex-col p-6 sm:p-8 transition-colors duration-300 relative">
         {/* Settings Button - Top Right */}

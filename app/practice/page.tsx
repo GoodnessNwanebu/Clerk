@@ -6,13 +6,17 @@ import { useAppContext } from '../../context/AppContext';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
+import { AuthRequiredModal } from '../../components/modals/AuthRequiredModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { useAuthCheck } from '../../hooks/useAuthCheck';
 import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
 const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
   const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
+  const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute } = useAuthCheck();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedSubspecialty, setSelectedSubspecialty] = useState<Subspecialty | null>(null);
   const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +70,7 @@ const PracticeModeScreen: React.FC = () => {
       // For direct departments, set both the main department and selected department
       setSelectedMainDepartment(department);
       setSelectedDepartment(department);
+      setSelectedSubspecialty(null); // Clear subspecialty when selecting direct department
     }
     setShowDepartmentDropdown(false);
   };
@@ -83,6 +88,8 @@ const PracticeModeScreen: React.FC = () => {
     };
     
     setSelectedDepartment(departmentFromSubspecialty);
+    setSelectedSubspecialty(subspecialty);
+    setShowSubspecialtyModal(false);
   };
 
   const handleStartPractice = async () => {
@@ -91,7 +98,9 @@ const PracticeModeScreen: React.FC = () => {
       return;
     }
 
-    await handleDirectStartPractice(selectedDepartment);
+    checkAuthAndExecute(async () => {
+      await handleDirectStartPractice(selectedDepartment);
+    }, 'Please sign in to create a case');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -118,6 +127,11 @@ const PracticeModeScreen: React.FC = () => {
         department={selectedMainDepartment!}
         onSelectSubspecialty={handleSubspecialtySelect}
         disabled={isGeneratingCase}
+      />
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={hideAuthModal}
+        message={authMessage}
       />
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
         <div className="max-w-4xl mx-auto">
@@ -164,9 +178,16 @@ const PracticeModeScreen: React.FC = () => {
                       ) : (
                         <Icon name="building-2" size={24} />
                       )}
-                      <span className="font-medium">
-                        {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
-                      </span>
+                      <div className="text-left">
+                        <span className="font-medium">
+                          {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
+                        </span>
+                        {selectedSubspecialty && (
+                          <div className="text-sm text-teal-600 dark:text-teal-400">
+                            → {selectedSubspecialty.name}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <Icon 
                       name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} 
@@ -222,9 +243,9 @@ const PracticeModeScreen: React.FC = () => {
                           <Icon name={dept.icon} size={24} />
                           <div className="text-left">
                             <span className="font-medium">{dept.name}</span>
-                            {isSelected && selectedDepartment && selectedDepartment.name !== dept.name && (
+                            {isSelected && selectedSubspecialty && (
                               <div className="text-sm text-teal-600 dark:text-teal-400">
-                                → {selectedDepartment.name}
+                                → {selectedSubspecialty.name}
                               </div>
                             )}
                           </div>
@@ -239,7 +260,7 @@ const PracticeModeScreen: React.FC = () => {
               </div>
               
               {/* Selected Subspecialty Display */}
-              {selectedDepartment && selectedDepartment.name !== selectedMainDepartment?.name && (
+              {selectedSubspecialty && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -247,7 +268,7 @@ const PracticeModeScreen: React.FC = () => {
                       <div>
                         <span className="font-medium text-green-800 dark:text-green-200">Selected:</span>
                         <span className="ml-2 font-semibold text-green-900 dark:text-green-100">
-                          {selectedDepartment.name}
+                          {selectedMainDepartment?.name} → {selectedSubspecialty.name}
                         </span>
                       </div>
                     </div>
@@ -255,6 +276,7 @@ const PracticeModeScreen: React.FC = () => {
                       onClick={() => {
                         setSelectedDepartment(null);
                         setSelectedMainDepartment(null);
+                        setSelectedSubspecialty(null);
                       }} 
                       className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors"
                       disabled={isGeneratingCase}

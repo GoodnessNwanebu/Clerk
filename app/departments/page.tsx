@@ -6,7 +6,9 @@ import { useAppContext } from '../../context/AppContext';
 import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
+import { AuthRequiredModal } from '../../components/modals/AuthRequiredModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { useAuthCheck } from '../../hooks/useAuthCheck';
 import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
 const DepartmentCard: React.FC<{ department: Department; onClick: () => void; disabled: boolean }> = ({ department, onClick, disabled }) => (
@@ -37,6 +39,7 @@ const DepartmentCard: React.FC<{ department: Department; onClick: () => void; di
 const DepartmentSelectionScreen: React.FC = () => {
   const router = useRouter();
   const { generateNewCaseWithDifficulty, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
+  const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute } = useAuthCheck();
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
@@ -68,7 +71,7 @@ const DepartmentSelectionScreen: React.FC = () => {
       setSelectedDepartment(department);
       setShowSubspecialtyModal(true);
     } else {
-      handleDirectSelect(department);
+      checkAuthAndExecute(() => handleDirectSelect(department), 'Please sign in to create a case');
     }
   };
 
@@ -85,7 +88,7 @@ const DepartmentSelectionScreen: React.FC = () => {
     };
     
     // Pass the subspecialty name to the case generation
-    handleDirectSelect(departmentFromSubspecialty, subspecialty.name);
+    checkAuthAndExecute(() => handleDirectSelect(departmentFromSubspecialty, subspecialty.name), 'Please sign in to create a case');
   };
 
   return (
@@ -97,6 +100,11 @@ const DepartmentSelectionScreen: React.FC = () => {
         department={selectedDepartment!}
         onSelectSubspecialty={handleSubspecialtySelect}
         disabled={isGeneratingCase}
+      />
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={hideAuthModal}
+        message={authMessage}
       />
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
         <header className="flex items-center justify-between mb-8">

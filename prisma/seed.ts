@@ -24,9 +24,9 @@ async function main() {
         'Pediatric Neurology',
         'Pediatric Oncology',
         'Pediatric Emergency Medicine',
-        'Pediatric Surgery',
+        'Infectious Diseases',
         'Pediatric Psychiatry',
-        'Pediatric Gastroenterology',
+        'Pediatric Community Medicine',
         'Pediatric Nephrology'
       ]
     },
@@ -57,7 +57,8 @@ async function main() {
         'Neurosurgery',
         'Plastic Surgery',
         'Urology',
-        'Cardiothoracic'
+        'Cardiothoracic',
+        'Pediatric Surgery'
       ]
     }
   ];

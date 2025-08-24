@@ -5,8 +5,8 @@ import {
   Lightbulb, Baby, User, Heart, X, ChevronsRight, SendHorizontal, Loader2,
   Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
   Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
-  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, Bookmark,
-  Chrome, Compass, Info, Image, Download, UserCheck
+  Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Bookmark,
+  Chrome, Compass, Info, Image, Download, UserCheck, FileText, Microscope, ClipboardList, MessageCircle, Share2, Trash2, Calendar, Plus, Filter, Eye as EyeIcon
 } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
@@ -38,6 +38,8 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'chevrons-right': return <ChevronsRight {...iconProps} />;
     case 'chevron-up': return <ChevronUp {...iconProps} />;
     case 'chevron-down': return <ChevronDown {...iconProps} />;
+    case 'chevron-left': return <ChevronLeft {...iconProps} />;
+    case 'chevron-right': return <ChevronRight {...iconProps} />;
     case 'send': return <SendHorizontal {...iconProps} />;
     case 'loader-2': return <Loader2 {...iconProps} />;
     case 'mail': return <Mail {...iconProps} />;
@@ -77,6 +79,18 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'image': return <Image {...iconProps} />;
     case 'download': return <Download {...iconProps} />;
     case 'user-check': return <UserCheck {...iconProps} />;
+    // Tab icons
+    case 'file-text': return <FileText {...iconProps} />;
+    case 'microscope': return <Microscope {...iconProps} />;
+    case 'clipboard-list': return <ClipboardList {...iconProps} />;
+    case 'message-circle': return <MessageCircle {...iconProps} />;
+    // Action icons
+    case 'share-2': return <Share2 {...iconProps} />;
+    case 'trash-2': return <Trash2 {...iconProps} />;
+    case 'calendar': return <Calendar {...iconProps} />;
+    case 'plus': return <Plus {...iconProps} />;
+    case 'filter': return <Filter {...iconProps} />;
+    case 'eye': return <EyeIcon {...iconProps} />;
     // Fallback for missing icons (like 'stomach')
     case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
     case 'mind': return <Brain {...iconProps} />; // Using brain as fallback
