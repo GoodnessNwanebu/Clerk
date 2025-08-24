@@ -37,14 +37,26 @@ interface CaseReport {
     socialHistory: string;
     familyHistory: string;
   };
+  history: {
+    presentingComplaint: string;
+    historyOfPresentingIllness: string;
+    pastMedicalHistory: string;
+    medications: string;
+    allergies: string;
+    socialHistory: string;
+    familyHistory: string;
+    reviewOfSystems: string;
+  };
   examination: {
     generalExamination: string;
     systemicExamination: string;
     findings: string[];
+    rationale: string;
   };
   investigations: {
     requested: string[];
     results: string[];
+    rationale: string;
   };
   assessment: {
     differentialDiagnosis: string[];
@@ -69,6 +81,9 @@ interface CompleteCaseRequest {
   examinationResults: ExaminationResult[];
   investigationResults: InvestigationResult[];
   messages: Message[];
+  preliminaryDiagnosis?: string;
+  examinationPlan?: string;
+  investigationPlan?: string;
   makeVisible?: boolean; // User's visibility preference
 }
 
@@ -77,7 +92,7 @@ interface CompleteCaseResponse {
   caseId: string;
   message: string;
   feedback: ComprehensiveFeedback;
-  caseReport: CaseReport;
+  caseReport?: CaseReport; // Optional since it's generated in background
 }
 
 // Saved Cases Types

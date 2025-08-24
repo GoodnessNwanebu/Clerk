@@ -33,9 +33,31 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
+    // Sort departments: Ob Gyn first, then departments with subspecialties, then others, with Dentistry last
+    const sortedDepartments = transformedDepartments.sort((a, b) => {
+      // Special case: Dentistry should always be last
+      if (a.name === 'Dentistry') return 1;
+      if (b.name === 'Dentistry') return -1;
+      
+      // Special case: Obstetrics and Gynecology should be first
+      if (a.name === 'Obstetrics' || a.name === 'Gynecology') return -1;
+      if (b.name === 'Obstetrics' || b.name === 'Gynecology') return 1;
+      
+      const aHasSubspecialties = a.subspecialties.length > 0;
+      const bHasSubspecialties = b.subspecialties.length > 0;
+      
+      // If one has subspecialties and the other doesn't, put the one with subspecialties first
+      if (aHasSubspecialties !== bHasSubspecialties) {
+        return aHasSubspecialties ? -1 : 1;
+      }
+      
+      // If both have the same subspecialty status, sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+
     return NextResponse.json({
       success: true,
-      departments: transformedDepartments,
+      departments: sortedDepartments,
     }, {
       headers: CACHE_HEADERS
     });

@@ -52,6 +52,26 @@ export const { auth, signIn, signOut } = NextAuth({
       if (account) {
         token.accessToken = account.access_token
       }
+      
+      // Check if user exists in database (this will be handled in session callback)
+      if (token.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email }
+          });
+          
+          if (!dbUser) {
+            console.log('⚠️ JWT: User logged in but no account found, will create in session callback');
+            // Don't invalidate here, let the session callback handle it
+          } else {
+            console.log('✅ JWT: User account found:', dbUser.id);
+          }
+        } catch (error) {
+          console.error('❌ JWT: Error checking user account:', error);
+          // Don't invalidate here, let the session callback handle it
+        }
+      }
+      
       return token
     },
     async session({ session, token }) {
@@ -60,7 +80,8 @@ export const { auth, signIn, signOut } = NextAuth({
         tokenEmail: token.email 
       });
       
-      // You can add custom properties to session here if needed
+      // Account validation is now handled by the AccountValidation component
+      // This keeps the session callback simple and avoids throwing errors
       return session
     },
   },

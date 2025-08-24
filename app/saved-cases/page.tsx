@@ -1,68 +1,47 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../../components/Icon';
 import { useAppContext } from '../../context/AppContext';
-
-interface CompletedCase {
-  id: string;
-  diagnosis: string;
-  department: { name: string };
-  savedAt: string;
-  completedAt: string;
-}
+import { useSavedCasesCache } from '../../hooks/useSavedCasesCache';
 
 export default function SavedCasesPage() {
   const router = useRouter();
-  const { userEmail } = useAppContext();
-  const [completedCases, setCompletedCases] = useState<CompletedCase[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCompletedCases = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Build URL with userEmail if available
-        const url = userEmail 
-          ? `/api/cases/completed?userEmail=${encodeURIComponent(userEmail)}`
-          : '/api/cases/completed';
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          setError('Failed to load saved cases');
-          return;
-        }
-
-        const data = await response.json();
-        
-        if (data.success && data.cases) {
-          setCompletedCases(data.cases);
-        } else {
-          setError('Invalid data received');
-        }
-      } catch (error) {
-        console.error('Error fetching completed cases:', error);
-        setError('Failed to load saved cases');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCompletedCases();
-  }, [userEmail]);
+  const { userEmail, toggleCaseVisibility } = useAppContext();
+  const { 
+    cases: completedCases, 
+    isLoading, 
+    error, 
+    refreshCases,
+    removeCase
+  } = useSavedCasesCache(userEmail);
+  
+  const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
 
   const handleViewCase = (caseId: string) => {
     router.push(`/saved-cases/${caseId}`);
   };
 
-  const handleDeleteCase = (caseId: string) => {
-    // TODO: Implement delete functionality
-    console.log('Delete case:', caseId);
+  const handleDeleteCase = async (caseId: string) => {
+    try {
+      setDeletingCaseId(caseId);
+      
+      // Toggle visibility to false (hide the case)
+      const success = await toggleCaseVisibility(caseId, false);
+      
+      if (success) {
+        // Remove from cache immediately for better UX
+        removeCase(caseId);
+        console.log('✅ Case hidden successfully');
+      } else {
+        console.error('❌ Failed to hide case');
+      }
+    } catch (error) {
+      console.error('Error hiding case:', error);
+    } finally {
+      setDeletingCaseId(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -109,7 +88,7 @@ export default function SavedCasesPage() {
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Oops! Something went wrong</h2>
               <p className="text-slate-600 dark:text-slate-300 mb-6">{error}</p>
               <button 
-                onClick={() => window.location.reload()}
+                onClick={refreshCases}
                 className="w-full px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Try Again
@@ -146,6 +125,14 @@ export default function SavedCasesPage() {
                 <Icon name="book-open" size={16} />
                 <span>{completedCases.length} case{completedCases.length !== 1 ? 's' : ''}</span>
               </div>
+              <button
+                onClick={refreshCases}
+                disabled={isLoading}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh saved cases"
+              >
+                <Icon name="refresh-cw" size={20} className={`text-slate-600 dark:text-slate-300 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
         </div>
@@ -206,10 +193,10 @@ export default function SavedCasesPage() {
                     {completedCases.length} case{completedCases.length !== 1 ? 's' : ''} completed and saved
                   </p>
                 </div>
-                <div className="flex items-center space-x-2">
+                {/* <div className="flex items-center space-x-2">
                   <Icon name="filter" size={20} className="text-slate-400" />
                   <span className="text-sm text-slate-500 dark:text-slate-400">All Departments</span>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -231,9 +218,15 @@ export default function SavedCasesPage() {
                         e.stopPropagation(); 
                         handleDeleteCase(completedCase.id); 
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                      disabled={deletingCaseId === completedCase.id}
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Hide case"
                     >
-                      <Icon name="trash-2" size={16} />
+                      {deletingCaseId === completedCase.id ? (
+                        <Icon name="loader-2" size={16} className="animate-spin" />
+                      ) : (
+                        <Icon name="trash-2" size={16} />
+                      )}
                     </button>
                   </div>
 
@@ -245,7 +238,7 @@ export default function SavedCasesPage() {
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                     <div className="flex items-center space-x-1">
                       <Icon name="calendar" size={14} />
-                      <span>{formatDate(completedCase.savedAt)}</span>
+                      <span>{formatDate(completedCase.completedAt)}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Icon name="eye" size={14} />

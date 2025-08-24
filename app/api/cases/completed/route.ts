@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         caseReport: true
       },
       orderBy: {
-        savedAt: 'desc'
+        completedAt: 'desc'
       }
     });
 
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       department: {
         name: caseRecord.department.name
       },
-      savedAt: caseRecord.savedAt?.toISOString() || caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString(),
+      // savedAt: caseRecord.savedAt?.toISOString() || caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString(),
       completedAt: caseRecord.completedAt?.toISOString() || caseRecord.updatedAt.toISOString(),
       // Include all the saved data
       messages: caseRecord.messages,

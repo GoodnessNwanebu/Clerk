@@ -27,7 +27,11 @@ async function main() {
         'Infectious Diseases',
         'Pediatric Psychiatry',
         'Pediatric Community Medicine',
-        'Pediatric Nephrology'
+        'Pediatric Nephrology',
+        'Pediatric Gastroenterology',
+        'Pediatric Hematology',
+        'Pediatric Infectious Diseases',
+        'Pediatric Pulmonology',
       ]
     },
     {
@@ -60,6 +64,10 @@ async function main() {
         'Cardiothoracic',
         'Pediatric Surgery'
       ]
+    },
+    {
+      name: 'Dentistry',
+      subspecialties: []
     }
   ];
 

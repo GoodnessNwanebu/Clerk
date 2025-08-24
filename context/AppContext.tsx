@@ -68,6 +68,7 @@ interface AppContextType {
   setExaminationResults: (results: ExaminationResult[]) => void;
   setFinalData: (diagnosis: string, plan: string) => void;
   setFeedback: (feedback: Feedback | ComprehensiveFeedback) => void;
+  setDepartment: (department: string) => void;
   resetCase: () => void;
   completeCaseWithJWT: (makeVisible?: boolean) => Promise<boolean>;
   completeCaseAndSave: () => Promise<boolean>;
@@ -78,6 +79,10 @@ interface AppContextType {
   isLoadingDepartments: boolean;
   loadDepartments: () => Promise<void>;
   refreshDepartments: () => Promise<void>;
+  
+  // Saved cases cache management
+  addCaseToCache: (caseData: any) => void;
+  clearSavedCasesCache: () => void;
 }
 
 const initialCaseState: CaseState = {
@@ -485,6 +490,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     [conversationStorage]
   );
 
+  const setDepartment = useCallback(
+    (department: string) => {
+      setCaseState((prev: CaseState) => ({
+        ...prev,
+        department
+      }));
+    },
+    []
+  );
+
   const resetCase = useCallback(() => {
     setCaseState(initialCaseState);
     setConversationStorage(null);
@@ -511,6 +526,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           examinationResults: caseState.examinationResults,
           investigationResults: caseState.investigationResults,
           messages: caseState.messages,
+          preliminaryDiagnosis: caseState.preliminaryDiagnosis,
+          examinationPlan: caseState.examinationPlan,
+          investigationPlan: caseState.investigationPlan,
           makeVisible: false, // Always save, but not visible initially
           caseId: caseState.caseId || undefined,
           sessionId: caseState.sessionId || undefined,
@@ -524,6 +542,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
             console.log("🔄 [AppContext.completeCaseAndSave] Setting feedback from complete API...");
             setFeedback(result.feedback);
             console.log("✅ [AppContext.completeCaseAndSave] Feedback set successfully");
+          }
+
+          // Deactivate session after successful completion to prevent resume
+          if (caseState.sessionId) {
+            try {
+              console.log(`🔄 [AppContext.completeCaseAndSave] Deactivating session after completion: ${caseState.sessionId}`);
+              await fetch('/api/sessions/invalidate', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  sessionId: caseState.sessionId,
+                  caseId: caseState.caseId
+                }),
+                credentials: 'include',
+              });
+              console.log(`✅ [AppContext.completeCaseAndSave] Session deactivated successfully after completion`);
+            } catch (error) {
+              console.error('❌ [AppContext.completeCaseAndSave] Error deactivating session after completion:', error);
+              // Don't fail the completion if session deactivation fails
+            }
           }
 
           // Clear localStorage after successful completion
@@ -689,6 +729,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     loadDepartments();
   }, [loadDepartments]);
 
+  // Saved cases cache management functions
+  const addCaseToCache = useCallback((caseData: any) => {
+    if (!isBrowser) return;
+    
+    try {
+      const cacheKey = 'savedCasesCache';
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const { cases: cachedCases, lastFetched } = JSON.parse(cached);
+        const updatedCases = [caseData, ...cachedCases];
+        
+        const cacheData = {
+          cases: updatedCases,
+          lastFetched: lastFetched || Date.now()
+        };
+        
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        console.log('✅ Added case to saved cases cache');
+      }
+    } catch (error) {
+      console.warn('Failed to add case to saved cases cache:', error);
+    }
+  }, [isBrowser]);
+
+  const clearSavedCasesCache = useCallback(() => {
+    if (!isBrowser) return;
+    
+    try {
+      localStorage.removeItem('savedCasesCache');
+      console.log('✅ Cleared saved cases cache');
+    } catch (error) {
+      console.warn('Failed to clear saved cases cache:', error);
+    }
+  }, [isBrowser]);
+
   const value = { 
     caseState, 
     isGeneratingCase, 
@@ -707,6 +783,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setExaminationResults, 
     setFinalData, 
     setFeedback, 
+    setDepartment,
     resetCase,
     completeCaseWithJWT,
     completeCaseAndSave,
@@ -716,6 +793,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     isLoadingDepartments,
     loadDepartments,
     refreshDepartments,
+    addCaseToCache,
+    clearSavedCasesCache,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

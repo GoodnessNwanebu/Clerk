@@ -163,7 +163,7 @@ model Case {
   openingLine           String
   isPediatric           Boolean  @default(false)
   difficultyLevel       String   @default("standard") // 'standard' | 'intermediate' | 'difficult'
-  timeContext           String?
+
   location              String?
   isSurgical            Boolean  @default(false)
   pathophysiologyCategory String?
@@ -187,14 +187,8 @@ model Case {
   finalDiagnosis       String?
   managementPlan       String?
   
-  // Enhanced saved case fields (Phase 1)
-  clinicalSummary      String? @db.Text
-  keyFindings          Json?   // Array of key findings with rationale
-  investigations       Json?   // Array of appropriate investigations with rationale
-  enhancedManagementPlan Json? // Array of appropriate management steps with rationale
-  clinicalOpportunities Json?  // Array of missed opportunities from feedback
-  clinicalPearls       String? @db.Text
-  aiGeneratedAt        DateTime? // When AI content was generated
+
+
   
   // Session and visibility management
   sessionId    String?  @unique // Active session ID for JWT validation
@@ -203,7 +197,7 @@ model Case {
   // Timestamps
   startedAt    DateTime @default(now())
   completedAt  DateTime?
-  savedAt      DateTime? // When user clicked "Save This Case"
+
   isCompleted  Boolean   @default(false) // Whether this is a completed case saved from feedback
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -302,14 +296,9 @@ model Feedback {
   clinicalTip       String   @db.Text
   
   // Detailed feedback fields
-  positiveQuotes    Json?    // Array of {quote: string, explanation: string}
-  improvementQuotes Json?    // Array of {quote: string, explanation: string}
-  
-  // Consultant teaching notes
-  clerkingStructure    String? @db.Text
+
   missedOpportunities  Json?   // Array of {opportunity: string, clinicalSignificance: string}
   clinicalReasoning    String? @db.Text
-  communicationNotes   String? @db.Text
   clinicalPearls       String[] // Array of clinical pearls
   
   // Relations
@@ -330,6 +319,9 @@ model CaseReport {
   
   // Patient information
   patientInfo Json     // Structured patient data
+  
+  // History information-make this non optional later
+  history     Json ?    // Structured history data
   
   // Examination findings
   examination Json     // Structured examination data

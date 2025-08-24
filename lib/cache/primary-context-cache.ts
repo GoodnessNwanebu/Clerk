@@ -60,7 +60,13 @@ export async function getPrimaryContext(caseId: string): Promise<CachedPrimaryCo
         const caseRecord = await prisma.case.findUnique({
           where: { id: caseId },
           include: {
-            department: true
+            department: true,
+            patientProfile: true,
+            pediatricProfile: {
+              include: {
+                parentProfile: true
+              }
+            }
           }
         });
 
@@ -73,8 +79,25 @@ export async function getPrimaryContext(caseId: string): Promise<CachedPrimaryCo
           diagnosis: caseRecord.diagnosis,
           primaryInfo: caseRecord.primaryInfo,
           openingLine: caseRecord.openingLine,
-          patientProfile: undefined, // These are stored as IDs in the database, not as objects
-          pediatricProfile: undefined, // These are stored as IDs in the database, not as objects
+          patientProfile: caseRecord.patientProfile ? {
+            educationLevel: caseRecord.patientProfile.educationLevel as 'basic' | 'moderate' | 'well-informed',
+            healthLiteracy: caseRecord.patientProfile.healthLiteracy as 'minimal' | 'average' | 'high',
+            occupation: caseRecord.patientProfile.occupation,
+            recordKeeping: caseRecord.patientProfile.recordKeeping as 'detailed' | 'basic' | 'minimal'
+          } : undefined,
+          pediatricProfile: caseRecord.pediatricProfile ? {
+            patientAge: caseRecord.pediatricProfile.patientAge,
+            ageGroup: caseRecord.pediatricProfile.ageGroup as 'infant' | 'toddler' | 'preschool' | 'school-age' | 'adolescent',
+            respondingParent: caseRecord.pediatricProfile.respondingParent as 'mother' | 'father',
+            parentProfile: {
+              educationLevel: caseRecord.pediatricProfile.parentProfile.educationLevel as 'basic' | 'moderate' | 'well-informed',
+              healthLiteracy: caseRecord.pediatricProfile.parentProfile.healthLiteracy as 'minimal' | 'average' | 'high',
+              occupation: caseRecord.pediatricProfile.parentProfile.occupation,
+              recordKeeping: caseRecord.pediatricProfile.parentProfile.recordKeeping as 'detailed' | 'basic' | 'minimal'
+            },
+            developmentalStage: caseRecord.pediatricProfile.developmentalStage,
+            communicationLevel: caseRecord.pediatricProfile.communicationLevel as 'non-verbal' | 'basic' | 'conversational' | 'adult-like'
+          } : undefined,
           isPediatric: caseRecord.isPediatric,
           department: caseRecord.department.name,
           difficultyLevel: caseRecord.difficultyLevel as DifficultyLevel

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CaseState, ComprehensiveFeedback } from '../../../../types';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
-import { comprehensiveFeedbackPrompt, getSurgicalTeachingContext } from '../../../../lib/ai/prompts/feedback';
+import { comprehensiveFeedbackPrompt, getSurgicalContext } from '../../../../lib/ai/prompts/feedback';
 import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
 import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
             };
 
             const aiContext = 'getComprehensiveFeedback';
-            const surgicalTeachingContext = getSurgicalTeachingContext(fullCaseState);
-            const userMessage = comprehensiveFeedbackPrompt(fullCaseState, surgicalTeachingContext);
+            const surgicalContext = getSurgicalContext(fullCaseState);
+            const userMessage = comprehensiveFeedbackPrompt(fullCaseState, surgicalContext);
 
             const response = await ai.generateContent({
                 model: MODEL,

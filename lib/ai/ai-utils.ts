@@ -447,6 +447,9 @@ export async function generateCaseReport(context: {
   try {
     const { primaryContext, secondaryContext } = context;
     
+    // Extract history from primary context (no AI generation needed)
+    const historyFromPrimaryContext = primaryContext.primaryInfo;
+    
     const prompt = `Generate a standard medical case report in the format typically presented during medical rounds. Use the following case data:
 
 PATIENT INFORMATION:
@@ -458,21 +461,22 @@ ${primaryContext.openingLine}
 CONVERSATION HISTORY:
 ${secondaryContext.messages.map((msg: any) => `${msg.sender}: ${msg.text}`).join('\n')}
 
-EXAMINATION RESULTS:
-${secondaryContext.examinationResults.map((result: any) => 
-  `${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`
-).join('\n')}
+CORRECT DIAGNOSIS (from case generation):
+${primaryContext.diagnosis}
 
-INVESTIGATION RESULTS:
-${secondaryContext.investigationResults.map((result: any) => 
-  `${result.name}: ${result.findings || result.value}${result.unit ? ` ${result.unit}` : ''}`
-).join('\n')}
-
-FINAL DIAGNOSIS:
+STUDENT'S FINAL DIAGNOSIS:
 ${secondaryContext.finalDiagnosis}
 
 MANAGEMENT PLAN:
 ${secondaryContext.managementPlan}
+
+IMPORTANT INSTRUCTIONS:
+- Use the CORRECT DIAGNOSIS (from case generation) as the basis for the case report, NOT the student's diagnosis
+- For EXAMINATION: Generate what examinations SHOULD have been done for the correct diagnosis (ideal approach), NOT what the student actually did
+- For INVESTIGATIONS: Generate what investigations SHOULD have been ordered for the correct diagnosis (ideal approach), NOT what the student actually ordered
+- For MANAGEMENT: Generate the ideal management plan for the correct diagnosis, NOT the student's management plan
+- For HISTORY: Extract and structure the information from the primary context
+- For ASSESSMENT: Use the correct diagnosis as the final diagnosis, but include the student's diagnosis in differential diagnosis if different
 
 Please structure the case report in the following JSON format:
 {
@@ -487,30 +491,42 @@ Please structure the case report in the following JSON format:
     "socialHistory": "social history",
     "familyHistory": "family history"
   },
+  "history": {
+    "presentingComplaint": "chief complaint",
+    "historyOfPresentingIllness": "detailed HPI",
+    "pastMedicalHistory": "PMH details",
+    "medications": "current medications",
+    "allergies": "known allergies",
+    "socialHistory": "social history details",
+    "familyHistory": "family history details",
+    "reviewOfSystems": "relevant ROS findings"
+  },
   "examination": {
-    "generalExamination": "general exam findings",
-    "systemicExamination": "systemic exam findings", 
-    "findings": ["key finding 1", "key finding 2"]
+    "generalExamination": "what should have been examined",
+    "systemicExamination": "what systems should have been examined", 
+    "findings": ["expected finding 1", "expected finding 2"],
+    "rationale": "why these examinations are important"
   },
   "investigations": {
     "requested": ["investigation 1", "investigation 2"],
-    "results": ["result 1", "result 2"]
+    "results": ["expected result 1", "expected result 2"],
+    "rationale": "why these investigations are important"
   },
   "assessment": {
     "differentialDiagnosis": ["DD1", "DD2", "DD3"],
-    "finalDiagnosis": "final diagnosis",
-    "reasoning": "clinical reasoning"
+    "finalDiagnosis": "correct diagnosis from case generation",
+    "reasoning": "clinical reasoning for the correct diagnosis"
   },
   "management": {
-    "immediate": ["immediate action 1", "immediate action 2"],
-    "shortTerm": ["short term plan 1", "short term plan 2"],
-    "longTerm": ["long term plan 1", "long term plan 2"],
-    "followUp": "follow up plan"
+    "immediate": ["immediate actions for correct diagnosis"],
+    "shortTerm": ["short term management for correct diagnosis"],
+    "longTerm": ["long term management for correct diagnosis"],
+    "followUp": "follow up plan for correct diagnosis"
   },
   "learningPoints": ["learning point 1", "learning point 2", "learning point 3"]
 }
 
-Focus on creating a professional, structured case report suitable for medical rounds presentation.`;
+Focus on creating a professional, structured case report suitable for medical rounds presentation. Base ALL sections (examination, investigations, assessment, management) on the CORRECT DIAGNOSIS from case generation, not the student's diagnosis. This ensures the case report reflects the intended educational scenario.`;
 
     const response = await generateAIResponse(prompt);
     const caseReport = parseJsonResponse(response, 'case report generation');
@@ -541,16 +557,26 @@ Focus on creating a professional, structured case report suitable for medical ro
         socialHistory: 'Extracted from case data',
         familyHistory: 'Extracted from case data'
       },
+      history: {
+        presentingComplaint: context.primaryContext.openingLine || 'Not available',
+        historyOfPresentingIllness: 'Extracted from primary context',
+        pastMedicalHistory: 'Extracted from primary context',
+        medications: 'Extracted from primary context',
+        allergies: 'Extracted from primary context',
+        socialHistory: 'Extracted from primary context',
+        familyHistory: 'Extracted from primary context',
+        reviewOfSystems: 'Extracted from primary context'
+      },
       examination: {
-        generalExamination: 'Summarized from examination results',
-        systemicExamination: 'Summarized from examination results',
-        findings: context.secondaryContext.examinationResults?.map((r: any) => r.name) || []
+        generalExamination: 'Ideal examination approach for this diagnosis',
+        systemicExamination: 'Ideal systemic examination for this diagnosis',
+        findings: ['Expected findings for this diagnosis'],
+        rationale: 'Why these examinations are important'
       },
       investigations: {
-        requested: context.secondaryContext.investigationResults?.map((r: any) => r.name) || [],
-        results: context.secondaryContext.investigationResults?.map((r: any) => 
-          `${r.name}: ${r.findings || r.value}${r.unit ? ` ${r.unit}` : ''}`
-        ) || []
+        requested: ['Ideal investigations for this diagnosis'],
+        results: ['Expected results for this diagnosis'],
+        rationale: 'Why these investigations are important'
       },
       assessment: {
         differentialDiagnosis: ['Based on case data'],

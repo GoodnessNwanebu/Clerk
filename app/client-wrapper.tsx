@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SessionProvider, useSession } from 'next-auth/react';
+import { AccountValidation } from '../components/AccountValidation';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -93,7 +94,11 @@ export default function ClientWrapper({
 }) {
   return (
     <SessionProvider>
-      <OnboardingCheck>{children}</OnboardingCheck>
+      <OnboardingCheck>
+        <AccountValidation>
+          {children}
+        </AccountValidation>
+      </OnboardingCheck>
     </SessionProvider>
   );
 } 

@@ -1,177 +1,177 @@
-import React from 'react';
-import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Section,
-  Text,
-  Heading,
-  Hr,
-  Preview,
-} from '@react-email/components';
-import { ConsultantTeachingNotes } from '../../types';
+// import React from 'react';
+// import {
+//   Html,
+//   Head,
+//   Body,
+//   Container,
+//   Section,
+//   Text,
+//   Heading,
+//   Hr,
+//   Preview,
+// } from '@react-email/components';
+// import { ConsultantTeachingNotes } from '../../types';
 
-interface ClerkReportEmailProps {
-  report: ConsultantTeachingNotes;
-}
+// interface ClerkReportEmailProps {
+//   report: ConsultantTeachingNotes;
+// }
 
-export const ClerkReportEmail: React.FC<ClerkReportEmailProps> = ({ report }) => {
-  return (
-    <Html>
-      <Head />
-      <Preview>Clinical Teaching Notes: {report.diagnosis}</Preview>
-      <Body style={styles.body}>
-        <Container style={styles.container}>
-          <Heading style={styles.header}>Clinical Teaching Notes</Heading>
+// export const ClerkReportEmail: React.FC<ClerkReportEmailProps> = ({ report }) => {
+//   return (
+//     <Html>
+//       <Head />
+//       <Preview>Clinical Teaching Notes: {report.diagnosis}</Preview>
+//       <Body style={styles.body}>
+//         <Container style={styles.container}>
+//           <Heading style={styles.header}>Clinical Teaching Notes</Heading>
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Case Diagnosis</Heading>
-            <Text style={styles.text}>{report.diagnosis}</Text>
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Case Diagnosis</Heading>
+//             <Text style={styles.text}>{report.diagnosis}</Text>
+//           </Section>
           
-          <Hr style={styles.divider} />
+//           <Hr style={styles.divider} />
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Key Learning Point</Heading>
-            <Text style={styles.text}>{report.keyLearningPoint}</Text>
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Key Learning Point</Heading>
+//             <Text style={styles.text}>{report.keyLearningPoint}</Text>
+//           </Section>
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Clerking Structure</Heading>
-            <Text style={styles.text}>{report.clerkingStructure}</Text>
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Clerking Structure</Heading>
+//             <Text style={styles.text}>{report.clerkingStructure}</Text>
+//           </Section>
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Missed Opportunities</Heading>
-            {report.missedOpportunities.map((item, index) => (
-              <div key={index} style={styles.opportunityContainer}>
-                <Text style={styles.opportunityTitle}>{item.opportunity}</Text>
-                <Text style={styles.significanceText}>
-                  <strong>Clinical significance:</strong> {item.clinicalSignificance}
-                </Text>
-              </div>
-            ))}
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Missed Opportunities</Heading>
+//             {report.missedOpportunities.map((item, index) => (
+//               <div key={index} style={styles.opportunityContainer}>
+//                 <Text style={styles.opportunityTitle}>{item.opportunity}</Text>
+//                 <Text style={styles.significanceText}>
+//                   <strong>Clinical significance:</strong> {item.clinicalSignificance}
+//                 </Text>
+//               </div>
+//             ))}
+//           </Section>
           
-          <Hr style={styles.divider} />
+//           <Hr style={styles.divider} />
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Clinical Reasoning</Heading>
-            <Text style={styles.text}>{report.clinicalReasoning}</Text>
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Clinical Reasoning</Heading>
+//             <Text style={styles.text}>{report.clinicalReasoning}</Text>
+//           </Section>
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Communication & Patient Interaction</Heading>
-            <Text style={styles.text}>{report.communicationNotes}</Text>
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Communication & Patient Interaction</Heading>
+//             <Text style={styles.text}>{report.communicationNotes}</Text>
+//           </Section>
           
-          <Hr style={styles.divider} />
+//           <Hr style={styles.divider} />
           
-          <Section style={styles.section}>
-            <Heading as="h2" style={styles.sectionHeading}>Clinical Pearls</Heading>
-            {report.clinicalPearls.map((pearl, index) => (
-              <div key={index} style={styles.pearlContainer}>
-                <Text style={styles.pearlText}>• {pearl}</Text>
-              </div>
-            ))}
-          </Section>
+//           <Section style={styles.section}>
+//             <Heading as="h2" style={styles.sectionHeading}>Clinical Pearls</Heading>
+//             {report.clinicalPearls.map((pearl, index) => (
+//               <div key={index} style={styles.pearlContainer}>
+//                 <Text style={styles.pearlText}>• {pearl}</Text>
+//               </div>
+//             ))}
+//           </Section>
           
-          <Hr style={styles.divider} />
+//           <Hr style={styles.divider} />
           
-          <Section style={styles.footer}>
-            <Text style={styles.footerText}>
-              These teaching notes were generated by ClerkSmart to support your clinical learning journey.
-            </Text>
-            <Text style={styles.footerText}>
-              © {new Date().getFullYear()} ClerkSmart
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
-  );
-};
+//           <Section style={styles.footer}>
+//             <Text style={styles.footerText}>
+//               These teaching notes were generated by ClerkSmart to support your clinical learning journey.
+//             </Text>
+//             <Text style={styles.footerText}>
+//               © {new Date().getFullYear()} ClerkSmart
+//             </Text>
+//           </Section>
+//         </Container>
+//       </Body>
+//     </Html>
+//   );
+// };
 
-const styles = {
-  body: {
-    backgroundColor: '#f6f9fc',
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  container: {
-    margin: '0 auto',
-    padding: '20px', // Changed from '20px 0' to add horizontal padding
-    maxWidth: '600px',
-  },
-  header: {
-    fontSize: '24px',
-    lineHeight: '1.3',
-    fontWeight: '700',
-    color: '#0f766e',
-    textAlign: 'center' as const,
-    padding: '15px 0',
-  },
-  section: {
-    padding: '15px 0',
-  },
-  sectionHeading: {
-    fontSize: '18px',
-    lineHeight: '1.3',
-    fontWeight: '600',
-    color: '#0f766e',
-    margin: '10px 0',
-  },
-  text: {
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: '#334155',
-    margin: '8px 0',
-  },
-  divider: {
-    borderTop: '1px solid #e2e8f0',
-    margin: '15px 0',
-  },
-  opportunityContainer: {
-    backgroundColor: '#fef3c7',
-    borderLeft: '3px solid #f59e0b',
-    padding: '12px 15px',
-    margin: '10px 0',
-    borderRadius: '4px',
-  },
-  opportunityTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#92400e',
-    margin: '0 0 6px 0',
-  },
-  significanceText: {
-    fontSize: '13px',
-    color: '#78716c',
-    margin: '0',
-    fontStyle: 'italic',
-  },
-  pearlContainer: {
-    backgroundColor: '#f0fdf4',
-    borderLeft: '3px solid #22c55e',
-    padding: '10px 15px',
-    margin: '8px 0',
-    borderRadius: '4px',
-  },
-  pearlText: {
-    fontSize: '14px',
-    color: '#166534',
-    margin: '0',
-    fontWeight: '500',
-  },
-  footer: {
-    textAlign: 'center' as const,
-    padding: '15px 0',
-  },
-  footerText: {
-    fontSize: '12px',
-    color: '#64748b',
-    margin: '5px 0',
-  },
-};
+// const styles = {
+//   body: {
+//     backgroundColor: '#f6f9fc',
+//     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+//   },
+//   container: {
+//     margin: '0 auto',
+//     padding: '20px', // Changed from '20px 0' to add horizontal padding
+//     maxWidth: '600px',
+//   },
+//   header: {
+//     fontSize: '24px',
+//     lineHeight: '1.3',
+//     fontWeight: '700',
+//     color: '#0f766e',
+//     textAlign: 'center' as const,
+//     padding: '15px 0',
+//   },
+//   section: {
+//     padding: '15px 0',
+//   },
+//   sectionHeading: {
+//     fontSize: '18px',
+//     lineHeight: '1.3',
+//     fontWeight: '600',
+//     color: '#0f766e',
+//     margin: '10px 0',
+//   },
+//   text: {
+//     fontSize: '14px',
+//     lineHeight: '1.6',
+//     color: '#334155',
+//     margin: '8px 0',
+//   },
+//   divider: {
+//     borderTop: '1px solid #e2e8f0',
+//     margin: '15px 0',
+//   },
+//   opportunityContainer: {
+//     backgroundColor: '#fef3c7',
+//     borderLeft: '3px solid #f59e0b',
+//     padding: '12px 15px',
+//     margin: '10px 0',
+//     borderRadius: '4px',
+//   },
+//   opportunityTitle: {
+//     fontSize: '14px',
+//     fontWeight: '600',
+//     color: '#92400e',
+//     margin: '0 0 6px 0',
+//   },
+//   significanceText: {
+//     fontSize: '13px',
+//     color: '#78716c',
+//     margin: '0',
+//     fontStyle: 'italic',
+//   },
+//   pearlContainer: {
+//     backgroundColor: '#f0fdf4',
+//     borderLeft: '3px solid #22c55e',
+//     padding: '10px 15px',
+//     margin: '8px 0',
+//     borderRadius: '4px',
+//   },
+//   pearlText: {
+//     fontSize: '14px',
+//     color: '#166534',
+//     margin: '0',
+//     fontWeight: '500',
+//   },
+//   footer: {
+//     textAlign: 'center' as const,
+//     padding: '15px 0',
+//   },
+//   footerText: {
+//     fontSize: '12px',
+//     color: '#64748b',
+//     margin: '5px 0',
+//   },
+// };
 
-export default ClerkReportEmail; 
+// export default ClerkReportEmail; 

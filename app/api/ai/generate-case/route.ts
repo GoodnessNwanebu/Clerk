@@ -111,7 +111,23 @@ export async function POST(request: NextRequest) {
             diagnosis: caseData.diagnosis,
             hasPrimaryInfo: !!caseData.primaryInfo,
             hasOpeningLine: !!caseData.openingLine,
-            openingLine: caseData.openingLine
+            openingLine: caseData.openingLine,
+            isPediatric,
+            hasPediatricProfile: !!caseData.pediatricProfile,
+            hasPatientProfile: !!caseData.patientProfile,
+            pediatricProfile: caseData.pediatricProfile ? {
+                patientAge: caseData.pediatricProfile.patientAge,
+                ageGroup: caseData.pediatricProfile.ageGroup,
+                respondingParent: caseData.pediatricProfile.respondingParent,
+                hasParentProfile: !!caseData.pediatricProfile.parentProfile,
+                parentProfileFields: caseData.pediatricProfile.parentProfile ? Object.keys(caseData.pediatricProfile.parentProfile) : null
+            } : null,
+            patientProfile: caseData.patientProfile ? {
+                educationLevel: caseData.patientProfile.educationLevel,
+                healthLiteracy: caseData.patientProfile.healthLiteracy,
+                occupation: caseData.patientProfile.occupation,
+                recordKeeping: caseData.patientProfile.recordKeeping
+            } : null
         });
 
         // Validate required fields
@@ -148,7 +164,74 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Create patient profile and pediatric profile if needed
+        let patientProfileId: string | null = null;
+        let pediatricProfileId: string | null = null;
+
+        if (isPediatric && caseData.pediatricProfile) {
+            console.log('👶 Creating pediatric profile...');
+            
+            // Validate pediatric profile structure
+            if (!caseData.pediatricProfile.parentProfile || 
+                !caseData.pediatricProfile.parentProfile.educationLevel ||
+                !caseData.pediatricProfile.parentProfile.healthLiteracy ||
+                !caseData.pediatricProfile.parentProfile.occupation ||
+                !caseData.pediatricProfile.parentProfile.recordKeeping) {
+                console.error('❌ Invalid pediatric profile structure:', caseData.pediatricProfile);
+                throw new Error('AI generated incomplete pediatric profile structure');
+            }
+            
+            // First create the parent's patient profile
+            const parentProfile = await prisma.patientProfile.create({
+                data: {
+                    educationLevel: caseData.pediatricProfile.parentProfile.educationLevel,
+                    healthLiteracy: caseData.pediatricProfile.parentProfile.healthLiteracy,
+                    occupation: caseData.pediatricProfile.parentProfile.occupation,
+                    recordKeeping: caseData.pediatricProfile.parentProfile.recordKeeping
+                }
+            });
+            
+            // Then create the pediatric profile
+            const pediatricProfile = await prisma.pediatricProfile.create({
+                data: {
+                    patientAge: caseData.pediatricProfile.patientAge,
+                    ageGroup: caseData.pediatricProfile.ageGroup,
+                    respondingParent: caseData.pediatricProfile.respondingParent,
+                    developmentalStage: caseData.pediatricProfile.developmentalStage,
+                    communicationLevel: caseData.pediatricProfile.communicationLevel,
+                    parentProfileId: parentProfile.id
+                }
+            });
+            
+            pediatricProfileId = pediatricProfile.id;
+            console.log('✅ Pediatric profile created:', {
+                patientAge: caseData.pediatricProfile.patientAge,
+                ageGroup: caseData.pediatricProfile.ageGroup,
+                respondingParent: caseData.pediatricProfile.respondingParent
+            });
+        } else if (caseData.patientProfile) {
+            console.log('👤 Creating patient profile...');
+            
+            const patientProfile = await prisma.patientProfile.create({
+                data: {
+                    educationLevel: caseData.patientProfile.educationLevel,
+                    healthLiteracy: caseData.patientProfile.healthLiteracy,
+                    occupation: caseData.patientProfile.occupation,
+                    recordKeeping: caseData.patientProfile.recordKeeping
+                }
+            });
+            
+            patientProfileId = patientProfile.id;
+            console.log('✅ Patient profile created');
+        }
+
         // Create case in database
+        console.log('💾 Creating case with profile IDs:', {
+            patientProfileId,
+            pediatricProfileId,
+            isPediatric
+        });
+        
         const caseRecord = await prisma.case.create({
             data: {
                 userId: user.id,
@@ -158,10 +241,15 @@ export async function POST(request: NextRequest) {
                 openingLine: caseData.openingLine,
                 isPediatric,
                 difficultyLevel: difficulty as DifficultyLevel,
+                pathophysiologyCategory: randomBucket,
                 isCompleted: false,
-                isVisible: true
+                isVisible: true,
+                patientProfileId,
+                pediatricProfileId
             }
         });
+        
+        console.log('✅ Case created with ID:', caseRecord.id);
 
         // Create primary context
         const primaryContext: PrimaryContext = {

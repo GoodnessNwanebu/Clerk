@@ -382,12 +382,12 @@ export async function saveDetailedFeedback(
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip,
-      positiveQuotes: feedback.positiveQuotes,
-      improvementQuotes: feedback.improvementQuotes,
-      clerkingStructure: feedback.clerkingStructure,
+      // positiveQuotes: feedback.positiveQuotes,
+      // improvementQuotes: feedback.improvementQuotes,
+      // clerkingStructure: feedback.clerkingStructure,
       missedOpportunities: feedback.missedOpportunities,
       clinicalReasoning: feedback.clinicalReasoning,
-      communicationNotes: feedback.communicationNotes,
+      // communicationNotes: feedback.communicationNotes,
       clinicalPearls: feedback.clinicalPearls
     },
     create: {
@@ -397,12 +397,12 @@ export async function saveDetailedFeedback(
       whatYouDidWell: feedback.whatYouDidWell,
       whatCouldBeImproved: feedback.whatCouldBeImproved,
       clinicalTip: feedback.clinicalTip,
-      positiveQuotes: feedback.positiveQuotes,
-      improvementQuotes: feedback.improvementQuotes,
-      clerkingStructure: feedback.clerkingStructure,
+      // positiveQuotes: feedback.positiveQuotes,
+      // improvementQuotes: feedback.improvementQuotes,
+      // clerkingStructure: feedback.clerkingStructure,
       missedOpportunities: feedback.missedOpportunities,
-      clinicalReasoning: feedback.clinicalReasoning,
-      communicationNotes: feedback.communicationNotes,
+      // clinicalReasoning: feedback.clinicalReasoning,
+      // communicationNotes: feedback.communicationNotes,
       clinicalPearls: feedback.clinicalPearls
     }
   })
@@ -555,6 +555,7 @@ export async function saveCaseReport(
     where: { caseId },
     update: {
       patientInfo: caseReport.patientInfo,
+      history: caseReport.history,
       examination: caseReport.examination,
       investigations: caseReport.investigations,
       assessment: caseReport.assessment,
@@ -565,6 +566,7 @@ export async function saveCaseReport(
     create: {
       caseId,
       patientInfo: caseReport.patientInfo,
+      history: caseReport.history,
       examination: caseReport.examination,
       investigations: caseReport.investigations,
       assessment: caseReport.assessment,

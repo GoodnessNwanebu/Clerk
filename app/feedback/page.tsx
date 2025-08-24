@@ -19,7 +19,9 @@ export default function FeedbackPage() {
         resetCase, 
         setNavigationEntryPoint,
         toggleCaseVisibility,
-        setFeedback
+        setFeedback,
+        setDepartment,
+        addCaseToCache
     } = useAppContext();
     
     const { feedback, department } = caseState;
@@ -33,6 +35,11 @@ export default function FeedbackPage() {
     });
     const [isCaseVisible, setIsCaseVisible] = useState(false);
     const [departmentName, setDepartmentName] = useState<string | null>(department);
+    
+    // Save case state management
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const [saveMessage, setSaveMessage] = useState('');
     
     // Install guide hook
     const {
@@ -98,44 +105,76 @@ export default function FeedbackPage() {
     const handleSaveCase = async () => {
         if (!caseState.caseId) {
             console.error('No case ID available for visibility toggle');
+            setSaveStatus('error');
+            setSaveMessage('No case ID available');
             return;
         }
 
         try {
-            // Show loading state
-            const saveButton = document.querySelector('[data-save-case]') as HTMLButtonElement;
-            if (saveButton) {
-                saveButton.disabled = true;
-                saveButton.textContent = 'Saving...';
-            }
+            // Set saving state
+            setIsSaving(true);
+            setSaveStatus('saving');
 
             // Toggle visibility (make case visible in saved cases)
             const success = await toggleCaseVisibility(caseState.caseId, true);
             
             if (success) {
                 setIsCaseVisible(true);
-                // Show success message
-                alert('Case saved successfully! Your case has been saved and will be available in your saved cases.');
+                setSaveStatus('success');
+                setSaveMessage('Case saved successfully!');
                 
-                // Update button state
-                if (saveButton) {
-                    saveButton.textContent = 'Saved ✓';
-                    saveButton.classList.add('bg-green-600', 'hover:bg-green-700');
-                    setTimeout(() => {
-                        saveButton.disabled = false;
-                        saveButton.textContent = 'Save This Case';
-                        saveButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    }, 3000);
+                // Add case to cache for immediate availability in saved cases
+                if (feedback && caseState.department) {
+                    const caseData = {
+                        id: caseState.caseId,
+                        diagnosis: feedback.diagnosis,
+                        department: { name: caseState.department },
+                        completedAt: new Date().toISOString(),
+                        feedback: feedback
+                    };
+                    addCaseToCache(caseData);
+                }
+                
+                // Deactivate session after successful save to prevent resume
+                if (caseState.sessionId) {
+                    try {
+                        console.log(`🔄 [feedback.handleSaveCase] Deactivating session after save: ${caseState.sessionId}`);
+                        await fetch('/api/sessions/invalidate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                sessionId: caseState.sessionId,
+                                caseId: caseState.caseId
+                            }),
+                            credentials: 'include',
+                        });
+                        console.log(`✅ [feedback.handleSaveCase] Session deactivated successfully after save`);
+                    } catch (error) {
+                        console.error('❌ [feedback.handleSaveCase] Error deactivating session after save:', error);
+                        // Don't fail the save operation if session deactivation fails
+                    }
                 }
                 
                 // Show share modal after successful save
                 setShowShareModal(true);
+                
+                // Reset save status after 3 seconds
+                setTimeout(() => {
+                    setSaveStatus('idle');
+                    setSaveMessage('');
+                }, 3000);
             } else {
-                alert('Failed to save case. Please try again.');
+                setSaveStatus('error');
+                setSaveMessage('Failed to save case. Please try again.');
             }
         } catch (error) {
             console.error('Error saving case:', error);
-            alert('Failed to save case. Please try again.');
+            setSaveStatus('error');
+            setSaveMessage('Failed to save case. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -230,6 +269,7 @@ export default function FeedbackPage() {
                     // Set the department from the API response
                     if (data.case.department?.name) {
                         setDepartmentName(data.case.department.name);
+                        setDepartment(data.case.department.name);
                         console.log('✅ [feedback] Department loaded from API');
                     } else {
                         console.log('❌ [feedback] No department found in API response');
@@ -269,27 +309,13 @@ export default function FeedbackPage() {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
                     <p className="text-slate-600 dark:text-slate-400">Loading feedback...</p>
-                    <div className="text-xs text-slate-500 mt-2 space-y-1">
-                        <p>Case ID: {caseState.caseId || 'None'}</p>
-                        <p>Department: {department || 'None'}</p>
-                        <p>Department Name: {departmentName || 'None'}</p>
-                        <p>Has Feedback: {feedback ? 'Yes' : 'No'}</p>
-                    </div>
-                    
-                    {/* Debug button */}
-                    <button 
-                        onClick={loadFeedbackDataFromAPI}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                    >
-                        Debug: Load from API
-                    </button>
                 </div>
             </div>
         );
     }
 
     // If we have feedback but no department name, show a fallback
-    const displayDepartment = departmentName || department || 'Unknown Department';
+    const displayDepartment = caseState.department || departmentName || department || 'Unknown Department';
 
     // Type guard to check if feedback is comprehensive
     const isComprehensiveFeedback = (f: any): f is ComprehensiveFeedback => {
@@ -310,14 +336,14 @@ export default function FeedbackPage() {
                 <div className="px-4 py-6 sm:px-6">
                     <div className="text-left sm:text-center">
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-                            Case Report & Feedback
+                            Case Feedback
                         </h1>
                         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-2">
                             Final Diagnosis: <span className="font-semibold text-teal-600 dark:text-teal-400">{feedback.diagnosis}</span>
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                        {/* <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
                             {displayDepartment}
-                        </p>
+                        </p> */}
                     </div>
                 </div>
             </header>
@@ -529,11 +555,48 @@ export default function FeedbackPage() {
                     <button
                         data-save-case
                         onClick={handleSaveCase}
-                        className="w-full py-4 px-6 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold rounded-xl transition-colors flex items-center justify-center space-x-3 text-base"
+                        disabled={isSaving}
+                        className={`w-full py-4 px-6 border-2 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center space-x-3 text-base ${
+                            saveStatus === 'success' 
+                                ? 'border-green-500 bg-green-600 text-white hover:bg-green-700' 
+                                : saveStatus === 'error'
+                                ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                                : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        } ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
-                        <Icon name="bookmark" size={20}/>
-                        <span>Save This Case</span>
+                        {isSaving ? (
+                            <>
+                                <Icon name="loader-2" size={20} className="animate-spin"/>
+                                <span>Saving...</span>
+                            </>
+                        ) : saveStatus === 'success' ? (
+                            <>
+                                <Icon name="check" size={20}/>
+                                <span>Saved ✓</span>
+                            </>
+                        ) : saveStatus === 'error' ? (
+                            <>
+                                <Icon name="x" size={20}/>
+                                <span>Error - Try Again</span>
+                            </>
+                        ) : (
+                            <>
+                                <Icon name="bookmark" size={20}/>
+                                <span>Save This Case</span>
+                            </>
+                        )}
                     </button>
+                    
+                    {/* Status message - only show for success/error, not loading */}
+                    {saveMessage && (saveStatus === 'success' || saveStatus === 'error') && (
+                        <div className={`text-center text-sm px-4 py-2 rounded-lg ${
+                            saveStatus === 'success' 
+                                ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
+                                : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                        }`}>
+                            {saveMessage}
+                        </div>
+                    )}
                     
                     <button
                         onClick={handleDone}

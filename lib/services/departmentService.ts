@@ -86,15 +86,20 @@ export function hasSubspecialties(departmentName: string): boolean {
 export function getParentDepartment(subspecialtyName: string): string {
   const subspecialtyToDepartmentMap: Record<string, string> = {
     // Pediatrics subspecialties
+    'Neonatology': 'Pediatrics',
     'Pediatric Cardiology': 'Pediatrics',
+    'Pediatric Endocrinology': 'Pediatrics',
     'Pediatric Neurology': 'Pediatrics',
     'Pediatric Oncology': 'Pediatrics',
-    'Pediatric Endocrinology': 'Pediatrics',
-    'Pediatric Gastroenterology': 'Pediatrics',
+    'Pediatric Emergency Medicine': 'Pediatrics',
+    'Infectious Diseases': 'Pediatrics',
+    'Pediatric Psychiatry': 'Pediatrics',
+    'Pediatric Community Medicine': 'Pediatrics',
     'Pediatric Nephrology': 'Pediatrics',
-    'Pediatric Respiratory': 'Pediatrics',
-    'Pediatric Surgery': 'Pediatrics',
-    'Neonatology': 'Pediatrics',
+    'Pediatric Gastroenterology': 'Pediatrics',
+    'Pediatric Hematology': 'Pediatrics',
+    'Pediatric Infectious Diseases': 'Pediatrics',
+    'Pediatric Pulmonology': 'Pediatrics',
     
     // Internal Medicine subspecialties
     'Cardiology': 'Internal Medicine',
@@ -117,9 +122,9 @@ export function getParentDepartment(subspecialtyName: string): string {
     'Orthopedics': 'Surgery',
     'Neurosurgery': 'Surgery',
     'Plastic Surgery': 'Surgery',
-    'Cardiothoracic Surgery': 'Surgery',
     'Urology': 'Surgery',
-    'Vascular Surgery': 'Surgery'
+    'Cardiothoracic': 'Surgery',
+    'Pediatric Surgery': 'Surgery'
   };
   
   return subspecialtyToDepartmentMap[subspecialtyName] || subspecialtyName;
@@ -157,6 +162,12 @@ function getDepartmentMetadata(departmentName: string) {
       gradient: 'from-green-500 to-green-700',
       description: 'Surgical treatment and procedures.',
       avatar: '/avatars/surgery.svg'
+    },
+    'Dentistry': {
+      icon: 'tooth',
+      gradient: 'from-teal-500 to-teal-700',
+      description: 'Oral health and dental care.',
+      avatar: '/avatars/dentistry.svg'
     }
   };
 
@@ -231,6 +242,30 @@ function getSubspecialtyMetadata(departmentName: string, subspecialtyName: strin
         gradient: 'from-cyan-500 to-cyan-700',
         description: 'Kidney diseases in children',
         avatar: '/avatars/pediatric-nephrology.svg'
+      },
+      'Pediatric Hematology': {
+        icon: 'droplet',
+        gradient: 'from-red-500 to-red-700',
+        description: 'Blood disorders in children',
+        avatar: '/avatars/pediatric-hematology.svg'
+      },
+      'Pediatric Infectious Diseases': {
+        icon: 'bug',
+        gradient: 'from-lime-500 to-lime-700',
+        description: 'Infectious diseases in children',
+        avatar: '/avatars/pediatric-infectious.svg'
+      },
+      'Pediatric Pulmonology': {
+        icon: 'wind',
+        gradient: 'from-sky-500 to-sky-700',
+        description: 'Lung and respiratory disorders in children',
+        avatar: '/avatars/pediatric-pulmonology.svg'
+      },
+      'Pediatric Community Medicine': {
+        icon: 'users',
+        gradient: 'from-indigo-500 to-indigo-700',
+        description: 'Community health and preventive care for children',
+        avatar: '/avatars/pediatric-community.svg'
       }
     },
     'Internal Medicine': {
@@ -355,6 +390,12 @@ function getSubspecialtyMetadata(departmentName: string, subspecialtyName: strin
         gradient: 'from-red-500 to-red-700',
         description: 'Heart, lung, and chest surgery',
         avatar: '/avatars/cardiothoracic-surgery.svg'
+      },
+      'Pediatric Surgery': {
+        icon: 'baby',
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'Surgical procedures for children',
+        avatar: '/avatars/pediatric-surgery.svg'
       }
     }
   };

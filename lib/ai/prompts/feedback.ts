@@ -9,7 +9,7 @@ export const feedbackPrompt = (caseState: CaseState) =>
     "clinicalTip": string
 }
 
-IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
+IMPORTANT: The "diagnosis" field should contain ONLY the CORRECT diagnosis name (from case generation), NOT the student's diagnosis (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities.
 
@@ -30,7 +30,7 @@ export const detailedFeedbackPrompt = (caseState: CaseState, surgicalContext: st
     "clinicalPearls": string[]
 }
 
-IMPORTANT: The "diagnosis" field should contain ONLY the diagnosis name (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
+IMPORTANT: The "diagnosis" field should contain ONLY the CORRECT diagnosis name (from case generation), NOT the student's diagnosis (e.g., "Acute Myocardial Infarction", "Severe Preeclampsia"), not explanations or commentary.
 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities. Explain clinical significance.
 
@@ -77,7 +77,7 @@ export const comprehensiveFeedbackPrompt = (caseState: CaseState, surgicalContex
 }
 
 IMPORTANT: 
-- The "diagnosis" field should contain ONLY the diagnosis name
+- The "diagnosis" field should contain ONLY the CORRECT diagnosis name (from case generation), NOT the student's diagnosis
 - "whatYouDidWell" should include 4-5 points, incorporating positive communication and clerking structure feedback
 - "clinicalReasoning" should analyze the student's thinking process and diagnostic reasoning
 - "areasForImprovement" should include general improvement areas and negative communication/clerking feedback if any

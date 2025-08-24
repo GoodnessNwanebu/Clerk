@@ -187,6 +187,9 @@ export const completeCase = async (caseData: {
     examinationResults: any[];
     investigationResults: any[];
     messages: any[];
+    preliminaryDiagnosis?: string;
+    examinationPlan?: string;
+    investigationPlan?: string;
     makeVisible?: boolean;
     caseId?: string;
     sessionId?: string;
@@ -213,7 +216,7 @@ export const completeCase = async (caseData: {
         return {
             success: result.success,
             feedback: result.feedback,
-            caseReport: result.caseReport,
+            caseReport: result.caseReport || null, // Case report may be null if generated in background
             caseId: result.caseId // Include the case ID from the API response
         };
     } catch (error) {

@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
         examinationResults, 
         investigationResults,
         messages,
+        preliminaryDiagnosis,
+        examinationPlan,
+        investigationPlan,
         makeVisible = false 
       } = body;
 
@@ -46,33 +49,46 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('🔄 [complete] Starting parallel feedback and case report generation...');
+      console.log('🔄 [complete] Starting sequential feedback and case report generation...');
       
-      // Generate comprehensive feedback and case report in parallel
-      const [feedback, caseReport] = await Promise.all([
-        generateComprehensiveFeedbackDirect({
-          primaryContext,
-          secondaryContext: {
-            messages,
-            finalDiagnosis,
-            managementPlan,
-            examinationResults,
-            investigationResults
-          }
-        }),
-        generateCaseReport({
-          primaryContext,
-          secondaryContext: {
-            messages,
-            finalDiagnosis,
-            managementPlan,
-            examinationResults,
-            investigationResults
-          }
-        })
-      ]);
+      // Generate comprehensive feedback first for immediate display
+      console.log('🔄 [complete] Generating feedback first...');
+      const feedback = await generateComprehensiveFeedbackDirect({
+        primaryContext,
+        secondaryContext: {
+          messages,
+          finalDiagnosis,
+          managementPlan,
+          examinationResults,
+          investigationResults
+        }
+      });
       
-      console.log('✅ [complete] Both feedback and case report generated successfully');
+      console.log('✅ [complete] Feedback generated successfully, starting case report in background...');
+      
+      // Generate case report in the background (don't await)
+      const caseReportPromise = generateCaseReport({
+        primaryContext,
+        secondaryContext: {
+          messages,
+          finalDiagnosis,
+          managementPlan,
+          examinationResults,
+          investigationResults
+        }
+      }).then(async (caseReport) => {
+        console.log('✅ [complete] Case report generated in background, saving to database...');
+        await saveCaseReport(caseId, caseReport);
+        console.log('✅ [complete] Case report saved to database');
+        return caseReport;
+      }).catch(async (error) => {
+        console.error('❌ [complete] Error generating case report in background:', error);
+        // Don't fail the entire request if case report generation fails
+        return null;
+      });
+      
+      // Don't await the case report - let it run in background
+      // The response will be sent immediately with just the feedback
 
       // Save completed case to database with comprehensive logging
       console.log('🔄 [complete] Saving case to database...');
@@ -91,6 +107,9 @@ export async function POST(request: NextRequest) {
         data: {
           finalDiagnosis,
           managementPlan,
+          preliminaryDiagnosis,
+          examinationPlan,
+          investigationPlan,
           isVisible: makeVisible, // User's visibility preference
           completedAt: new Date(),
           isCompleted: true
@@ -128,11 +147,6 @@ export async function POST(request: NextRequest) {
       await saveComprehensiveFeedback(caseId, feedback);
       console.log('✅ [complete] Feedback saved to database');
 
-      // Save case report
-      console.log('📋 [complete] Saving case report...');
-      await saveCaseReport(caseId, caseReport);
-      console.log('✅ [complete] Case report saved to database');
-
       // Invalidate primary context cache to ensure fresh data for feedback generation
       console.log('🔄 [complete] Invalidating primary context cache...');
       await invalidatePrimaryContext(caseId);
@@ -145,8 +159,8 @@ export async function POST(request: NextRequest) {
         success: true,
         caseId,
         message: 'Case completed successfully',
-        feedback,
-        caseReport
+        feedback
+        // Case report is being generated in the background
       });
 
       return response;

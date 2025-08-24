@@ -53,46 +53,62 @@ export async function POST(request: NextRequest) {
                 );
             }
             
-            // Convert the history to a format suitable for the API
-            const conversation = history
-                .filter((msg: Message) => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
-                .map((msg: Message) => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
-                .join('\n\n');
-            
-            const response = await ai.generateContent({
-                model: MODEL,
-                contents: [{ 
-                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric)
-                }],
-            });
-            
-            // Parse the response to determine speaker for pediatric cases
+            // Determine speaker for pediatric cases BEFORE generating response
             let speakerLabel = '';
             let sender = 'patient';
             
             if (isPediatric && primaryContext.pediatricProfile) {
-                const { respondingParent } = primaryContext.pediatricProfile;
+                const { respondingParent, patientAge, ageGroup, communicationLevel } = primaryContext.pediatricProfile;
                 
-                // Check if the response indicates who is speaking
-                const responseText = response.text.trim().toLowerCase();
+                // Get the last student question to determine who should respond
+                const lastStudentMessage = history
+                    .filter((msg: Message) => msg.sender === 'student')
+                    .pop();
                 
-                if (responseText.includes('mother') || responseText.includes('mom') || responseText.includes('mum')) {
-                    speakerLabel = 'Mother';
-                    sender = 'parent';
-                } else if (responseText.includes('father') || responseText.includes('dad')) {
-                    speakerLabel = 'Father';
-                    sender = 'parent';
-                } else if (responseText.includes('child') || responseText.includes('patient')) {
-                    speakerLabel = 'Child';
-                    sender = 'patient';
+                if (lastStudentMessage) {
+                    const questionText = lastStudentMessage.text.toLowerCase();
+                    
+                    // Determine who should respond based on question type and child's age
+                    const shouldChildRespond = (
+                        // Questions about current symptoms the child can describe
+                        (questionText.includes('pain') || questionText.includes('hurt') || questionText.includes('sore')) ||
+                        (questionText.includes('feel') && (questionText.includes('now') || questionText.includes('today'))) ||
+                        (questionText.includes('symptom') && (questionText.includes('current') || questionText.includes('now'))) ||
+                        // Questions about activities and preferences
+                        (questionText.includes('like') || questionText.includes('enjoy') || questionText.includes('play')) ||
+                        (questionText.includes('activity') || questionText.includes('hobby')) ||
+                        // Simple yes/no questions about current state
+                        (questionText.includes('can you') || questionText.includes('do you') || questionText.includes('are you')) ||
+                        // Questions directly to the child
+                        (questionText.includes('child') || questionText.includes('patient') || questionText.includes('you ')) ||
+                        // Age-appropriate questions for older children
+                        (patientAge >= 6 && (questionText.includes('school') || questionText.includes('friend')))
+                    ) && (
+                        // Only if child is old enough to communicate
+                        ageGroup !== 'infant' && 
+                        ageGroup !== 'toddler' && 
+                        communicationLevel !== 'non-verbal'
+                    );
+                    
+                    if (shouldChildRespond) {
+                        speakerLabel = 'Child';
+                        sender = 'patient';
+                    } else {
+                        // Parent responds to everything else
+                        speakerLabel = respondingParent === 'mother' ? 'Mother' : 'Father';
+                        sender = 'parent';
+                    }
                 } else {
-                    // Default to the responding parent if no clear indication
+                    // Default to responding parent if no question found
                     speakerLabel = respondingParent === 'mother' ? 'Mother' : 'Father';
                     sender = 'parent';
                 }
                 
                 console.log('🔄 [patient-response] Pediatric case - determined speaker:', {
-                    responseText: responseText.substring(0, 50) + '...',
+                    question: lastStudentMessage?.text.substring(0, 50) + '...',
+                    patientAge,
+                    ageGroup,
+                    communicationLevel,
                     respondingParent,
                     determinedSpeakerLabel: speakerLabel,
                     determinedSender: sender
@@ -101,6 +117,25 @@ export async function POST(request: NextRequest) {
                 console.log('🔄 [patient-response] Non-pediatric case or missing pediatric profile');
             }
             
+            // Convert the history to a format suitable for the API
+            const conversation = history
+                .filter((msg: Message) => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
+                .map((msg: Message) => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
+                .join('\n\n');
+            
+            // Add speaker instruction to the prompt for pediatric cases
+            const speakerInstruction = isPediatric && speakerLabel ? 
+                `\n\nIMPORTANT: Respond as ${speakerLabel}. ${speakerLabel === 'Child' ? 'Speak like a child of this age.' : 'Speak like a concerned parent.'}` : '';
+            
+            const response = await ai.generateContent({
+                model: MODEL,
+                contents: [{ 
+                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
+                }],
+            });
+            
+
+            
             console.log('🔄 [patient-response] Returning message with speakerLabel:', {
                 sender: sender,
                 speakerLabel: speakerLabel,
@@ -108,9 +143,29 @@ export async function POST(request: NextRequest) {
                 responsePreview: response.text.trim().substring(0, 50) + '...'
             });
             
+            // Clean the response text - remove markdown formatting and speaker prefixes
+            let cleanedResponse = response.text.trim();
+            
+            // Remove markdown formatting like **speaker:** or **dare:**
+            cleanedResponse = cleanedResponse.replace(/\*\*[^*]+\*\*:\s*/g, '');
+            
+            // Remove any remaining markdown formatting
+            cleanedResponse = cleanedResponse.replace(/\*\*/g, '');
+            
+            // Remove any speaker prefixes like "Mother:" or "Child:"
+            cleanedResponse = cleanedResponse.replace(/^(mother|father|child|patient):\s*/i, '');
+            
+            // Clean up any extra whitespace
+            cleanedResponse = cleanedResponse.trim();
+            
+            console.log('🔄 [patient-response] Response cleaning:', {
+                original: response.text.trim().substring(0, 100) + '...',
+                cleaned: cleanedResponse.substring(0, 100) + '...'
+            });
+            
             return NextResponse.json({ 
                 messages: [{
-                    response: response.text.trim(),
+                    response: cleanedResponse,
                     sender: sender as 'patient' | 'parent',
                     speakerLabel: speakerLabel
                 }]

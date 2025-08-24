@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from './Icon';
 import ReactMarkdown from 'react-markdown';
 
@@ -70,14 +70,26 @@ interface CaseData {
       socialHistory: string;
       familyHistory: string;
     };
+    history: {
+      presentingComplaint: string;
+      historyOfPresentingIllness: string;
+      pastMedicalHistory: string;
+      medications: string;
+      allergies: string;
+      socialHistory: string;
+      familyHistory: string;
+      reviewOfSystems: string;
+    };
     examination: {
       generalExamination: string;
       systemicExamination: string;
       findings: string[];
+      rationale: string;
     };
     investigations: {
       requested: string[];
       results: string[];
+      rationale: string;
     };
     assessment: {
       differentialDiagnosis: string[];
@@ -94,7 +106,7 @@ interface CaseData {
   };
 }
 
-type TabType = 'overview' | 'patient' | 'examination' | 'investigations' | 'assessment' | 'management' | 'feedback' | 'conversation';
+type TabType = 'overview' | 'management' | 'feedback' | 'conversation';
 
 interface CaseTabContentProps {
   activeTab: TabType;
@@ -111,21 +123,88 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
 }) => {
   const renderOverview = () => (
     <div className="space-y-6">
-      {/* Clinical Summary */}
+
+            {/* Final Diagnosis */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
+          <Icon name="brain" size={20} className="mr-2" />
+          Final Diagnosis
+        </h2>
+        <p className="text-slate-700 dark:text-slate-300 font-medium text-lg">
+          {caseData.feedback?.diagnosis || caseData.diagnosis}
+        </p>
+      </div>
+      {/* Patient Information */}
+      {caseData.caseReport?.patientInfo && (
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
+            <Icon name="user" size={20} className="mr-2" />
+            Patient Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">Demographics</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Age:</span>
+                    <span>{caseData.caseReport.patientInfo.age}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Gender:</span>
+                    <span>{caseData.caseReport.patientInfo.gender}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">Presenting Complaint</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.caseReport.patientInfo.presentingComplaint}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">History of Presenting Illness</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.caseReport.patientInfo.historyOfPresentingIllness}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">Past Medical History</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.caseReport.patientInfo.pastMedicalHistory}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">Medications</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.caseReport.patientInfo.medications}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-medium text-slate-900 dark:text-white mb-2">Allergies</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.caseReport.patientInfo.allergies}
+                </p>
+              </div> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Case Details */}
       <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4 flex items-center">
           <Icon name="file-text" size={20} className="mr-2" />
-          Clinical Summary
+          Case Details
         </h2>
-        <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-          {caseData.clinicalSummary}
-        </p>
-      </div>
-
-      {/* Key Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-md font-semibold text-slate-900 dark:text-white mb-3">Case Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600 dark:text-slate-400">Department:</span>
@@ -141,14 +220,9 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
             </div>
           </div>
         </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-md font-semibold text-slate-900 dark:text-white mb-3">Final Diagnosis</h3>
-          <p className="text-slate-700 dark:text-slate-300 font-medium">
-            {caseData.feedback?.diagnosis || caseData.diagnosis}
-          </p>
-        </div>
       </div>
+
+
     </div>
   );
 
@@ -413,66 +487,307 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
     </div>
   );
 
-  const renderManagement = () => (
-    <div className="space-y-6">
-      {caseData.caseReport?.management ? (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 mb-4">Management Plan</h2>
-          
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-medium text-slate-900 dark:text-white mb-2">Immediate Management</h3>
-              <ul className="space-y-1">
-                {caseData.caseReport.management.immediate.map((item, index) => (
-                  <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
-                    <Icon name="alert-triangle" size={14} className="mr-2 mt-0.5 text-red-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+  const renderManagement = () => {
+    const [expandedSections, setExpandedSections] = useState({
+      history: true, // Expanded by default
+      examinations: false,
+      investigations: false,
+      assessment: false,
+      management: false
+    });
 
-            <div>
-              <h3 className="font-medium text-slate-900 dark:text-white mb-2">Short-term Management</h3>
-              <ul className="space-y-1">
-                {caseData.caseReport.management.shortTerm.map((item, index) => (
-                  <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
-                    <Icon name="clock" size={14} className="mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+    const toggleSection = (section: keyof typeof expandedSections) => {
+      setExpandedSections(prev => ({
+        ...prev,
+        [section]: !prev[section]
+      }));
+    };
 
-            <div>
-              <h3 className="font-medium text-slate-900 dark:text-white mb-2">Long-term Management</h3>
-              <ul className="space-y-1">
-                {caseData.caseReport.management.longTerm.map((item, index) => (
-                  <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
-                    <Icon name="calendar" size={14} className="mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+    return (
+      <div className="space-y-6">
+        {/* History Section */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+          <button
+            onClick={() => toggleSection('history')}
+            className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 flex items-center">
+              <Icon name="history" size={20} className="mr-2" />
+              History
+            </h2>
+            <Icon 
+              name={expandedSections.history ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              className="text-slate-500 dark:text-slate-400" 
+            />
+          </button>
+          {expandedSections.history && (
+            <div className="px-6 pb-6">
+              {caseData.caseReport?.history ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Presenting Complaint</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.presentingComplaint}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">History of Presenting Illness</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.historyOfPresentingIllness}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Past Medical History</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.pastMedicalHistory}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Medications</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.medications}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Allergies</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.allergies}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Social History</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.socialHistory}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Family History</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.familyHistory}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Review of Systems</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.reviewOfSystems}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-center">History information not available</p>
+              )}
             </div>
-
-            <div>
-              <h3 className="font-medium text-slate-900 dark:text-white mb-2">Follow-up</h3>
-              <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                <ReactMarkdown>
-                  {caseData.caseReport.management.followUp}
-                </ReactMarkdown>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
-          <p className="text-slate-500 dark:text-slate-400 text-center">Management plan not available</p>
+
+        {/* Examinations Section */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+          <button
+            onClick={() => toggleSection('examinations')}
+            className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 flex items-center">
+              <Icon name="stethoscope" size={20} className="mr-2" />
+              Examinations
+            </h2>
+            <Icon 
+              name={expandedSections.examinations ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              className="text-slate-500 dark:text-slate-400" 
+            />
+          </button>
+          {expandedSections.examinations && (
+            <div className="px-6 pb-6">
+              {caseData.caseReport?.examination ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">General Examination</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.generalExamination}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Systemic Examination</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.systemicExamination}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Expected Findings</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.examination.findings.map((finding, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="list" size={14} className="mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
+                          {finding}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Rationale</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.rationale}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-center">Examination information not available</p>
+              )}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+
+        {/* Investigations Section */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+          <button
+            onClick={() => toggleSection('investigations')}
+            className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 flex items-center">
+              <Icon name="microscope" size={20} className="mr-2" />
+              Investigations
+            </h2>
+            <Icon 
+              name={expandedSections.investigations ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              className="text-slate-500 dark:text-slate-400" 
+            />
+          </button>
+          {expandedSections.investigations && (
+            <div className="px-6 pb-6">
+              {caseData.caseReport?.investigations ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Requested Investigations</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.investigations.requested.map((investigation, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="list" size={14} className="mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
+                          {investigation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Expected Results</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.investigations.results.map((result, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="list" size={14} className="mr-2 mt-0.5 text-green-500 flex-shrink-0" />
+                          {result}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Rationale</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.investigations.rationale}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-center">Investigation information not available</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Assessment Section */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+          <button
+            onClick={() => toggleSection('assessment')}
+            className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 flex items-center">
+              <Icon name="brain" size={20} className="mr-2" />
+              Assessment
+            </h2>
+            <Icon 
+              name={expandedSections.assessment ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              className="text-slate-500 dark:text-slate-400" 
+            />
+          </button>
+          {expandedSections.assessment && (
+            <div className="px-6 pb-6">
+              {caseData.caseReport?.assessment ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Differential Diagnosis</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.assessment.differentialDiagnosis.map((diagnosis, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="list" size={14} className="mr-2 mt-0.5 text-amber-500 flex-shrink-0" />
+                          {diagnosis}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Final Diagnosis</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{caseData.caseReport.assessment.finalDiagnosis}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Clinical Reasoning</h3>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.assessment.reasoning}</ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-center">Assessment information not available</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Management Section */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+          <button
+            onClick={() => toggleSection('management')}
+            className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-400 flex items-center">
+              <Icon name="clipboard-list" size={20} className="mr-2" />
+              Management
+            </h2>
+            <Icon 
+              name={expandedSections.management ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              className="text-slate-500 dark:text-slate-400" 
+            />
+          </button>
+          {expandedSections.management && (
+            <div className="px-6 pb-6">
+              {caseData.caseReport?.management ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Immediate Management</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.management.immediate.map((item, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="alert-triangle" size={14} className="mr-2 mt-0.5 text-red-500 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Short-term Management</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.management.shortTerm.map((item, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="clock" size={14} className="mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Long-term Management</h3>
+                    <ul className="space-y-1">
+                      {caseData.caseReport.management.longTerm.map((item, index) => (
+                        <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
+                          <Icon name="calendar" size={14} className="mr-2 mt-0.5 text-green-500 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-2">Follow-up</h3>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.management.followUp}</ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-center">Management information not available</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderFeedback = () => (
     <div className="space-y-6">
@@ -628,14 +943,6 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
   switch (activeTab) {
     case 'overview':
       return renderOverview();
-    case 'patient':
-      return renderPatient();
-    case 'examination':
-      return renderExamination();
-    case 'investigations':
-      return renderInvestigations();
-    case 'assessment':
-      return renderAssessment();
     case 'management':
       return renderManagement();
     case 'feedback':

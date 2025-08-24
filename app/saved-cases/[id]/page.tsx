@@ -73,14 +73,26 @@ interface CaseData {
       socialHistory: string;
       familyHistory: string;
     };
+    history: {
+      presentingComplaint: string;
+      historyOfPresentingIllness: string;
+      pastMedicalHistory: string;
+      medications: string;
+      allergies: string;
+      socialHistory: string;
+      familyHistory: string;
+      reviewOfSystems: string;
+    };
     examination: {
       generalExamination: string;
       systemicExamination: string;
       findings: string[];
+      rationale: string;
     };
     investigations: {
       requested: string[];
       results: string[];
+      rationale: string;
     };
     assessment: {
       differentialDiagnosis: string[];
@@ -97,7 +109,7 @@ interface CaseData {
   };
 }
 
-type TabType = 'overview' | 'patient' | 'examination' | 'investigations' | 'assessment' | 'management' | 'feedback' | 'conversation';
+type TabType = 'overview' | 'management' | 'feedback' | 'conversation';
 
 export default function CaseReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -228,10 +240,6 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
   const tabs: Array<{ id: TabType; label: string; icon: string }> = [
     { id: 'overview', label: 'Overview', icon: '' },
-    { id: 'patient', label: 'Patient Info', icon: '' },
-    { id: 'examination', label: 'Examination', icon: 'stethoscope' },
-    { id: 'investigations', label: 'Investigations', icon: 'microscope' },
-    { id: 'assessment', label: 'Assessment', icon: 'brain' },
     { id: 'management', label: 'Management', icon: 'clipboard-list' },
     { id: 'feedback', label: 'Feedback', icon: '' },
     { id: 'conversation', label: 'Conversation', icon: 'message-circle' },
@@ -326,43 +334,33 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <header 
         ref={headerRef}
-        className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 fixed top-0 left-0 right-0 z-20"
+        className="bg-white dark:bg-slate-800  border-slate-200 dark:border-slate-700 fixed top-0 left-0 right-0 z-20"
       >
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="max-w-6xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between">
             <button 
               onClick={() => router.push('/saved-cases')} 
               className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
               <Icon name="arrow-left" size={20} />
             </button>
-            <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                <Icon name="share-2" size={20} />
-              </button>
-              <button className="px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
-                <Icon name="trash-2" size={20} />
-              </button>
-            </div>
           </div>
           
           {/* Case Info Header */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              {/* <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                 {caseData?.feedback?.diagnosis || caseData?.diagnosis}
-              </h1>
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Case #{caseData?.id}
-              </div>
+              </h1> */}
+           
             </div>
             
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
                 <div className="flex items-center space-x-2">
                   <Icon name="calendar" size={16} className="text-slate-400" />
                   <span className="text-sm text-slate-600 dark:text-slate-300">
-                    {caseData ? formatDate(caseData.savedAt) : ''}
+                    {caseData ? formatDate(caseData.completedAt) : ''}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -375,7 +373,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
               <div className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium self-start sm:self-auto">
                 {caseData?.department.name}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
