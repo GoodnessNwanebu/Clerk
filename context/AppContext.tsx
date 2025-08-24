@@ -299,17 +299,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     ) => {
     setIsGeneratingCase(true);
     try {
-        // Use JWT-based practice case generation (backend creates session and JWT)
-        const response = await fetch('/api/ai/generate-case', {
+        // Use practice case generation endpoint
+        const response = await fetch('/api/practice', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            department: department.name,
+            departmentName: department.name,
+            condition: condition,
             difficulty,
-            userCountry: userCountry || undefined,
-            practiceCondition: condition
+            userCountry: userCountry || undefined
           })
         });
 
@@ -319,14 +319,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           );
         }
 
-        const result = await response.json();
+        const practiceCase = await response.json();
         
-        if (!result.success) {
-          throw new Error(
-            `Failed to generate a practice case for ${condition} in ${department.name}`
-          );
-        }
-
         // Generate a unique case ID for localStorage (secondary context)
       const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -339,13 +333,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       const newCaseState = {
         ...initialCaseState,
           department: department.name,
-          caseId: result.case.id,
-          sessionId: result.case.sessionId,
+          caseId: caseId, // Use generated caseId for localStorage
+          sessionId: null, // Practice cases don't have session IDs
           caseDetails: null, // Primary context is in cache
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
+              text: `The patient is here today with the following complaint:\n\n"${practiceCase.openingLine}"`,
               timestamp: new Date().toISOString(),
             },
           ],

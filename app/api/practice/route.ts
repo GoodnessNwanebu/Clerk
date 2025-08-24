@@ -208,6 +208,8 @@ export async function POST(request: NextRequest) {
     try {
         const { departmentName, condition, difficulty = 'standard', userCountry } = await request.json();
         
+        console.log('📋 Practice case generation request:', { departmentName, condition, difficulty, userCountry });
+        
         if (!departmentName || !condition) {
             return NextResponse.json({ 
                 error: 'Department name and condition are required',
@@ -365,7 +367,15 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
                 contents: [{ text: userMessage }],
             });
             
+            console.log('🤖 AI Response for practice case:', response.text);
+            
             const practiceCase = parseJsonResponse<Case>(response.text, context);
+            
+            console.log('📋 Parsed practice case:', {
+                diagnosis: practiceCase.diagnosis,
+                hasPrimaryInfo: !!practiceCase.primaryInfo,
+                hasOpeningLine: !!practiceCase.openingLine
+            });
             
             // Validate the generated case
             const caseValidation = validateGeneratedCase(practiceCase);
