@@ -299,15 +299,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     ) => {
     setIsGeneratingCase(true);
     try {
-        // Use practice case generation endpoint
-        const response = await fetch('/api/practice', {
+        // Use the unified case generation endpoint with practiceCondition
+        const response = await fetch('/api/ai/generate-case', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            departmentName: department.name,
-            condition: condition,
+            department: department.name,
+            practiceCondition: condition,
             difficulty,
             userCountry: userCountry || undefined
           })
@@ -319,36 +319,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           );
         }
 
-        const practiceCase = await response.json();
+        const result = await response.json();
         
-        // Generate a unique case ID for localStorage (secondary context)
-      const caseId = `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+        if (!result.success) {
+          throw new Error(
+            `Failed to generate a practice case for ${condition} in ${department.name}`
+          );
+        }
+
         // Initialize localStorage for this case (secondary context only)
-      const storage = new ConversationStorage(caseId);
-      setConversationStorage(storage);
-      
+        const storage = new ConversationStorage(result.case.id);
+        setConversationStorage(storage);
+        
         // Create initial case state with secondary context only
         // Primary context comes from JWT cookies
-      const newCaseState = {
-        ...initialCaseState,
+        const newCaseState = {
+          ...initialCaseState,
           department: department.name,
-          caseId: caseId, // Use generated caseId for localStorage
-          sessionId: null, // Practice cases don't have session IDs
+          caseId: result.case.id,
+          sessionId: result.case.sessionId,
           caseDetails: null, // Primary context is in cache
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${practiceCase.openingLine}"`,
+              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
               timestamp: new Date().toISOString(),
             },
           ],
-      };
-      
-      setCaseState(newCaseState);
-      
+        };
+        
+        setCaseState(newCaseState);
+        
         // Save initial state to localStorage (secondary context only)
-      storage.saveConversation(newCaseState.messages, newCaseState);
+        storage.saveConversation(newCaseState.messages, newCaseState);
     } catch (error) {
         console.error("Error in generatePracticeCase:", error);
         // Rethrow the error to be caught by the caller UI
