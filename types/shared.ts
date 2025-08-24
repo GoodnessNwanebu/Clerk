@@ -15,6 +15,7 @@ interface PediatricProfile {
   parentProfile: PatientProfile;
   developmentalStage: string;
   communicationLevel: 'non-verbal' | 'basic' | 'conversational' | 'adult-like';
+  childName?: string; // Child's name for speaker detection
 }
 
 type DifficultyLevel = 'standard' | 'intermediate' | 'difficult';

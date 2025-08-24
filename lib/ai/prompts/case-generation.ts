@@ -74,7 +74,7 @@ EXAMPLES by category:
 - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
 
 OUTPUT: ${isPediatric ? 
-`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}}` :
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string, "childName": string}}` :
 `{"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}`}
 
 CRITICAL JSON FORMATTING RULES:
@@ -96,7 +96,7 @@ CRITICAL JSON FORMATTING RULES:
   ${isPediatric ? '* ## Developmental History' : ''}
 - "openingLine": REQUIRED - Natural first-person statement ${isPediatric ? 'from parent/child' : 'from patient'} that will be the patient's first words in the consultation
 ${isPediatric ? `
-- "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}` : `
+- "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string, "childName": string}` : `
 - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}`}
 
 Generate case fitting "${randomBucket}" category in ${departmentName}.`;
