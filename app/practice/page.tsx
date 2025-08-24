@@ -1,75 +1,148 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { DEPARTMENTS } from '../../constants';
-import { Department } from '../../types';
+import { Department, Subspecialty, DifficultyLevel } from '../../types';
 import { Icon } from '../../components/Icon';
-
-const LoadingOverlay: React.FC<{ message: string }> = ({ message }) => (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
-        <Icon name="loader-2" size={48} className="animate-spin mb-4" />
-        <p className="text-lg font-semibold">{message}</p>
-    </div>
-);
+import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
+import { AuthRequiredModal } from '../../components/modals/AuthRequiredModal';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { useAuthCheck } from '../../hooks/useAuthCheck';
+import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
 const PracticeModeScreen: React.FC = () => {
   const router = useRouter();
-  const { generatePracticeCase, isGeneratingCase } = useAppContext();
+  const { generatePracticeCase, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
+  const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute } = useAuthCheck();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedSubspecialty, setSelectedSubspecialty] = useState<Subspecialty | null>(null);
+  const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
+  const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
+  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
 
-  const handleStartPractice = async () => {
-    if (!selectedDepartment || !condition.trim()) {
-      setError('Please select a department and enter a condition.');
+  const handleDirectStartPractice = async (department: Department) => {
+    if (!condition.trim()) {
+      setError('Please enter a condition or custom case.');
       return;
     }
 
     setError(null);
     try {
-      await generatePracticeCase(selectedDepartment, condition.trim());
+      await generatePracticeCase(department, condition.trim(), difficulty);
+      setNavigationEntryPoint('/practice');
       router.push('/clerking');
     } catch (err) {
       if (err instanceof Error) {
-        // Check for our custom quota error message
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
             setError(err.message.split(': ')[1]);
         } else {
-            setError("Sorry, we couldn't create a practice case right now. Please try again.");
+            // Check if the error message contains structured error data
+            if (err.message.includes('"error"') && err.message.includes('"suggestion"')) {
+              try {
+                const errorData = JSON.parse(err.message);
+                setError(`${errorData.error}\n\n${errorData.suggestion}`);
+              } catch {
+                // If JSON parsing fails, show a user-friendly message
+                setError("We couldn't create your practice case. Please try simplifying your description or using a different approach.");
+              }
+            } else {
+              // For other errors, show a user-friendly message
+              setError("We couldn't create your practice case right now. Please try again or simplify your description.");
+            }
         }
       } else {
-         setError("An unknown error occurred. Please try again.");
+         setError("Something went wrong. Please try again.");
       }
       console.error(err);
     }
   };
 
+  const handleDepartmentSelect = (department: Department) => {
+    if (hasSubspecialties(department.name)) {
+      setSelectedMainDepartment(department);
+      setShowSubspecialtyModal(true);
+    } else {
+      // For direct departments, set both the main department and selected department
+      setSelectedMainDepartment(department);
+      setSelectedDepartment(department);
+      setSelectedSubspecialty(null); // Clear subspecialty when selecting direct department
+    }
+    setShowDepartmentDropdown(false);
+  };
+
+  const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+    // Get the parent department name for the backend
+    const parentDepartmentName = getParentDepartment(subspecialty.name);
+    
+    const departmentFromSubspecialty: Department = {
+      name: parentDepartmentName, // Use parent department name for backend
+      icon: subspecialty.icon,
+      gradient: subspecialty.gradient,
+      description: subspecialty.description,
+      avatar: subspecialty.avatar
+    };
+    
+    setSelectedDepartment(departmentFromSubspecialty);
+    setSelectedSubspecialty(subspecialty);
+    setShowSubspecialtyModal(false);
+  };
+
+  const handleStartPractice = async () => {
+    if (!selectedDepartment || !condition.trim()) {
+      setError('Please select a department and enter a condition or custom case.');
+      return;
+    }
+
+    checkAuthAndExecute(async () => {
+      await handleDirectStartPractice(selectedDepartment);
+    }, 'Please sign in to create a case');
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleStartPractice();
+    }
+  };
+
+  const getPlaceholderText = () => {
+    if (inputMode === 'diagnosis') {
+      return "Enter a medical condition to practice...\n\nExamples:\n• Myocardial Infarction\n• Pneumonia";
+    } else {
+      return "Describe your custom case...\n\nExamples:\n• 45-year-old male with chest pain and shortness of breath\n• 28-year-old pregnant woman with severe headache and visual disturbances";
     }
   };
 
   return (
     <>
-      {isGeneratingCase && <LoadingOverlay message="Creating practice case..." />}
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <div className="container mx-auto px-4 py-6 max-w-2xl">
-          {/* Header */}
+      {isGeneratingCase && <LoadingOverlay message="Creating practice case..." department={selectedDepartment?.name || 'general'} />}
+      <SubspecialtyModal
+        isOpen={showSubspecialtyModal}
+        onClose={() => setShowSubspecialtyModal(false)}
+        department={selectedMainDepartment!}
+        onSelectSubspecialty={handleSubspecialtySelect}
+        disabled={isGeneratingCase}
+      />
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={hideAuthModal}
+        message={authMessage}
+      />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
+        <div className="max-w-4xl mx-auto">
           <header className="flex items-center justify-between mb-8">
-            <button 
-              onClick={() => router.push('/')} 
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-            >
-              <Icon name="arrow-left" size={24} className="text-slate-600 dark:text-slate-400" />
+            <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+              <Icon name="arrow-left" size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Practice Mode</h1>
+            <h1 className="text-2xl font-bold text-center">Practice Mode</h1>
             <div className="w-8"></div>
           </header>
 
-          {/* Main Content */}
           <main className="space-y-8">
             {/* Introduction */}
             <div className="text-center space-y-2">
@@ -77,7 +150,7 @@ const PracticeModeScreen: React.FC = () => {
                 Practice Specific Conditions
               </h2>
               <p className="text-slate-600 dark:text-slate-400">
-                Select a department and enter a specific condition to practice your clinical skills
+                Select a department and enter a condition or custom case to practice your clinical skills
               </p>
             </div>
 
@@ -86,51 +159,239 @@ const PracticeModeScreen: React.FC = () => {
               <label className="block text-lg font-medium text-slate-700 dark:text-slate-300">
                 Select Department
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {DEPARTMENTS.map((dept) => (
+              
+              {/* Mobile Dropdown */}
+              <div className="block sm:hidden">
+                <div className="relative">
                   <button
-                    key={dept.name}
-                    onClick={() => setSelectedDepartment(dept)}
+                    onClick={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
                     disabled={isGeneratingCase}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      selectedDepartment?.name === dept.name
+                    className={`w-full p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
+                      selectedMainDepartment
                         ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                    } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600'}`}
                   >
                     <div className="flex items-center space-x-3">
-                      <Icon name={dept.icon} size={24} />
-                      <span className="font-medium">{dept.name}</span>
+                      {selectedMainDepartment ? (
+                        <Icon name={selectedMainDepartment.icon} size={24} />
+                      ) : (
+                        <Icon name="building-2" size={24} />
+                      )}
+                      <div className="text-left">
+                        <span className="font-medium">
+                          {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
+                        </span>
+                        {selectedSubspecialty && (
+                          <div className="text-sm text-teal-600 dark:text-teal-400">
+                            → {selectedSubspecialty.name}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <Icon 
+                      name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      className="transition-transform duration-200" 
+                    />
                   </button>
-                ))}
+                  
+                  {showDepartmentDropdown && (
+                    <div className="absolute z-10 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-80 overflow-y-auto">
+                      {departments.map((dept) => (
+                        <button
+                          key={dept.name}
+                          onClick={() => handleDepartmentSelect(dept)}
+                          disabled={isGeneratingCase}
+                          className={`w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                            isGeneratingCase ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon name={dept.icon} size={20} />
+                            <span className="font-medium text-left">{dept.name}</span>
+                          </div>
+                                                     {hasSubspecialties(dept.name) && (
+                             <Icon name="chevron-right" size={16} />
+                           )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+
+                             {/* Desktop Grid */}
+               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                 {departments.map((dept) => {
+                   // Only highlight the button if it's the main department that was used for selection
+                   const isSelected = selectedMainDepartment?.name === dept.name;
+                  
+                  return (
+                    <button
+                      key={dept.name}
+                      onClick={() => handleDepartmentSelect(dept)}
+                      disabled={isGeneratingCase}
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                        isSelected
+                          ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                      } ${isGeneratingCase ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Icon name={dept.icon} size={24} />
+                          <div className="text-left">
+                            <span className="font-medium">{dept.name}</span>
+                            {isSelected && selectedSubspecialty && (
+                              <div className="text-sm text-teal-600 dark:text-teal-400">
+                                → {selectedSubspecialty.name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                                                 {hasSubspecialties(dept.name) && (
+                           <Icon name="chevron-right" size={16} className="ml-auto" />
+                         )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Selected Subspecialty Display */}
+              {selectedSubspecialty && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="check-circle" size={20} className="text-green-600 dark:text-green-400" />
+                      <div>
+                        <span className="font-medium text-green-800 dark:text-green-200">Selected:</span>
+                        <span className="ml-2 font-semibold text-green-900 dark:text-green-100">
+                          {selectedMainDepartment?.name} → {selectedSubspecialty.name}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSelectedDepartment(null);
+                        setSelectedMainDepartment(null);
+                        setSelectedSubspecialty(null);
+                      }} 
+                      className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors"
+                      disabled={isGeneratingCase}
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Condition Input */}
+            {/* Difficulty Selector */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Case Difficulty
+              </label>
+              <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1 max-w-xs">
+                <button
+                  onClick={() => setDifficulty('standard')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'standard'
+                      ? 'bg-teal-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Standard
+                </button>
+                <button
+                  onClick={() => setDifficulty('intermediate')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'intermediate'
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Intermediate
+                </button>
+                <button
+                  onClick={() => setDifficulty('difficult')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    difficulty === 'difficult'
+                      ? 'bg-red-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Difficult
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {difficulty === 'standard' && 'Classic textbook presentations'}
+                {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
+                {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
+              </p>
+            </div>
+
+            {/* Input Mode Toggle */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Input Type
+              </label>
+              <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1 max-w-xs">
+                <button
+                  onClick={() => setInputMode('diagnosis')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    inputMode === 'diagnosis'
+                      ? 'bg-teal-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Single Diagnosis
+                </button>
+                <button
+                  onClick={() => setInputMode('custom')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                    inputMode === 'custom'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  disabled={isGeneratingCase}
+                >
+                  Custom Case
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {inputMode === 'diagnosis' && 'Enter a specific medical condition to practice'}
+                {inputMode === 'custom' && 'Provide a detailed case description with patient details'}
+              </p>
+            </div>
+
+            {/* Condition/Case Input */}
             <div className="space-y-4">
               <label className="block text-lg font-medium text-slate-700 dark:text-slate-300">
-                Enter Condition
+                {inputMode === 'diagnosis' ? 'Enter Condition' : 'Enter Custom Case'}
               </label>
               <div className="relative">
-                <input
-                  type="text"
+                <textarea
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="e.g., Myocardial Infarction, Pneumonia, Pre-eclampsia..."
+                  placeholder={getPlaceholderText()}
                   disabled={isGeneratingCase}
-                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50"
+                  rows={8}
+                  className="w-full p-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 resize-none text-base"
                 />
                 <Icon 
                   name="search" 
                   size={20} 
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" 
+                  className="absolute right-4 top-4 text-slate-400" 
                 />
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Enter any medical condition you'd like to practice. Be specific for better results.
-              </p>
+
             </div>
 
             {/* Start Button */}
@@ -155,9 +416,15 @@ const PracticeModeScreen: React.FC = () => {
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">
-                <div className="flex items-center space-x-2">
-                  <Icon name="alert-circle" size={20} />
-                  <span>{error}</span>
+                <div className="flex items-start space-x-2">
+                  <Icon name="alert-circle" size={20} className="mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1">
+                    {error.split('\n\n').map((part, index) => (
+                      <div key={index} className={index === 0 ? 'font-medium' : 'text-sm'}>
+                        {part}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -169,10 +436,21 @@ const PracticeModeScreen: React.FC = () => {
                 <span>Tips for Practice Mode</span>
               </h3>
               <ul className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
+                {inputMode === 'diagnosis' ? (
+                  <>
                 <li>&bull; Be specific with conditions (e.g., &ldquo;Acute Myocardial Infarction&rdquo; vs &ldquo;Heart Problem&rdquo;)</li>
                 <li>&bull; Use medical terminology for more accurate simulations</li>
                 <li>&bull; Practice common OSCE conditions that you need to master</li>
                 <li>&bull; Try different presentations of the same condition</li>
+                  </>
+                ) : (
+                  <>
+                    <li>&bull; Include patient demographics (age, gender, occupation)</li>
+                    <li>&bull; Describe presenting symptoms and their timeline</li>
+                    <li>&bull; Mention relevant past medical history and medications</li>
+                    <li>&bull; Add social context that might affect the case</li>
+                  </>
+                )}
               </ul>
             </div>
           </main>

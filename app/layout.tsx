@@ -11,6 +11,28 @@ export const metadata: Metadata = {
   title: 'ClerkSmart',
   description: 'The intelligent clinical reasoning simulator',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'ClerkSmart - Medical Case Simulator',
+    description: 'Practice clinical reasoning with AI-powered patient cases. Perfect for medical students and healthcare professionals.',
+    url: 'https://clerksmart.vercel.app',
+    siteName: 'ClerkSmart',
+    images: [
+      {
+        url: 'https://clerksmart.vercel.app/icons/icon-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'ClerkSmart - Medical Case Simulator',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ClerkSmart - Medical Case Simulator',
+    description: 'Practice clinical reasoning with AI-powered patient cases',
+    images: ['https://clerksmart.vercel.app/icons/icon-512x512.png'],
+  },
   other: {
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
@@ -43,7 +65,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -57,7 +79,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#14b8a6" />
       </head>
-      <body className={inter.className}>
+      <body  className={`${inter.className} h-4/5`}>
         <ThemeProvider>
           <AppProvider>
             <ClientWrapper>{children}</ClientWrapper>

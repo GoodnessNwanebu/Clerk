@@ -2,34 +2,55 @@
   "name": "clerksmart-next",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "next dev",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
     "@google/generative-ai": "^0.24.1",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.13.0",
     "@react-email/components": "^0.1.1",
     "@react-email/render": "^1.1.3",
+    "html2canvas": "^1.4.1",
+    "jsonrepair": "^3.13.0",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.525.0",
     "next": "15.3.5",
+    "next-auth": "^4.24.11",
     "next-pwa": "^5.6.0",
+    "prisma": "^6.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "resend": "^4.6.0",
     "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.11",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/supertest": "^6.0.3",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
+    "supertest": "^7.1.4",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

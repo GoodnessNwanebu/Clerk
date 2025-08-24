@@ -1,217 +1,627 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
-import { EmailCaptureModal } from '../../components/EmailCaptureModal';
-import { getDetailedCaseFeedback } from '../../services/geminiService';
-import { sendFeedbackEmail } from '../../services/emailService';
+import { ComprehensiveFeedback, Feedback } from '../../types';
+import ReactMarkdown from 'react-markdown';
+import ShareModal from '../../components/modals/ShareModal';
+import { shareOnWhatsApp } from '../../lib/shared/shareUtils';
+import { ShareData } from '../../types/share';
+import { ConversationStorageUtils } from '../../lib/storage/localStorage';
+import { useInstallGuide } from '../../hooks/useInstallGuide';
+import PWATutorialModal from '../../components/PWATutorialModal';
 
-const FeedbackScreen: React.FC = () => {
-    const router = useRouter();
-    const { caseState, resetCase, userEmail, setUserEmail } = useAppContext();
+export default function FeedbackPage() {
+    const { 
+        caseState, 
+        resetCase, 
+        setNavigationEntryPoint,
+        toggleCaseVisibility,
+        setFeedback,
+        setDepartment,
+        addCaseToCache
+    } = useAppContext();
+    
     const { feedback, department } = caseState;
     
-    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [isSendingEmail, setIsSendingEmail] = useState(false);
-    const [emailStatus, setEmailStatus] = useState<'idle' | 'sent' | 'error'>('idle');
-    const [emailError, setEmailError] = useState<string | null>(null);
+    const router = useRouter();
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState<any>(null);
+    const [expandedSections, setExpandedSections] = useState({
+        clinicalOpportunities: false,
+        clinicalPearls: false
+    });
+    const [isCaseVisible, setIsCaseVisible] = useState(false);
+    const [departmentName, setDepartmentName] = useState<string | null>(department);
+    
+    // Save case state management
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const [saveMessage, setSaveMessage] = useState('');
+    
+    // Install guide hook
+    const {
+        showInstallGuide,
+        shouldShowInstallGuide,
+        handleShowInstallGuide,
+        handleCloseInstallGuide,
+        handleCompleteInstallGuide
+    } = useInstallGuide();
 
+    // Debug logging for feedback page state
+    useEffect(() => {
+        console.log('🔄 [feedback] Page loaded with state:', {
+            hasFeedback: !!feedback,
+            hasDepartment: !!department,
+            hasDepartmentName: !!departmentName,
+            caseId: caseState.caseId,
+            feedbackKeys: feedback ? Object.keys(feedback) : null,
+            feedbackPreview: feedback ? {
+                diagnosis: feedback.diagnosis,
+                keyLearningPoint: feedback.keyLearningPoint?.substring(0, 100) + '...',
+                whatYouDidWell: feedback.whatYouDidWell?.length || 0
+            } : null
+        });
+    }, [feedback, department, departmentName, caseState.caseId]);
 
-    React.useEffect(() => {
-        if (!feedback || !department) {
-            router.push('/');
-        }
-    }, [feedback, department, router]);
-
-    const handleSendEmailReport = async (email: string) => {
-        if (!caseState.caseDetails) {
-            alert("Case details are missing.");
-            return;
-        }
-        setIsSendingEmail(true);
-        setEmailStatus('idle');
-        setEmailError(null);
-
-        try {
-            const detailedReport = await getDetailedCaseFeedback(caseState);
-            if (!detailedReport) {
-                throw new Error("Failed to generate the detailed report for the email.");
-            }
-            
-            const result = await sendFeedbackEmail(detailedReport, email);
-
-            if (result.success) {
-                setEmailStatus('sent');
-            } else {
-                throw new Error(result.error || "Email sending service failed.");
-            }
-
-        } catch (error) {
-            console.error('Error in handleSendEmailReport:', error);
-            
-            let errorMessage = "An error occurred while preparing the report. Please try again.";
-            
-            if (error instanceof Error) {
-                if (error.message.startsWith('QUOTA_EXCEEDED')) {
-                    errorMessage = error.message.split(': ')[1] || "API quota exceeded. Please try again tomorrow.";
-                } else if (error.message.includes('Missing required case data')) {
-                    errorMessage = "Case data is incomplete. Please restart the case.";
-                } else if (error.message.includes('Invalid response format')) {
-                    errorMessage = "There was an issue generating the report. Please try again.";
-                } else if (error.message.includes('Server error')) {
-                    errorMessage = "Server is temporarily unavailable. Please try again in a few minutes.";
-                } else if (error.message.includes('Network error')) {
-                    errorMessage = "Network connection issue. Please check your internet and try again.";
-                } else {
-                    errorMessage = error.message;
+    // Load share data from localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedShareData = localStorage.getItem('pendingShareData');
+            if (savedShareData) {
+                try {
+                    setShareData(JSON.parse(savedShareData));
+                } catch (error) {
+                    console.error('Error parsing share data:', error);
                 }
             }
+        }
+    }, []);
+
+    // Scroll-to-bottom install guide trigger
+    useEffect(() => {
+        const handleScroll = () => {
+            // Check if user has scrolled to bottom
+            const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
             
-            setEmailError(errorMessage);
-            setEmailStatus('error');
+            if (isAtBottom && shouldShowInstallGuide()) {
+                handleShowInstallGuide();
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [shouldShowInstallGuide, handleShowInstallGuide]);
+
+    const toggleSection = (section: 'clinicalOpportunities' | 'clinicalPearls') => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
+    const handleSaveCase = async () => {
+        if (!caseState.caseId) {
+            console.error('No case ID available for visibility toggle');
+            setSaveStatus('error');
+            setSaveMessage('No case ID available');
+            return;
+        }
+
+        try {
+            // Set saving state
+            setIsSaving(true);
+            setSaveStatus('saving');
+
+            // Toggle visibility (make case visible in saved cases)
+            const success = await toggleCaseVisibility(caseState.caseId, true);
+            
+            if (success) {
+                setIsCaseVisible(true);
+                setSaveStatus('success');
+                setSaveMessage('Case saved successfully!');
+                
+                // Add case to cache for immediate availability in saved cases
+                if (feedback && caseState.department) {
+                    const caseData = {
+                        id: caseState.caseId,
+                        diagnosis: feedback.diagnosis,
+                        department: { name: caseState.department },
+                        completedAt: new Date().toISOString(),
+                        feedback: feedback
+                    };
+                    addCaseToCache(caseData);
+                }
+                
+                // Deactivate session after successful save to prevent resume
+                if (caseState.sessionId) {
+                    try {
+                        console.log(`🔄 [feedback.handleSaveCase] Deactivating session after save: ${caseState.sessionId}`);
+                        await fetch('/api/sessions/invalidate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                sessionId: caseState.sessionId,
+                                caseId: caseState.caseId
+                            }),
+                            credentials: 'include',
+                        });
+                        console.log(`✅ [feedback.handleSaveCase] Session deactivated successfully after save`);
+                    } catch (error) {
+                        console.error('❌ [feedback.handleSaveCase] Error deactivating session after save:', error);
+                        // Don't fail the save operation if session deactivation fails
+                    }
+                }
+                
+                // Show share modal after successful save
+                setShowShareModal(true);
+                
+                // Reset save status after 3 seconds
+                setTimeout(() => {
+                    setSaveStatus('idle');
+                    setSaveMessage('');
+                }, 3000);
+            } else {
+                setSaveStatus('error');
+                setSaveMessage('Failed to save case. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error saving case:', error);
+            setSaveStatus('error');
+            setSaveMessage('Failed to save case. Please try again.');
         } finally {
-            setIsSendingEmail(false);
+            setIsSaving(false);
         }
+    };
+
+    const handleDone = async () => {
+        // Feedback is already saved in localStorage (secondary context)
+        // Primary context is secured in JWT cookies
+        setNavigationEntryPoint('');
+        
+        // Show share modal instead of going directly to home
+        setShowShareModal(true);
+        
+        // Don't reset case yet - let the share modal handle it
     };
     
-    const handleEmailButtonClick = () => {
-        if (emailStatus === 'error') { // Allow retry on error
-            setEmailStatus('idle');
-            setEmailError(null);
+    const handleShare = async () => {
+        if (shareData) {
+            shareOnWhatsApp(shareData);
         }
-
-        if (userEmail) {
-            handleSendEmailReport(userEmail);
-        } else {
-            setIsEmailModalOpen(true);
+        await clearLocalStorageAndGoHome();
+    };
+    
+    const handleSkipShare = async () => {
+        await clearLocalStorageAndGoHome();
+    };
+    
+    const clearLocalStorageAndGoHome = async () => {
+        console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Clearing localStorage and going home`);
+        console.trace('Stack trace for feedback localStorage clear');
+        
+        // Deactivate session after feedback is complete
+        if (caseState.sessionId) {
+            try {
+                console.log(`🔄 [feedback.clearLocalStorageAndGoHome] Deactivating session: ${caseState.sessionId}`);
+                await fetch('/api/sessions/invalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sessionId: caseState.sessionId,
+                        caseId: caseState.caseId
+                    }),
+                    credentials: 'include',
+                });
+                console.log(`✅ [feedback.clearLocalStorageAndGoHome] Session deactivated successfully`);
+            } catch (error) {
+                console.error('❌ [feedback.clearLocalStorageAndGoHome] Error deactivating session:', error);
+            }
         }
-    };
-
-    const handleEmailModalSubmit = (email: string) => {
-        setUserEmail(email);
-        setIsEmailModalOpen(false);
-        handleSendEmailReport(email);
-    };
-
-    const handleDone = () => {
+        
+        // Clear all case data
+        if (typeof window !== 'undefined') {
+            console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Removing individual localStorage items`);
+            localStorage.removeItem('clerkSmartConversation');
+            localStorage.removeItem('clerkSmartCaseState');
+            localStorage.removeItem('pendingShareData');
+            // Clear all case storage to prevent resume modal
+            console.log(`🗑️ [feedback.clearLocalStorageAndGoHome] Calling ConversationStorageUtils.clearAll()`);
+            ConversationStorageUtils.clearAll();
+        }
         resetCase();
+        setNavigationEntryPoint('');
         router.push('/');
+        console.log(`✅ [feedback.clearLocalStorageAndGoHome] Successfully cleared localStorage and navigated home`);
     };
     
-    if (!feedback || !department) {
-        return null;
+    // Manual debug function to load data from API
+    const loadFeedbackDataFromAPI = async () => {
+        if (!caseState.caseId) {
+            console.error('❌ [feedback] No case ID available for API call');
+            return;
+        }
+
+        try {
+            console.log('🔄 [feedback] Manually loading data from API for case:', caseState.caseId);
+            const response = await fetch(`/api/cases/${caseState.caseId}`);
+            console.log('🔄 [feedback] API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔄 [feedback] API response data:', data);
+                
+                if (data.success && data.case) {
+                    // Set the feedback from the API response
+                    if (data.case.feedback) {
+                        setFeedback(data.case.feedback);
+                        console.log('✅ [feedback] Feedback loaded from API');
+                    } else {
+                        console.log('❌ [feedback] No feedback found in API response');
+                    }
+                    
+                    // Set the department from the API response
+                    if (data.case.department?.name) {
+                        setDepartmentName(data.case.department.name);
+                        setDepartment(data.case.department.name);
+                        console.log('✅ [feedback] Department loaded from API');
+                    } else {
+                        console.log('❌ [feedback] No department found in API response');
+                    }
+                } else {
+                    console.log('❌ [feedback] API response not successful:', data);
+                }
+            } else {
+                console.error('❌ [feedback] API call failed with status:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ [feedback] Error loading data from API:', error);
+        }
+    };
+
+    // Auto-load data if missing (but don't auto-complete case)
+    useEffect(() => {
+        if (!feedback && caseState.caseId) {
+            console.log('🔄 [feedback] Auto-loading feedback data from API...');
+            loadFeedbackDataFromAPI();
+        }
+    }, [caseState.caseId]); // Only depend on caseId, not feedback to avoid loops
+
+    // Debug logging
+    console.log('🔄 [feedback] Current state:', {
+        hasFeedback: !!feedback,
+        hasDepartment: !!department,
+        hasDepartmentName: !!departmentName,
+        caseId: caseState.caseId,
+        feedbackKeys: feedback ? Object.keys(feedback) : null
+    });
+
+    // Show loading state while we're trying to load data
+    if (!feedback) {
+        return (
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading feedback...</p>
+                </div>
+            </div>
+        );
     }
 
-    const getEmailButtonContent = () => {
-        if (isSendingEmail) {
-            return <><Icon name="loader-2" size={20} className="animate-spin mr-2" /> Sending...</>;
-        }
-        if (emailStatus === 'sent') {
-            return <><Icon name="check" size={20} className="mr-2" /> Sent to {userEmail}</>;
-        }
-        if (emailStatus === 'error') {
-            return <>Error! Try Again</>;
-        }
-        return <> <Icon name="mail" size={20} className="mr-2"/> Email Me the Full Report</>;
+    // If we have feedback but no department name, show a fallback
+    const displayDepartment = caseState.department || departmentName || department || 'Unknown Department';
+
+    // Type guard to check if feedback is comprehensive
+    const isComprehensiveFeedback = (f: any): f is ComprehensiveFeedback => {
+        return f && 'clinicalReasoning' in f && 'clinicalOpportunities' in f && 'clinicalPearls' in f;
     };
 
+    const isBasicFeedback = (f: any): f is Feedback => {
+        return f && 'whatCouldBeImproved' in f && 'clinicalTip' in f;
+    };
+
+    const comprehensiveFeedback = isComprehensiveFeedback(feedback) ? feedback : null;
+    const basicFeedback = isBasicFeedback(feedback) ? feedback : null;
+
     return (
-        <>
-        <EmailCaptureModal 
-            isOpen={isEmailModalOpen}
-            onClose={() => setIsEmailModalOpen(false)}
-            onSubmit={handleEmailModalSubmit}
-        />
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 sm:p-8 transition-colors duration-300">
-            <header className="text-center mb-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold">Case Report & Feedback</h1>
-                <p className="text-lg text-slate-500 dark:text-slate-400 mt-1">
-                    Final Diagnosis: <span className="font-semibold text-teal-500 dark:text-teal-400">{feedback.diagnosis}</span> ({department.name})
-                </p>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
+            {/* Header */}
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+                <div className="px-4 py-6 sm:px-6">
+                    <div className="text-left sm:text-center">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                            Case Feedback
+                        </h1>
+                        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-2">
+                            Final Diagnosis: <span className="font-semibold text-teal-600 dark:text-teal-400">{feedback.diagnosis}</span>
+                        </p>
+                        {/* <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                            {displayDepartment}
+                        </p> */}
+                    </div>
+                </div>
             </header>
 
-            <main className="max-w-4xl mx-auto space-y-8">
-                {/* Key Takeaway */}
-                <div className="bg-white dark:bg-slate-800/70 border border-teal-500/10 dark:border-teal-500/30 p-5 rounded-xl shadow-md dark:shadow-none">
-                    <div className="flex items-start">
-                        <Icon name="chevrons-right" className="text-teal-500 dark:text-teal-400 mr-4 flex-shrink-0 mt-1" size={24}/>
-                        <div>
-                            <h3 className="text-xl font-bold">Key Takeaway</h3>
-                            <p className="text-slate-600 dark:text-slate-300 mt-1">{feedback.keyTakeaway}</p>
-                        </div>
+            {/* Main Content */}
+            <main className="px-4 py-6 sm:px-6 sm:py-8 max-w-4xl mx-auto space-y-6">
+                {/* Key Learning Point */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                        <Icon name="chevrons-right" className="text-teal-600 dark:text-teal-400 mr-3" size={20}/>
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                            Key Learning Point
+                        </h3>
+                    </div>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <ReactMarkdown>
+                            {feedback.keyLearningPoint}
+                        </ReactMarkdown>
                     </div>
                 </div>
 
-                {/* Feedback Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* What You Did Well */}
-                    <div className="space-y-4">
-                        <div className="flex items-center">
-                            <Icon name="check" className="text-green-500 dark:text-green-400 mr-3" size={24}/>
-                            <h3 className="text-xl font-bold">What You Did Well</h3>
+                {/* What You Did Well */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mr-4">
+                            <Icon name="check" className="text-green-600 dark:text-green-400" size={20}/>
                         </div>
-                        <ul className="space-y-3">
-                            {feedback.whatYouDidWell.map((point, index) => (
-                                <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg text-slate-700 dark:text-slate-300">{point}</li>
-                            ))}
-                        </ul>
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                            What You Did Well
+                        </h3>
                     </div>
-
-                    {/* What Could Be Improved */}
-                    <div className="space-y-4">
-                        <div className="flex items-center">
-                            <Icon name="alert-triangle" className="text-amber-500 dark:text-amber-400 mr-3" size={24}/>
-                            <h3 className="text-xl font-bold">Areas for Improvement</h3>
-                        </div>
-                        <ul className="space-y-3">
-                            {feedback.whatCouldBeImproved.map((point, index) => (
-                                <li key={index} className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg text-slate-700 dark:text-slate-300">{point}</li>
-                            ))}
-                        </ul>
-                    </div>
+                    <ul className="space-y-3">
+                        {feedback.whatYouDidWell.map((point, index) => (
+                            <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <div className="flex items-start space-x-3">
+                                    <Icon name="check-circle" className="text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" size={16}/>
+                                    <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                        <ReactMarkdown>
+                                            {point}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
 
-                {/* Clinical Tip */}
-                 <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 p-5 rounded-xl">
-                    <div className="flex items-start">
-                        <Icon name="lightbulb" className="text-blue-500 dark:text-blue-400 mr-4 flex-shrink-0 mt-1" size={24}/>
-                        <div>
-                            <h3 className="text-xl font-bold">Clinical Tip</h3>
-                            <p className="text-slate-600 dark:text-slate-300 mt-1">{feedback.clinicalTip}</p>
+                {/* Clinical Reasoning */}
+                {comprehensiveFeedback && (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center mb-4">
+                            <Icon name="brain" className="text-blue-600 dark:text-blue-400 mr-3" size={20}/>
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                Clinical Reasoning
+                            </h3>
+                        </div>
+                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <ReactMarkdown>
+                                {comprehensiveFeedback.clinicalReasoning}
+                            </ReactMarkdown>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Clinical Opportunities - Collapsible */}
+                {comprehensiveFeedback && (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <button
+                            onClick={() => toggleSection('clinicalOpportunities')}
+                            className="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
+                                    <Icon name="alert-triangle" className="text-amber-600 dark:text-amber-400" size={20}/>
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                    Clinical Opportunities
+                                </h3>
+                            </div>
+                            <Icon 
+                                name={expandedSections.clinicalOpportunities ? "chevron-up" : "chevron-down"} 
+                                className="text-slate-500 dark:text-slate-400" 
+                                size={24}
+                            />
+                        </button>
+                        
+                        {expandedSections.clinicalOpportunities && (
+                            <div className="px-6 pb-6 space-y-6">
+                                {/* Areas for Improvement */}
+                                {comprehensiveFeedback.clinicalOpportunities.areasForImprovement.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base">
+                                            Areas for Improvement
+                                        </h4>
+                                        <ul className="space-y-3">
+                                            {comprehensiveFeedback.clinicalOpportunities.areasForImprovement.map((point, index) => (
+                                                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                                    <div className="flex items-start space-x-3">
+                                                        <Icon name="x-circle" className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" size={16}/>
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {point}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {/* Missed Opportunities */}
+                                {comprehensiveFeedback.clinicalOpportunities.missedOpportunities.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base">
+                                            Missed Opportunities
+                                        </h4>
+                                        <ul className="space-y-4">
+                                            {comprehensiveFeedback.clinicalOpportunities.missedOpportunities.map((opportunity, index) => (
+                                                <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                                    <div className="space-y-2">
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-900 dark:text-white font-medium leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {opportunity.opportunity}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                        <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                            <ReactMarkdown>
+                                                                {`**Clinical significance:** ${opportunity.clinicalSignificance}`}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Clinical Pearls - Collapsible */}
+                {comprehensiveFeedback && (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <button
+                            onClick={() => toggleSection('clinicalPearls')}
+                            className="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+                                    <Icon name="lightbulb" className="text-emerald-600 dark:text-emerald-400" size={20}/>
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                    Clinical Pearls
+                                </h3>
+                            </div>
+                            <Icon 
+                                name={expandedSections.clinicalPearls ? "chevron-up" : "chevron-down"} 
+                                className="text-slate-500 dark:text-slate-400" 
+                                size={24}
+                            />  
+                        </button>
+                        
+                        {expandedSections.clinicalPearls && (
+                            <div className="px-6 pb-6">
+                                <ul className="space-y-3">
+                                    {comprehensiveFeedback.clinicalPearls.map((pearl, index) => (
+                                        <li key={index} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                            <div className="flex items-start space-x-3">
+                                                <Icon name="star" className="text-emerald-500 dark:text-emerald-400 flex-shrink-0 mt-0.5" size={16}/>
+                                                <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                    <ReactMarkdown>
+                                                        {pearl}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Fallback Clinical Tip for non-comprehensive feedback */}
+                {!comprehensiveFeedback && basicFeedback && basicFeedback.clinicalTip && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-xl p-6">
+                        <div className="flex items-start space-x-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                <Icon name="lightbulb" className="text-blue-600 dark:text-blue-400" size={20}/>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                    Clinical Tip
+                                </h3>
+                                <div className="prose prose-slate dark:prose-invert max-w-none text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+                                    <ReactMarkdown>
+                                        {basicFeedback.clinicalTip}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-col items-center gap-4 pt-6 max-w-lg mx-auto">
+                <div className="space-y-4 pt-6">
                     <button
-                        onClick={handleEmailButtonClick}
-                        disabled={isSendingEmail || emailStatus === 'sent'}
-                        className={`w-full py-3 px-6 border-2 font-semibold rounded-lg transition-colors flex items-center justify-center
-                        ${emailStatus === 'sent' ? 'border-green-500/30 bg-green-500/10 text-green-500 cursor-default' : 
-                         emailStatus === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20' :
-                         isSendingEmail ? 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 cursor-wait' :
-                         'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500'
-                        }`}
+                        data-save-case
+                        onClick={handleSaveCase}
+                        disabled={isSaving}
+                        className={`w-full py-4 px-6 border-2 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center space-x-3 text-base ${
+                            saveStatus === 'success' 
+                                ? 'border-green-500 bg-green-600 text-white hover:bg-green-700' 
+                                : saveStatus === 'error'
+                                ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                                : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        } ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
-                        {getEmailButtonContent()}
+                        {isSaving ? (
+                            <>
+                                <Icon name="loader-2" size={20} className="animate-spin"/>
+                                <span>Saving...</span>
+                            </>
+                        ) : saveStatus === 'success' ? (
+                            <>
+                                <Icon name="check" size={20}/>
+                                <span>Saved ✓</span>
+                            </>
+                        ) : saveStatus === 'error' ? (
+                            <>
+                                <Icon name="x" size={20}/>
+                                <span>Error - Try Again</span>
+                            </>
+                        ) : (
+                            <>
+                                <Icon name="bookmark" size={20}/>
+                                <span>Save This Case</span>
+                            </>
+                        )}
                     </button>
-                    {emailError && <p className="text-red-500 dark:text-red-400 text-sm text-center">{emailError}</p>}
+                    
+                    {/* Status message - only show for success/error, not loading */}
+                    {saveMessage && (saveStatus === 'success' || saveStatus === 'error') && (
+                        <div className={`text-center text-sm px-4 py-2 rounded-lg ${
+                            saveStatus === 'success' 
+                                ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
+                                : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                        }`}>
+                            {saveMessage}
+                        </div>
+                    )}
                     
                     <button
-                        onClick={() => router.push('/')}
-                        className="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                        onClick={handleDone}
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center space-x-3 text-base"
                     >
                         <span>Done</span>
-                        <Icon name="check" size={20} />
+                        <Icon name="check" size={20}/>
                     </button>
                 </div>
             </main>
+            
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={handleSkipShare}
+                onShare={handleShare}
+                shareData={shareData}
+            />
+            
+            {/* Install Guide Modal */}
+            <PWATutorialModal
+                isOpen={showInstallGuide}
+                onClose={handleCloseInstallGuide}
+                onComplete={handleCompleteInstallGuide}
+            />
         </div>
-        </>
     );
-};
-
-export default FeedbackScreen; 
+}; 

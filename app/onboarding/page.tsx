@@ -2,91 +2,90 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Icon } from '../../components/Icon';
 import Head from 'next/head';
+import { Icon } from '../../components/Icon';
+import { useAppContext } from '../../context/AppContext';
+import { CountrySelect } from '../../components/CountrySelect';
+import { useSession, signIn } from 'next-auth/react';
 
 const onboardingSteps = [
   {
-    icon: 'stethoscope',
     title: 'Welcome to ClerkSmart',
-    description: 'Your personal clinical reasoning simulator. Sharpen your skills with realistic patient encounters.',
+    description: 'Your intelligent clinical reasoning simulator for medical education.',
+    icon: 'award'
   },
   {
-    icon: 'message-square',
-    title: 'Natural Conversations',
-    description: 'Interact with patients using your voice. Ask questions just like you would in a real clinic.',
+    title: 'Personalized Learning',
+    description: 'Get culturally relevant cases tailored to your location and learning needs.',
+    icon: 'target'
   },
   {
-    icon: 'users',
-    title: 'Live Transcription',
-    description: 'See your conversation transcribed in real-time, helping you keep track of the patient history.',
+    title: 'Interactive Practice',
+    description: 'Practice with AI patients, receive detailed feedback, and improve your clinical skills.',
+    icon: 'users'
   },
   {
-    icon: 'award',
-    title: 'Clinical Assessment',
-    description: 'Formulate a diagnosis, order investigations, and receive instant, educational feedback on your performance.',
+    title: 'Choose Your Location',
+    description: 'Select your country to get culturally appropriate cases and patient contexts.',
+    icon: 'map-pin'
   },
   {
-    icon: 'globe',
-    title: 'Your Location',
-    description: 'Help us personalize your cases with culturally relevant patients and regional medical patterns.',
-  },
-];
-
-const COUNTRIES = [
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'NG', name: 'Nigeria' },
-  { code: 'IN', name: 'India' },
-  { code: 'ZA', name: 'South Africa' },
-  { code: 'KE', name: 'Kenya' },
-  { code: 'GH', name: 'Ghana' },
-  { code: 'UG', name: 'Uganda' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'FR', name: 'France' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'SE', name: 'Sweden' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'AR', name: 'Argentina' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'CN', name: 'China' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'TH', name: 'Thailand' },
-  { code: 'PH', name: 'Philippines' },
-  { code: 'EG', name: 'Egypt' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'JO', name: 'Jordan' },
-  { code: 'OTHER', name: 'Other' },
+    title: 'Sign in to Save Progress',
+    description: 'Sign in with Google to save your cases and access them across devices.',
+    icon: 'user-check'
+  }
 ];
 
 const OnboardingScreen: React.FC = () => {
-  const [step, setStep] = useState(0);
   const router = useRouter();
+  const { setUserCountry } = useAppContext();
+  const { data: session, status } = useSession();
+  const [step, setStep] = useState(0);
+  const [selectedCountry, setSelectedCountry] = useState('');
   const [isReady, setIsReady] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<string>('');
 
-  // Ensure the component is fully mounted before animations start
   useEffect(() => {
     setIsReady(true);
   }, []);
 
-  const isCountryStep = step === onboardingSteps.length - 1;
+  // If user is already authenticated, redirect to home immediately
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      console.log('✅ [OnboardingScreen] User already authenticated, redirecting to home');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hasOnboarded', 'true');
+      }
+      router.push('/');
+    }
+  }, [session, status, router]);
+
+  const isCountryStep = step === onboardingSteps.length - 2; // Second to last step
+  const isSignInStep = step === onboardingSteps.length - 1; // Last step
   const canContinue = isCountryStep ? selectedCountry !== '' : true;
+
+  // Auto-advance if user is already signed in and we're on the sign-in step
+  useEffect(() => {
+    if (isSignInStep && session && status === 'authenticated') {
+      // User is already signed in, automatically complete onboarding
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hasOnboarded', 'true');
+        }
+        router.push('/');
+      }, 1000); // Small delay to show the success state
+    }
+  }, [isSignInStep, session, status, router]);
 
   const handleNext = () => {
     if (step < onboardingSteps.length - 1) {
+      // If moving from country step to sign-in step, save the country selection
+      if (isCountryStep) {
+        setUserCountry(selectedCountry);
+      }
       setStep(step + 1);
     } else {
-      // Save country selection and onboarding completion
+      // Final step - complete onboarding
       if (typeof window !== 'undefined') {
-        localStorage.setItem('userCountry', selectedCountry);
         localStorage.setItem('hasOnboarded', 'true');
       }
       router.push('/');
@@ -99,10 +98,37 @@ const OnboardingScreen: React.FC = () => {
       }
   }
 
+  const handleSignIn = () => {
+    signIn('google', { callbackUrl: '/' });
+  };
+
+  const handleSkipSignIn = () => {
+    // Skip sign-in and complete onboarding
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasOnboarded', 'true');
+    }
+    router.push('/');
+  };
+
   const currentStep = onboardingSteps[step];
 
   if (!isReady) {
     return null; // Return nothing during SSR to avoid hydration issues
+  }
+
+  // Show loading while checking authentication status
+  if (status === 'loading') {
+    return (
+      <div className="h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-500 text-transparent bg-clip-text mb-3">
+            ClerkSmart
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">Checking your session...</p>
+        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -110,7 +136,7 @@ const OnboardingScreen: React.FC = () => {
       <Head>
         <title>Welcome to ClerkSmart</title>
       </Head>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 transition-colors duration-300">
+      <div className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 pb-8 transition-colors duration-300">
         <div className="flex-grow flex flex-col items-center justify-center text-center">
           <div className="bg-teal-500/10 p-6 rounded-full mb-8">
               <div className="bg-teal-500/20 p-5 rounded-full">
@@ -120,28 +146,66 @@ const OnboardingScreen: React.FC = () => {
           <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
           
-          {isCountryStep && (
-            <div className="w-full max-w-sm">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Select your country
-              </label>
-              <select
-                value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value)}
-                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors"
-              >
-                <option value="">Choose your country...</option>
-                {COUNTRIES.map((country) => (
-                  <option key={country.code} value={country.name}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
+          {isSignInStep && (
+            <div className="w-full max-w-sm space-y-4">
+              {session ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                    {session.user?.image && (
+                      <img 
+                        src={session.user.image} 
+                        alt="Profile" 
+                        className="w-10 h-10 rounded-full"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900 dark:text-white">
+                        {session.user?.name || 'User'}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        {session.user?.email}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-green-600 dark:text-green-400 font-medium">
+                    ✓ Successfully signed in!
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-lg transition-colors shadow-sm"
+                  >
+                    <Icon name="chrome" size={20} />
+                    <span>Sign in with Google</span>
+                  </button>
+                  <button
+                    onClick={handleSkipSignIn}
+                    className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition-colors"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              )}
             </div>
           )}
+          
+          {isCountryStep && (
+             <div className="w-full max-w-sm">
+               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                 Select your country
+               </label>
+               <CountrySelect
+                 value={selectedCountry}
+                 onChange={setSelectedCountry}
+                 placeholder="Choose your country..."
+               />
+             </div>
+           )}
         </div>
 
-        <div className="flex-shrink-0 w-full max-w-sm mx-auto pb-8 mb-4">
+        <div className="flex-shrink-0 w-full max-w-sm mx-auto  mb-4">
           <div className="flex justify-center items-center mb-6 space-x-2">
               {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Back</button>}
               <div className="flex-grow flex justify-center items-center space-x-2">
@@ -172,4 +236,4 @@ const OnboardingScreen: React.FC = () => {
   );
 };
 
-export default OnboardingScreen; 
+export default OnboardingScreen;

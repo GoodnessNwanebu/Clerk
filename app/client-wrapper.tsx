@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { SessionProvider, useSession } from 'next-auth/react';
+import { AccountValidation } from '../components/AccountValidation';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -20,18 +22,27 @@ const LoadingScreen = () => (
   </div>
 );
 
-export default function ClientWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Inner component that can use session
+function OnboardingCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
+    // Wait for session to load before making any decisions
+    if (status === 'loading') {
+      return;
+    }
+    
     // Check if user has completed onboarding
     const hasOnboarded = typeof window !== 'undefined' ? localStorage.getItem('hasOnboarded') : null;
+    
+    // If user is authenticated but hasn't been marked as onboarded, mark them now
+    if (status === 'authenticated' && session && !hasOnboarded && typeof window !== 'undefined') {
+      console.log('✅ [OnboardingCheck] Auto-marking authenticated user as onboarded');
+      localStorage.setItem('hasOnboarded', 'true');
+    }
     
     // Don't redirect if user is already on the onboarding page
     if (pathname === '/onboarding') {
@@ -39,14 +50,25 @@ export default function ClientWrapper({
       return;
     }
     
-    // Don't redirect for API routes or special Next.js pages
-    if (pathname.startsWith('/api/') || pathname.startsWith('/_')) {
+    // Don't redirect for API routes, special Next.js pages, or test pages
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_') || pathname === '/test-share') {
       setIsLoading(false);
       return;
     }
     
+    // If user is authenticated, consider them as having completed onboarding
+    const shouldSkipOnboarding = hasOnboarded || (status === 'authenticated' && session);
+    
+    console.log('🔍 [OnboardingCheck] Status check:', {
+      status,
+      hasSession: !!session,
+      hasOnboarded,
+      shouldSkipOnboarding,
+      pathname
+    });
+    
     // Redirect new users to onboarding with minimal delay
-    if (!hasOnboarded) {
+    if (!shouldSkipOnboarding) {
       // Use a minimal timeout to allow the initial render to complete
       // This makes the transition feel smoother
       setTimeout(() => {
@@ -55,7 +77,7 @@ export default function ClientWrapper({
     } else {
       setIsLoading(false);
     }
-  }, [pathname, router]);
+  }, [pathname, router, session, status]);
   
   // Show branded loading screen while determining if redirect is needed
   if (isLoading && pathname !== '/onboarding') {
@@ -63,4 +85,20 @@ export default function ClientWrapper({
   }
 
   return <>{children}</>;
+}
+
+export default function ClientWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SessionProvider>
+      <OnboardingCheck>
+        <AccountValidation>
+          {children}
+        </AccountValidation>
+      </OnboardingCheck>
+    </SessionProvider>
+  );
 } 

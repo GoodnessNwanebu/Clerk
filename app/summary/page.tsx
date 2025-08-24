@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
-import { getInvestigationResults, getExaminationResults, getCaseFeedback } from '../../services/geminiService';
+import { getInvestigationResults, getExaminationResults, getComprehensiveCaseFeedback } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
 import { InvestigationResults } from '../../components/InvestigationResults';
 import { ExaminationResults } from '../../components/ExaminationResults';
-import { InvestigationResult, ExaminationResult, Feedback } from '../../types';
+import { InvestigationResult, ExaminationResult, ComprehensiveFeedback } from '../../types';
 
 const ProgressIndicator: React.FC<{ step: number }> = ({ step }) => (
     <div className="flex items-center justify-center space-x-4 my-8">
@@ -31,7 +31,8 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 
 const SummaryScreen: React.FC = () => {
     const router = useRouter();
-    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback } = useAppContext();
+    const searchParams = useSearchParams();
+    const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, completeCaseAndSave } = useAppContext();
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -42,11 +43,61 @@ const SummaryScreen: React.FC = () => {
     const [finalDiagnosis, setFinalDiagnosis] = useState(caseState.finalDiagnosis || prelimDiagnosis);
     const [managementPlan, setManagementPlan] = useState(caseState.managementPlan);
 
-    React.useEffect(() => {
-      if (!caseState.department || !caseState.caseDetails) {
-          router.push('/');
-      }
-    }, [caseState, router]);
+    // Update case state when text inputs change
+    const handlePrelimDiagnosisChange = (value: string) => {
+        setPrelimDiagnosis(value);
+        setPreliminaryData(value, examinationPlan, investigationPlan);
+    };
+
+    const handleExaminationPlanChange = (value: string) => {
+        setExaminationPlan(value);
+        setPreliminaryData(prelimDiagnosis, value, investigationPlan);
+    };
+
+    const handleInvestigationPlanChange = (value: string) => {
+        setInvestigationPlan(value);
+        setPreliminaryData(prelimDiagnosis, examinationPlan, value);
+    };
+
+    const handleFinalDiagnosisChange = (value: string) => {
+        setFinalDiagnosis(value);
+        setFinalData(value, managementPlan);
+    };
+
+    const handleManagementPlanChange = (value: string) => {
+        setManagementPlan(value);
+        setFinalData(finalDiagnosis, value);
+    };
+
+    // Check URL parameters and case state to determine initial phase
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        const hasExaminationResults = caseState.examinationResults && caseState.examinationResults.length > 0;
+        const hasInvestigationResults = caseState.investigationResults && caseState.investigationResults.length > 0;
+        
+        console.log('🔍 [SummaryScreen] Checking initial phase:', {
+            tab,
+            hasExaminationResults,
+            hasInvestigationResults,
+            examinationResultsCount: caseState.examinationResults?.length || 0,
+            investigationResultsCount: caseState.investigationResults?.length || 0
+        });
+        
+        // If URL has tab=examination or case has examination/investigation results, show results phase
+        if (tab === 'examination' || hasExaminationResults || hasInvestigationResults) {
+            console.log('🎯 [SummaryScreen] Setting phase to results');
+            setPhase('results');
+        } else {
+            console.log('🎯 [SummaryScreen] Setting phase to initial');
+            setPhase('initial');
+        }
+    }, [searchParams, caseState.examinationResults, caseState.investigationResults]);
+
+    // React.useEffect(() => {
+    //   if (!caseState.department || !caseState.caseId) {
+    //       router.push('/');
+    //   }
+    // }, [caseState, router]);
 
     const handleApiError = (err: unknown) => {
         let message = "An unknown error occurred.";
@@ -61,8 +112,8 @@ const SummaryScreen: React.FC = () => {
             setError("Please enter an examination plan and/or investigation plan.");
             return;
         }
-        if (!caseState.caseDetails) {
-            setError("Case details are not available.");
+        if (!caseState.caseId) {
+            setError("Case ID is not available.");
             return;
         }
         setError(null);
@@ -71,22 +122,53 @@ const SummaryScreen: React.FC = () => {
         try {
             setPreliminaryData(prelimDiagnosis, examinationPlan, investigationPlan);
             
-            // Get examination results if examination plan is provided
-            let examinationResults: ExaminationResult[] = [];
+            // Generate examination and investigation results in parallel
+            const promises = [];
+            
+            // Add examination results promise if plan is provided
             if (examinationPlan.trim()) {
-                examinationResults = await getExaminationResults(examinationPlan, caseState.caseDetails);
-                setExaminationResults(examinationResults);
+                promises.push(
+                    getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
+                        .then(results => {
+                            setExaminationResults(results);
+                            return { type: 'examination', results };
+                        })
+                        .catch(async (examError) => {
+                            console.warn('Failed to get examination results, retrying...', examError);
+                            // Retry examination results
+                            const retryResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                            setExaminationResults(retryResults);
+                            return { type: 'examination', results: retryResults };
+                        })
+                );
             }
             
-            // Get investigation results if investigation plan is provided
-            let investigationResults: InvestigationResult[] = [];
+            // Add investigation results promise if plan is provided
             if (investigationPlan.trim()) {
-                investigationResults = await getInvestigationResults(investigationPlan, caseState.caseDetails);
-                setInvestigationResults(investigationResults);
+                promises.push(
+                    getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
+                        .then(results => {
+                            setInvestigationResults(results);
+                            return { type: 'investigation', results };
+                        })
+                        .catch(async (invError) => {
+                            console.warn('Failed to get investigation results, retrying...', invError);
+                            // Retry investigation results
+                            const retryResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                            setInvestigationResults(retryResults);
+                            return { type: 'investigation', results: retryResults };
+                        })
+                );
             }
+            
+            // Wait for all promises to complete
+            await Promise.all(promises);
             
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
+            
+            // Case state and results are automatically saved to localStorage (secondary context)
+            // Primary context is secured in JWT cookies
         } catch (err) {
             handleApiError(err);
         } finally {
@@ -100,18 +182,16 @@ const SummaryScreen: React.FC = () => {
         
         try {
             setFinalData(finalDiagnosis, managementPlan);
-            const feedback: Feedback | null = await getCaseFeedback({
-                ...caseState,
-                finalDiagnosis,
-                managementPlan
-            });
-
-            if (feedback) {
-                setFeedback(feedback);
-                router.push('/feedback');
-            } else {
-                throw new Error("Could not generate feedback at this time.");
+            
+            // Start case completion and feedback generation
+            const caseCompleted = await completeCaseAndSave();
+            
+            if (!caseCompleted) {
+                throw new Error("Failed to complete and save case");
             }
+            
+            // Navigate to feedback page immediately - case report continues in background
+            router.push('/feedback');
         } catch (err) {
             handleApiError(err);
         } finally {
@@ -119,7 +199,7 @@ const SummaryScreen: React.FC = () => {
         }
     };
     
-    if (!caseState.department || !caseState.caseDetails) {
+    if (!caseState.department || !caseState.caseId) {
         return null; // or a loading/error state
     }
 
@@ -139,20 +219,30 @@ const SummaryScreen: React.FC = () => {
                 {phase === 'initial' && (
                     <>
                         <div>
-                            <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Preliminary Diagnosis</label>
-                            <textarea value={prelimDiagnosis} onChange={(e) => setPrelimDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
+                            <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Differential Diagnosis</label>
+                            <textarea value={prelimDiagnosis} onChange={(e) => handlePrelimDiagnosisChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Enter your working diagnosis..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Examinations</label>
-                            <textarea value={examinationPlan} onChange={(e) => setExaminationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., General examination, Cardiovascular examination, Respiratory examination..."></textarea>
+                            <textarea value={examinationPlan} onChange={(e) => handleExaminationPlanChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., General examination, Cardiovascular examination, Respiratory examination..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Investigation Plan</label>
-                            <textarea value={investigationPlan} onChange={(e) => setInvestigationPlan(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
+                            <textarea value={investigationPlan} onChange={(e) => handleInvestigationPlanChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="e.g., Full Blood Count, Liver Function Tests, Ultrasound..."></textarea>
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleRequestResults} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
-                                {isLoading ? <span>Generating Results...</span> : <><span>Request Results</span><Icon name="chevrons-right" size={20} /></>}
+                                {isLoading ? (
+                                    <>
+                                        <Icon name="loader-2" size={20} className="animate-spin" />
+                                        <span>Generating Results...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Request Results</span>
+                                        <Icon name="chevrons-right" size={20} />
+                                    </>
+                                )}
                             </button>
                              {error && <ErrorDisplay message={error} />}
                         </div>
@@ -169,15 +259,25 @@ const SummaryScreen: React.FC = () => {
                         )}
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Final Diagnosis</label>
-                            <textarea value={finalDiagnosis} onChange={(e) => setFinalDiagnosis(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Confirm or update your diagnosis..."></textarea>
+                            <textarea value={finalDiagnosis} onChange={(e) => handleFinalDiagnosisChange(e.target.value)} rows={4} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Confirm or update your diagnosis..."></textarea>
                         </div>
                         <div>
                             <label className="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Management Plan</label>
-                            <textarea value={managementPlan} onChange={(e) => setManagementPlan(e.target.value)} rows={6} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Outline your treatment approach..."></textarea>
+                            <textarea value={managementPlan} onChange={(e) => handleManagementPlanChange(e.target.value)} rows={6} className="w-full bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="Outline your treatment approach..."></textarea>
                         </div>
                         <div className="flex flex-col items-center">
                             <button onClick={handleSubmitForFeedback} disabled={isLoading} className="w-full sm:max-w-md bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 disabled:opacity-50 disabled:cursor-wait">
-                                {isLoading ? <span>Generating Feedback...</span> : <><span>Submit for Feedback</span><Icon name="award" size={20} /></>}
+                                {isLoading ? (
+                                    <>
+                                        <Icon name="loader-2" size={20} className="animate-spin" />
+                                        <span>Analyzing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Submit for Feedback</span>
+                                        <Icon name="award" size={20} />
+                                    </>
+                                )}
                             </button>
                              {error && <ErrorDisplay message={error} />}
                         </div>
