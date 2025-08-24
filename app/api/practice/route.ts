@@ -124,7 +124,7 @@ const validateCustomCaseInput = (input: string): { isValid: boolean; error?: str
 };
 
 // Validate AI-generated case for safety and appropriateness
-const validateGeneratedCase = (caseData: Case): { isValid: boolean; error?: string } => {
+const validateGeneratedCase = (caseData: Case): { isValid: boolean; error?: string; suggestion?: string } => {
     if (!caseData.diagnosis || !caseData.primaryInfo || !caseData.openingLine) {
         return {
             isValid: false,
@@ -276,25 +276,30 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
             
             ${locationPrompt}
             
-            REQUIREMENTS:
-            - The case MUST be for the condition: "${condition}"
+            MANDATORY DIAGNOSIS REQUIREMENT:
+            - You MUST generate a case for exactly: "${condition}"
+            - The "diagnosis" field in your JSON response MUST be "${condition}" or a very close variation
+            - Do NOT generate a case for a different condition
+            - Do NOT change the diagnosis to something else
+            - The entire case history must support the diagnosis of "${condition}"
+            
+            CASE REQUIREMENTS:
             - The case should be solvable by a medical student
             - Balance regional authenticity with educational value
-            - Create a realistic presentation of the specified condition${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+            - Create a realistic presentation of "${condition}"${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
             
-            EXAMPLES by pathophysiology category:
-            - Vascular: Myocardial Infarction, Stroke, Peripheral Vascular Disease
-            - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis, Meningitis
-            - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
-            - Degenerative: Osteoarthritis, Alzheimer's Disease, Parkinson's Disease
-            - Autoimmune: Rheumatoid Arthritis, SLE, Multiple Sclerosis
-            - Trauma/Mechanical: Fractures, Head Trauma, Mechanical Bowel Obstruction
-            - Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
-            - Psychiatric/Functional: Depression, Anxiety, Functional Disorders
+            COMMON DIAGNOSIS VARIATIONS (use these if the exact term doesn't fit):
+            - "MI" or "Myocardial Infarction" → use "Myocardial Infarction"
+            - "CVA" or "Stroke" → use "Stroke" or "Cerebrovascular Accident"
+            - "COPD" → use "Chronic Obstructive Pulmonary Disease"
+            - "DM" or "Diabetes" → use "Diabetes Mellitus"
+            - "HTN" or "Hypertension" → use "Hypertension"
+            - "UTI" → use "Urinary Tract Infection"
+            - "PNA" or "Pneumonia" → use "Pneumonia"
             
             The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
 
-            - "diagnosis": The most likely diagnosis for the case (should match or be very close to "${condition}").
+            - "diagnosis": MUST be "${condition}" or a very close variation (see variations above)
             - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
                 - ## BIODATA
                 - ## Presenting Complaint
@@ -306,7 +311,7 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
                 - ## Review of Systems
             - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
 
-            Generate a case for the condition "${condition}" within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+            REMEMBER: The diagnosis MUST be "${condition}" or a very close variation. Do not generate a case for a different condition.`;
         } else {
             // Custom case mode - use the provided case description to generate a structured case
             userMessage = `Generate a structured clinical case based on the following custom case description for a medical student simulation in the '${departmentName}' department.
@@ -316,16 +321,30 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
             CUSTOM CASE DESCRIPTION:
             "${condition}"
             
-            REQUIREMENTS:
-            - Use the provided case description as the foundation
+            MANDATORY CONTEXT PRESERVATION REQUIREMENTS:
+            - You MUST use the provided case description as the EXACT foundation
+            - The generated case MUST maintain the SAME primary medical context as the provided scenario
+            - ALL key symptoms, conditions, and medical details from the provided description MUST be included
+            - Do NOT change the core medical scenario or add unrelated conditions
+            - Do NOT ignore important details from the provided description
+            - The patient's main problem must remain the same as described
+            
+            CASE STRUCTURE REQUIREMENTS:
             - Expand and structure the case into a complete clinical scenario
             - Ensure the case is solvable by a medical student
             - Balance the provided details with educational value
             - Create a realistic and challenging presentation${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
             
+            CONTEXT MATCHING GUIDELINES:
+            - If the scenario mentions chest pain → the case must involve chest pain
+            - If the scenario mentions fever → the case must involve fever
+            - If the scenario mentions abdominal pain → the case must involve abdominal pain
+            - If the scenario mentions specific conditions → those conditions must be central to the case
+            - If the scenario mentions specific symptoms → those symptoms must be prominent in the case
+            
             The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
 
-            - "diagnosis": The most likely diagnosis based on the provided case description.
+            - "diagnosis": The most likely diagnosis based on the provided case description (must align with the scenario)
             - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
                 - ## BIODATA
                 - ## Presenting Complaint
@@ -337,7 +356,7 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
                 - ## Review of Systems
             - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
 
-            Generate a structured case based on the custom description within the ${departmentName} department. The case should be clinically sound and solvable for a medical student.`;
+            REMEMBER: The generated case MUST closely match the medical context of the provided scenario. Do not deviate from the core medical problem described.`;
         }
 
         try {
@@ -353,20 +372,33 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
             if (!caseValidation.isValid) {
                 console.error('Generated case validation failed:', caseValidation.error);
                 
-                // For custom cases, try fallback to single diagnosis mode
-                if (inputType === 'custom') {
-                    const fallbackMessage = `The custom case generation failed. Please try:
-1. Simplifying your case description
-2. Focusing on specific medical symptoms
-3. Using the "Single Diagnosis" mode instead`;
+                // Try one more time with a more explicit prompt
+                try {
+                    const retryMessage = userMessage + `\n\nIMPORTANT: The previous attempt failed validation. Please ensure:
+- All required sections are present in primaryInfo
+- The case is clinically appropriate and educational
+- No inappropriate content is included`;
+
+                    const retryResponse = await ai.generateContent({
+                        model: MODEL,
+                        contents: [{ text: retryMessage }],
+                    });
                     
-                    return NextResponse.json({ 
-                        error: 'Unable to generate a safe case from your description',
-                        suggestion: fallbackMessage
-                    }, { status: 422 });
+                    const retryCase = parseJsonResponse<Case>(retryResponse.text, context);
+                    const retryValidation = validateGeneratedCase(retryCase);
+                    
+                    if (retryValidation.isValid) {
+                        console.log('Retry successful, returning validated case');
+                        return NextResponse.json(retryCase);
+                    }
+                } catch (retryError) {
+                    console.error('Retry attempt failed:', retryError);
                 }
                 
-                throw new Error(caseValidation.error);
+                return NextResponse.json({ 
+                    error: caseValidation.error!,
+                    suggestion: caseValidation.suggestion || 'Please try again with a different input.'
+                }, { status: 422 });
             }
             
             return NextResponse.json(practiceCase);
