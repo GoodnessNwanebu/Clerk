@@ -12,19 +12,27 @@ import {
     getSurgicalPrompt, 
     getPediatricPrompt 
 } from '../../../../lib/ai/prompts/case-generation';
+import { 
+    generatePracticeCasePrompt, 
+    validateCustomCaseInput, 
+    detectInputType 
+} from '../../../../lib/ai/prompts/practice-case-generation';
 import type { PrimaryContext } from '../../../../types/diagnosis';
 import { createCaseSession } from '../../../../lib/session/session-manager';
 import { cachePrimaryContext } from '../../../../lib/cache/primary-context-cache';
 
 export async function POST(request: NextRequest) {
     try {
-        const { department, difficulty = 'standard', userCountry, subspecialty } = await request.json();
+        const { department, difficulty = 'standard', userCountry, subspecialty, practiceCondition } = await request.json();
         
-        console.log('📋 Case generation request:', { department, difficulty, userCountry, subspecialty });
+        console.log('📋 Case generation request:', { department, difficulty, userCountry, subspecialty, practiceCondition });
         
         if (!department) {
             return NextResponse.json({ error: 'Department is required' }, { status: 400 });
         }
+
+        // Determine if this is a practice case
+        const isPracticeCase = !!practiceCondition;
 
         // Get user session with proper typing
         const session = await getServerSession(auth) as { user?: { email?: string } } | null;
@@ -59,7 +67,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const context = 'generateClinicalCase'; // Practice case generation is removed
+        const context = isPracticeCase ? 'generatePracticeCase' : 'generateClinicalCase';
         
         // Get time context for the user's location
         const timeContext = getTimeContext(userCountry);
@@ -73,30 +81,55 @@ export async function POST(request: NextRequest) {
         const isGeneralSurgery = departmentRecord.name.toLowerCase().includes('general surgery');
         
         let userMessage: string;
+        let randomBucket: string;
         
-        // Regular case generation
-        // Randomly select a medical bucket
-        const randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
-        
-        // Get optimized prompts
-        const locationPrompt = getLocationPrompt(userCountry);
-        const surgicalPrompt = getSurgicalPrompt(isSurgical, isCardiothoracic, isGeneralSurgery);
-        const pediatricPrompt = getPediatricPrompt(isPediatric);
-        const difficultyPrompt = getDifficultyPrompt(difficulty);
-        
-        // Include subspecialty information if provided
-        const subspecialtyContext = subspecialty ? `\n\nSUBSCRIPTY CONTEXT: This case should be specifically tailored for ${subspecialty} subspecialty within ${departmentRecord.name}. Focus on conditions and presentations commonly seen in ${subspecialty}.` : '';
-        
-        userMessage = generateCasePrompt(
-            departmentRecord.name, 
-            randomBucket, 
-            timeContext.formattedContext, 
-            locationPrompt, 
-            surgicalPrompt, 
-            pediatricPrompt, 
-            isPediatric, 
-            isSurgical
-        ) + subspecialtyContext + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
+        if (isPracticeCase) {
+            // Practice case generation
+            const inputType = detectInputType(practiceCondition);
+            
+            // Validate custom case input
+            if (inputType === 'custom') {
+                const validation = validateCustomCaseInput(practiceCondition);
+                if (!validation.isValid) {
+                    return NextResponse.json({ 
+                        error: validation.error!,
+                        suggestion: validation.suggestion
+                    }, { status: 400 });
+                }
+            }
+            
+            userMessage = generatePracticeCasePrompt(
+                departmentRecord.name,
+                practiceCondition,
+                userCountry,
+                difficulty
+            );
+            randomBucket = 'Practice Case';
+        } else {
+            // Regular case generation
+            // Randomly select a medical bucket
+            randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
+            
+            // Get optimized prompts
+            const locationPrompt = getLocationPrompt(userCountry);
+            const surgicalPrompt = getSurgicalPrompt(isSurgical, isCardiothoracic, isGeneralSurgery);
+            const pediatricPrompt = getPediatricPrompt(isPediatric);
+            const difficultyPrompt = getDifficultyPrompt(difficulty);
+            
+            // Include subspecialty information if provided
+            const subspecialtyContext = subspecialty ? `\n\nSUBSCRIPTY CONTEXT: This case should be specifically tailored for ${subspecialty} subspecialty within ${departmentRecord.name}. Focus on conditions and presentations commonly seen in ${subspecialty}.` : '';
+            
+            userMessage = generateCasePrompt(
+                departmentRecord.name, 
+                randomBucket, 
+                timeContext.formattedContext, 
+                locationPrompt, 
+                surgicalPrompt, 
+                pediatricPrompt, 
+                isPediatric, 
+                isSurgical
+            ) + subspecialtyContext + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
+        }
 
         const response = await ai.generateContent({
             model: MODEL,
