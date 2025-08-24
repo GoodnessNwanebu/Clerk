@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
                         ageGroup !== 'infant' && 
                         ageGroup !== 'toddler' && 
                         communicationLevel !== 'non-verbal'
+                    ) && (
+                        // Exclude questions directed to parents with formal titles
+                        !questionText.includes('madam') && 
+                        !questionText.includes('ma') && 
+                        !questionText.includes('sir')
                     );
                     
                     if (shouldChildRespond) {
@@ -132,6 +137,9 @@ export async function POST(request: NextRequest) {
                 contents: [{ 
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
+                config: {
+                    maxOutputTokens: 200
+                }
             });
             
 
