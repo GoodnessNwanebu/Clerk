@@ -10,20 +10,16 @@ interface AccountValidationProps {
 
 export const AccountValidation: React.FC<AccountValidationProps> = ({ children }) => {
   const { data: session, status } = useSession();
-  const router = useRouter();
-  const [isValidating, setIsValidating] = useState(false);
-  const [hasValidAccount, setHasValidAccount] = useState(true);
 
   useEffect(() => {
     const validateAccount = async () => {
-      if (status === 'loading' || !session?.user?.email) {
+      // Only validate if user is authenticated and we have their email
+      if (status !== 'authenticated' || !session?.user?.email) {
         return;
       }
 
-      setIsValidating(true);
-
       try {
-        // Check if user has a valid account by making a simple API call
+        // Validate account in the background without blocking UI
         const response = await fetch('/api/auth/validate-account', {
           method: 'POST',
           headers: {
@@ -38,7 +34,6 @@ export const AccountValidation: React.FC<AccountValidationProps> = ({ children }
 
         if (!data.success) {
           console.log('❌ User account validation failed, signing out...');
-          setHasValidAccount(false);
           
           // Sign out the user and redirect to onboarding
           await signOut({ 
@@ -47,40 +42,21 @@ export const AccountValidation: React.FC<AccountValidationProps> = ({ children }
           });
         } else {
           console.log('✅ User account validated successfully');
-          setHasValidAccount(true);
         }
       } catch (error) {
         console.error('Error validating account:', error);
         // If validation fails, assume the account is invalid and sign out
-        setHasValidAccount(false);
         await signOut({ 
           callbackUrl: '/onboarding',
           redirect: true 
         });
-      } finally {
-        setIsValidating(false);
       }
     };
 
+    // Run validation in background without blocking UI
     validateAccount();
   }, [session, status]);
 
-  // Show loading while validating
-  if (isValidating) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-400">Validating account...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If account is invalid, don't render children (user will be redirected)
-  if (!hasValidAccount) {
-    return null;
-  }
-
+  // Always render children optimistically - validation happens in background
   return <>{children}</>;
 };

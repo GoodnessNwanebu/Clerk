@@ -266,6 +266,12 @@ function getSubspecialtyMetadata(departmentName: string, subspecialtyName: strin
         gradient: 'from-indigo-500 to-indigo-700',
         description: 'Community health and preventive care for children',
         avatar: '/avatars/pediatric-community.svg'
+      },
+      'Infectious Diseases': {
+        icon: 'bug',
+        gradient: 'from-lime-500 to-lime-700',
+        description: 'Infectious diseases in children',
+        avatar: '/avatars/pediatric-infectious.svg'
       }
     },
     'Internal Medicine': {
