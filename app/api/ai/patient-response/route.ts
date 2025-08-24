@@ -70,24 +70,31 @@ export async function POST(request: NextRequest) {
                     
                     // Determine who should respond based on question type and child's age
                     const shouldChildRespond = (
-                        // Questions about current symptoms the child can describe
-                        (questionText.includes('pain') || questionText.includes('hurt') || questionText.includes('sore')) ||
-                        (questionText.includes('feel') && (questionText.includes('now') || questionText.includes('today'))) ||
-                        (questionText.includes('symptom') && (questionText.includes('current') || questionText.includes('now'))) ||
-                        // Questions about activities and preferences
-                        (questionText.includes('like') || questionText.includes('enjoy') || questionText.includes('play')) ||
-                        (questionText.includes('activity') || questionText.includes('hobby')) ||
-                        // Simple yes/no questions about current state
-                        (questionText.includes('can you') || questionText.includes('do you') || questionText.includes('are you')) ||
-                        // Questions directly to the child
-                        (questionText.includes('child') || questionText.includes('patient') || questionText.includes('you ')) ||
-                        // Age-appropriate questions for older children
-                        (patientAge >= 6 && (questionText.includes('school') || questionText.includes('friend')))
-                    ) && (
-                        // Only if child is old enough to communicate
-                        ageGroup !== 'infant' && 
-                        ageGroup !== 'toddler' && 
-                        communicationLevel !== 'non-verbal'
+                        // Only allow child responses for school-age children and adolescents
+                        (ageGroup === 'school-age' || ageGroup === 'adolescent') &&
+                        communicationLevel !== 'non-verbal' &&
+                        (
+                            // Questions about current symptoms the child can describe
+                            (questionText.includes('pain') || questionText.includes('hurt') || questionText.includes('sore')) ||
+                            (questionText.includes('feel') && (questionText.includes('now') || questionText.includes('today'))) ||
+                            (questionText.includes('symptom') && (questionText.includes('current') || questionText.includes('now'))) ||
+                            // Questions about activities and preferences
+                            (questionText.includes('like') || questionText.includes('enjoy') || questionText.includes('play')) ||
+                            (questionText.includes('activity') || questionText.includes('hobby')) ||
+                            // Simple yes/no questions about current state (but not identity questions)
+                            ((questionText.includes('can you') || questionText.includes('do you') || questionText.includes('are you')) && 
+                             !questionText.includes('name') && !questionText.includes('brings') && !questionText.includes('come')) ||
+                            // Questions directly to the child (but not identity questions)
+                            (questionText.includes('child') || questionText.includes('patient')) ||
+                            // Age-appropriate questions for older children
+                            (patientAge >= 6 && (questionText.includes('school') || questionText.includes('friend')))
+                        ) &&
+                        (
+                            // Exclude questions directed to parents with formal titles
+                            !questionText.includes('madam') && 
+                            !questionText.includes('ma') && 
+                            !questionText.includes('sir')
+                        )
                     );
                     
                     if (shouldChildRespond) {
@@ -128,10 +135,13 @@ export async function POST(request: NextRequest) {
                 `\n\nIMPORTANT: Respond as ${speakerLabel}. ${speakerLabel === 'Child' ? 'Speak like a child of this age.' : 'Speak like a concerned parent.'}` : '';
             
             const response = await ai.generateContent({
-                model: MODEL,
+                model: 'gemini-2.5-flash-lite',
                 contents: [{ 
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
+                config: {
+                    maxOutputTokens: 200
+                }
             });
             
 
