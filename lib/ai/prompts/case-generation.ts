@@ -77,7 +77,11 @@ OUTPUT: ${isPediatric ?
 `{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}}` :
 `{"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}`}
 
-CRITICAL: ALL FIELDS ARE REQUIRED - DO NOT OMIT ANY FIELD
+CRITICAL JSON FORMATTING RULES:
+- ALL FIELDS ARE REQUIRED - DO NOT OMIT ANY FIELD
+- ESCAPE ALL QUOTES in primaryInfo and openingLine fields using backslash: \" instead of "
+- Use single quotes for patient quotes within text: 'patient said this' instead of "patient said this"
+- Ensure all JSON is properly formatted with no unescaped quotes
 
 - "diagnosis": Most likely diagnosis fitting ${randomBucket} category
 - "primaryInfo": Detailed clinical history with markdown headings:
