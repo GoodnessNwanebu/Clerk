@@ -35,23 +35,7 @@ export const validateCustomCaseInput = (input: string): { isValid: boolean; erro
         };
     }
     
-    // Inappropriate content filtering
-    const inappropriateTerms = [
-        'kill', 'suicide', 'self-harm', 'abuse', 'illegal', 'drugs',
-        'weapon', 'violence', 'hate', 'discrimination'
-    ];
-    
-    const hasInappropriateContent = inappropriateTerms.some(term => 
-        trimmedInput.toLowerCase().includes(term)
-    );
-    
-    if (hasInappropriateContent) {
-        return {
-            isValid: false,
-            error: 'Inappropriate content detected',
-            suggestion: 'Please focus on standard medical scenarios suitable for educational practice.'
-        };
-    }
+
     
     return { isValid: true };
 };
@@ -103,14 +87,22 @@ export const generateSingleDiagnosisPrompt = (
     departmentName: string,
     condition: string,
     userCountry?: string,
-    difficulty: string = 'standard'
+    difficulty: string = 'standard',
+    timeContext?: string,
+    surgicalPrompt?: string,
+    pediatricPrompt?: string,
+    isPediatric: boolean = false,
+    isSurgical: boolean = false
 ) => {
     const locationPrompt = getLocationPrompt(userCountry);
     const difficultyPrompt = getDifficultyPrompt(difficulty as DifficultyLevel);
     
     return `Generate a realistic and challenging clinical case for a medical student simulation in the '${departmentName}' department.
-    
+
+    ${timeContext ? `${timeContext}\n` : ''}
     ${locationPrompt}
+    ${surgicalPrompt ? `${surgicalPrompt}\n` : ''}
+    ${pediatricPrompt ? `${pediatricPrompt}\n` : ''}
     
     MANDATORY DIAGNOSIS REQUIREMENT:
     - You MUST generate a case for exactly: "${condition}"
@@ -123,6 +115,8 @@ export const generateSingleDiagnosisPrompt = (
     - The case should be solvable by a medical student
     - Balance regional authenticity with educational value
     - Create a realistic presentation of "${condition}"${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+    ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
+    ${isSurgical ? '- Focus on surgical intervention and context' : ''}
     
     COMMON DIAGNOSIS VARIATIONS (use these if the exact term doesn't fit):
     - "MI" or "Myocardial Infarction" → use "Myocardial Infarction"
@@ -155,14 +149,22 @@ export const generateCustomCasePrompt = (
     departmentName: string,
     scenario: string,
     userCountry?: string,
-    difficulty: string = 'standard'
+    difficulty: string = 'standard',
+    timeContext?: string,
+    surgicalPrompt?: string,
+    pediatricPrompt?: string,
+    isPediatric: boolean = false,
+    isSurgical: boolean = false
 ) => {
     const locationPrompt = getLocationPrompt(userCountry);
     const difficultyPrompt = getDifficultyPrompt(difficulty as DifficultyLevel);
     
     return `Generate a structured clinical case based on the following custom case description for a medical student simulation in the '${departmentName}' department.
-    
+
+    ${timeContext ? `${timeContext}\n` : ''}
     ${locationPrompt}
+    ${surgicalPrompt ? `${surgicalPrompt}\n` : ''}
+    ${pediatricPrompt ? `${pediatricPrompt}\n` : ''}
     
     CUSTOM CASE DESCRIPTION:
     "${scenario}"
@@ -180,6 +182,8 @@ export const generateCustomCasePrompt = (
     - Ensure the case is solvable by a medical student
     - Balance the provided details with educational value
     - Create a realistic and challenging presentation${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+    ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
+    ${isSurgical ? '- Focus on surgical intervention and context' : ''}
     
     CONTEXT MATCHING GUIDELINES:
     - If the scenario mentions chest pain → the case must involve chest pain
@@ -210,13 +214,38 @@ export const generatePracticeCasePrompt = (
     departmentName: string,
     practiceCondition: string,
     userCountry?: string,
-    difficulty: string = 'standard'
+    difficulty: string = 'standard',
+    timeContext?: string,
+    surgicalPrompt?: string,
+    pediatricPrompt?: string,
+    isPediatric: boolean = false,
+    isSurgical: boolean = false
 ) => {
     const inputType = detectInputType(practiceCondition);
     
     if (inputType === 'diagnosis') {
-        return generateSingleDiagnosisPrompt(departmentName, practiceCondition, userCountry, difficulty);
+        return generateSingleDiagnosisPrompt(
+            departmentName, 
+            practiceCondition, 
+            userCountry, 
+            difficulty,
+            timeContext,
+            surgicalPrompt,
+            pediatricPrompt,
+            isPediatric,
+            isSurgical
+        );
     } else {
-        return generateCustomCasePrompt(departmentName, practiceCondition, userCountry, difficulty);
+        return generateCustomCasePrompt(
+            departmentName, 
+            practiceCondition, 
+            userCountry, 
+            difficulty,
+            timeContext,
+            surgicalPrompt,
+            pediatricPrompt,
+            isPediatric,
+            isSurgical
+        );
     }
 };

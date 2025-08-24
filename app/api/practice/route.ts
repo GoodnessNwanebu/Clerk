@@ -102,23 +102,7 @@ const validateCustomCaseInput = (input: string): { isValid: boolean; error?: str
         };
     }
     
-    // Inappropriate content filtering
-    const inappropriateTerms = [
-        'kill', 'suicide', 'self-harm', 'abuse', 'illegal', 'drugs',
-        'weapon', 'violence', 'hate', 'discrimination'
-    ];
-    
-    const hasInappropriateContent = inappropriateTerms.some(term => 
-        trimmedInput.toLowerCase().includes(term)
-    );
-    
-    if (hasInappropriateContent) {
-        return {
-            isValid: false,
-            error: 'Inappropriate content detected',
-            suggestion: 'Please focus on standard medical scenarios suitable for educational practice.'
-        };
-    }
+
     
     return { isValid: true };
 };
@@ -129,25 +113,6 @@ const validateGeneratedCase = (caseData: Case): { isValid: boolean; error?: stri
         return {
             isValid: false,
             error: 'Generated case is missing required information'
-        };
-    }
-    
-    // Check for inappropriate content in generated case
-    const inappropriateTerms = [
-        'kill', 'suicide', 'self-harm', 'abuse', 'illegal', 'drugs',
-        'weapon', 'violence', 'hate', 'discrimination', 'inappropriate'
-    ];
-    
-    const caseText = `${caseData.diagnosis} ${caseData.primaryInfo} ${caseData.openingLine}`.toLowerCase();
-    
-    const hasInappropriateContent = inappropriateTerms.some(term => 
-        caseText.includes(term)
-    );
-    
-    if (hasInappropriateContent) {
-        return {
-            isValid: false,
-            error: 'Generated case contains inappropriate content'
         };
     }
     

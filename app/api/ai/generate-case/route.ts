@@ -98,11 +98,22 @@ export async function POST(request: NextRequest) {
                 }
             }
             
+            // Get all the same customization prompts as regular cases
+            const locationPrompt = getLocationPrompt(userCountry);
+            const surgicalPrompt = getSurgicalPrompt(isSurgical, isCardiothoracic, isGeneralSurgery);
+            const pediatricPrompt = getPediatricPrompt(isPediatric);
+            const difficultyPrompt = getDifficultyPrompt(difficulty);
+            
             userMessage = generatePracticeCasePrompt(
                 departmentRecord.name,
                 practiceCondition,
                 userCountry,
-                difficulty
+                difficulty,
+                timeContext.formattedContext,
+                surgicalPrompt,
+                pediatricPrompt,
+                isPediatric,
+                isSurgical
             );
             randomBucket = 'Practice Case';
         } else {
