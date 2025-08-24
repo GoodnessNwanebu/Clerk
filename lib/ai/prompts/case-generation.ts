@@ -63,6 +63,13 @@ REQUIREMENTS:
 ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
 ${isSurgical ? '- Focus on surgical intervention and context' : ''}
 
+PATIENT COMMUNICATION GUIDELINES:
+- Patients use lay terms, not medical terminology
+- Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
+- Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
+- Avoid patients using exact drug names or dosages
+- Match communication style to education level and health literacy
+
 EXAMPLES by category:
 - Vascular: MI, Stroke, PVD${departmentName.toLowerCase().includes('cardiothoracic') ? ', Aortic Aneurysm, CAD' : ''}
 - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis${departmentName.toLowerCase().includes('surgery') ? ', Appendicitis, Cholecystitis' : ''}

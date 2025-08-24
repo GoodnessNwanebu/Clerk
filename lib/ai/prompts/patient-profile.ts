@@ -11,6 +11,13 @@ DIVERSITY REQUIREMENTS:
 - Occupation: Choose realistically based on education level
 - Record Keeping: Correlate with health literacy (high literacy = detailed records)
 
+REALISTIC PATIENT CHARACTERISTICS:
+- Most patients have basic to moderate health literacy except for the well-informed patients
+- Patients typically use common names for medications (e.g., "blood pressure pills" not "amlodipine")
+- Patients rarely know exact drug names or dosages
+- Patients describe symptoms in lay terms, not medical terminology
+- Education level should influence medical knowledge and communication style
+
 OUTPUT: {
     "educationLevel": "basic" | "moderate" | "well-informed",
     "healthLiteracy": "minimal" | "average" | "high", 

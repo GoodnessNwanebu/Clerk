@@ -118,6 +118,13 @@ export const generateSingleDiagnosisPrompt = (
     ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
     ${isSurgical ? '- Focus on surgical intervention and context' : ''}
     
+    PATIENT COMMUNICATION GUIDELINES:
+    - Patients use lay terms, not medical terminology
+    - Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
+    - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
+    - Avoid patients using exact drug names or dosages
+    - Match communication style to education level and health literacy
+    
     COMMON DIAGNOSIS VARIATIONS (use these if the exact term doesn't fit):
     - "MI" or "Myocardial Infarction" → use "Myocardial Infarction"
     - "CVA" or "Stroke" → use "Stroke" or "Cerebrovascular Accident"
@@ -127,7 +134,7 @@ export const generateSingleDiagnosisPrompt = (
     - "UTI" → use "Urinary Tract Infection"
     - "PNA" or "Pneumonia" → use "Pneumonia"
     
-    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
+    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}.
 
     - "diagnosis": MUST be "${condition}" or a very close variation (see variations above)
     - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
@@ -140,6 +147,7 @@ export const generateSingleDiagnosisPrompt = (
         - ## Social History
         - ## Review of Systems
     - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
+    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}
 
     REMEMBER: The diagnosis MUST be "${condition}" or a very close variation. Do not generate a case for a different condition.`;
 };
@@ -185,6 +193,13 @@ export const generateCustomCasePrompt = (
     ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
     ${isSurgical ? '- Focus on surgical intervention and context' : ''}
     
+    PATIENT COMMUNICATION GUIDELINES:
+    - Patients use lay terms, not medical terminology
+    - Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
+    - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
+    - Avoid patients using exact drug names or dosages
+    - Match communication style to education level and health literacy
+    
     CONTEXT MATCHING GUIDELINES:
     - If the scenario mentions chest pain → the case must involve chest pain
     - If the scenario mentions fever → the case must involve fever
@@ -192,7 +207,7 @@ export const generateCustomCasePrompt = (
     - If the scenario mentions specific conditions → those conditions must be central to the case
     - If the scenario mentions specific symptoms → those symptoms must be prominent in the case
     
-    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string}.
+    The output MUST be a single, perfectly valid JSON object with this exact structure: {"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}}.
 
     - "diagnosis": The most likely diagnosis based on the provided case description (must align with the scenario)
     - "primaryInfo": A detailed clinical history string, formatted with markdown headings. This history is the single source of truth for the AI patient. It MUST include all of the following sections:
@@ -205,6 +220,7 @@ export const generateCustomCasePrompt = (
         - ## Social History
         - ## Review of Systems
     - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
+    - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}
 
     REMEMBER: The generated case MUST closely match the medical context of the provided scenario. Do not deviate from the core medical problem described.`;
 };

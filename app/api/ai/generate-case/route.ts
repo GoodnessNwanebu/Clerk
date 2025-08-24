@@ -286,6 +286,7 @@ export async function POST(request: NextRequest) {
                 isPediatric,
                 difficultyLevel: difficulty as DifficultyLevel,
                 pathophysiologyCategory: randomBucket,
+                isPractice: isPracticeCase,
                 isCompleted: false,
                 isVisible: true,
                 patientProfileId,

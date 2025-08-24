@@ -163,6 +163,7 @@ model Case {
   openingLine           String
   isPediatric           Boolean  @default(false)
   difficultyLevel       String   @default("standard") // 'standard' | 'intermediate' | 'difficult'
+  isPractice            Boolean  @default(false) // Whether this is a practice case
 
   location              String?
   isSurgical            Boolean  @default(false)
