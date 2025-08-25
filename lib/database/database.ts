@@ -188,7 +188,6 @@ export async function updateCaseState(
     finalDiagnosis: string
     managementPlan: string
     completedAt: Date
-    sessionId: string | null
   }>
 ): Promise<Case> {
   return await prisma.case.update({

@@ -43,20 +43,14 @@ export default function HomePage() {
   useEffect(() => {
     const checkForResumableCase = async () => {
       try {
-        console.log('🔍 [page.checkForResumableCase] Checking for resumable cases...');
-        
         // Only check backend for active cases if user is authenticated
         if (isAuthenticated) {
-          console.log('🔍 [page.checkForResumableCase] User is authenticated, checking backend...');
-          
           // First check if there are any active cases from the backend
           const activeCases = await getActiveCases();
-          console.log('🔍 [page.checkForResumableCase] Active cases from backend:', activeCases.length);
           
           if (activeCases.length > 0) {
             // Use the most recent active case
             const mostRecent = activeCases[0]; // Already sorted by updatedAt desc
-            console.log('🔍 [page.checkForResumableCase] Found active case:', mostRecent.id);
             
             // Show the resume modal instead of auto-resuming
             setSavedCaseInfo({
@@ -66,17 +60,11 @@ export default function HomePage() {
             });
             setShowResumeModal(true);
             return;
-          } else {
-            console.log('🔍 [page.checkForResumableCase] No active cases found in backend');
           }
-        } else {
-          console.log('🔍 [page.checkForResumableCase] User not authenticated, skipping backend check');
         }
         
         // Fallback: Check localStorage for any saved conversations
         const conversations = ConversationStorageUtils.getAllConversations();
-        console.log('🔍 [page.checkForResumableCase] Conversations in localStorage:', conversations.length);
-        
         if (conversations.length > 0) {
           // Find the most recent saved case
           const mostRecent = conversations.sort((a, b) => 
@@ -85,18 +73,13 @@ export default function HomePage() {
           
           // Check if there's a conversation to resume
           if (mostRecent && mostRecent.conversation.length > 0) {
-            console.log('🔍 [page.checkForResumableCase] Found conversation in localStorage:', mostRecent.caseId);
             setSavedCaseInfo({
               department: mostRecent.department || 'Clinical Case', // Use stored department or generic name
               lastUpdated: mostRecent.lastUpdated,
               caseId: mostRecent.caseId
             });
             setShowResumeModal(true);
-          } else {
-            console.log('🔍 [page.checkForResumableCase] No valid conversations found in localStorage');
           }
-        } else {
-          console.log('🔍 [page.checkForResumableCase] No conversations found in localStorage');
         }
       } catch (error) {
         console.error('Error checking for resumable cases:', error);
@@ -263,95 +246,13 @@ export default function HomePage() {
     }
   };
 
-  const handleDismissCase = async () => {
-    console.log(`🗑️ [page.handleDismissCase] User dismissed resume modal, deactivating session and case`);
-    console.trace('Stack trace for dismiss case');
-    
-    try {
-      // Deactivate the session and case in the database
-      if (savedCaseInfo?.caseId) {
-        console.log(`🔄 [page.handleDismissCase] Deactivating session for case: ${savedCaseInfo.caseId}`);
-        
-        // First, get the active session for this case to get the sessionId
-        const sessionResponse = await fetch('/api/sessions', {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          const activeCase = sessionData.cases?.find((case_: any) => case_.id === savedCaseInfo.caseId);
-          
-          if (activeCase?.sessionId) {
-            console.log(`🔄 [page.handleDismissCase] Found session ID: ${activeCase.sessionId}`);
-            
-            // Deactivate the session
-            const invalidateResponse = await fetch('/api/sessions/invalidate', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                caseId: savedCaseInfo.caseId,
-                sessionId: activeCase.sessionId
-              }),
-              credentials: 'include',
-            });
-
-            if (invalidateResponse.ok) {
-              console.log(`✅ [page.handleDismissCase] Session deactivated successfully`);
-            } else {
-              console.warn(`⚠️ [page.handleDismissCase] Failed to deactivate session:`, await invalidateResponse.text());
-            }
-          } else {
-            console.warn(`⚠️ [page.handleDismissCase] No active session found for case: ${savedCaseInfo.caseId}`);
-          }
-        } else {
-          console.warn(`⚠️ [page.handleDismissCase] Failed to get active sessions:`, await sessionResponse.text());
-        }
-
-        // For incomplete cases, we need to mark them as not resumable
-        // Since the visibility endpoint only works for completed cases,
-        // we'll clear the sessionId from the case to prevent resumption
-        const caseResponse = await fetch('/api/cases', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'update',
-            data: {
-              caseId: savedCaseInfo.caseId,
-              updates: {
-                sessionId: null // Clear session to prevent resumption
-              }
-            }
-          }),
-          credentials: 'include',
-        });
-
-        if (caseResponse.ok) {
-          console.log(`✅ [page.handleDismissCase] Case session cleared successfully`);
-        } else {
-          console.warn(`⚠️ [page.handleDismissCase] Failed to clear case session:`, await caseResponse.text());
-        }
-      }
-
-      // Clear localStorage to start fresh
-      ConversationStorageUtils.clearAll();
-      console.log(`✅ [page.handleDismissCase] Successfully cleared localStorage after dismissing case`);
-      
-      // Close the modal
-      setShowResumeModal(false);
-      setSavedCaseInfo(null);
-      
-    } catch (error) {
-      console.error(`❌ [page.handleDismissCase] Error dismissing case:`, error);
-      // Still close the modal and clear localStorage even if API calls fail
-      setShowResumeModal(false);
-      setSavedCaseInfo(null);
-      ConversationStorageUtils.clearAll();
-    }
+  const handleDismissCase = () => {
+    console.log(`🗑️ [page.handleDismissCase] User dismissed resume modal, clearing localStorage`);
+    console.trace('Stack trace for dismiss case localStorage clear');
+    setShowResumeModal(false);
+    // Clear localStorage to start fresh
+    ConversationStorageUtils.clearAll();
+    console.log(`✅ [page.handleDismissCase] Successfully cleared localStorage after dismissing case`);
   };
 
   const handleSavedCases = () => {

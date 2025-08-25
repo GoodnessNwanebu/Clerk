@@ -33,15 +33,7 @@ export async function POST(request: NextRequest) {
             let systemInstruction = '';
             
             if (isPediatric && primaryContext.pediatricProfile) {
-                const { 
-                    patientAge, 
-                    ageGroup, 
-                    respondingParent, 
-                    parentProfile, 
-                    developmentalStage, 
-                    communicationLevel,
-                    childName
-                } = primaryContext.pediatricProfile;
+                const { patientAge, ageGroup, respondingParent, parentProfile, developmentalStage, communicationLevel } = primaryContext.pediatricProfile;
                 
                 systemInstruction = getPediatricSystemInstruction(
                     timeContext.formattedContext,
@@ -50,8 +42,7 @@ export async function POST(request: NextRequest) {
                     respondingParent,
                     parentProfile,
                     developmentalStage,
-                    communicationLevel,
-                    childName
+                    communicationLevel
                 ) + `\n\nPRIMARY_INFORMATION:\n${primaryContext.primaryInfo}`;
             } else {
                 // Regular adult case
@@ -62,13 +53,75 @@ export async function POST(request: NextRequest) {
                 );
             }
             
-            // For pediatric cases, let AI determine speaker naturally
+            // Determine speaker for pediatric cases BEFORE generating response
             let speakerLabel = '';
             let sender = 'patient';
             
             if (isPediatric && primaryContext.pediatricProfile) {
-                // Don't set hardcoded speaker - let AI decide based on question context
-                console.log('🔄 [patient-response] Pediatric case - AI will determine speaker naturally');
+                const { respondingParent, patientAge, ageGroup, communicationLevel } = primaryContext.pediatricProfile;
+                
+                // Get the last student question to determine who should respond
+                const lastStudentMessage = history
+                    .filter((msg: Message) => msg.sender === 'student')
+                    .pop();
+                
+                if (lastStudentMessage) {
+                    const questionText = lastStudentMessage.text.toLowerCase();
+                    
+                    // Determine who should respond based on question type and child's age
+                    const shouldChildRespond = (
+                        // Only allow child responses for school-age children and adolescents
+                        (ageGroup === 'school-age' || ageGroup === 'adolescent') &&
+                        communicationLevel !== 'non-verbal' &&
+                        (
+                            // Questions about current symptoms the child can describe
+                            (questionText.includes('pain') || questionText.includes('hurt') || questionText.includes('sore')) ||
+                            (questionText.includes('feel') && (questionText.includes('now') || questionText.includes('today'))) ||
+                            (questionText.includes('symptom') && (questionText.includes('current') || questionText.includes('now'))) ||
+                            // Questions about activities and preferences
+                            (questionText.includes('like') || questionText.includes('enjoy') || questionText.includes('play')) ||
+                            (questionText.includes('activity') || questionText.includes('hobby')) ||
+                            // Simple yes/no questions about current state (but not identity questions)
+                            ((questionText.includes('can you') || questionText.includes('do you') || questionText.includes('are you')) && 
+                             !questionText.includes('name') && !questionText.includes('brings') && !questionText.includes('come')) ||
+                            // Questions directly to the child (but not identity questions)
+                            (questionText.includes('child') || questionText.includes('patient')) ||
+                            // Age-appropriate questions for older children
+                            (patientAge >= 6 && (questionText.includes('school') || questionText.includes('friend')))
+                        ) &&
+                        (
+                            // Exclude questions directed to parents with formal titles
+                            !questionText.includes('madam') && 
+                            !questionText.includes('ma') && 
+                            !questionText.includes('sir')
+                        )
+                    );
+                    
+                    if (shouldChildRespond) {
+                        speakerLabel = 'Child';
+                        sender = 'patient';
+                    } else {
+                        // Parent responds to everything else
+                        speakerLabel = respondingParent === 'mother' ? 'Mother' : 'Father';
+                        sender = 'parent';
+                    }
+                } else {
+                    // Default to responding parent if no question found
+                    speakerLabel = respondingParent === 'mother' ? 'Mother' : 'Father';
+                    sender = 'parent';
+                }
+                
+                console.log('🔄 [patient-response] Pediatric case - determined speaker:', {
+                    question: lastStudentMessage?.text.substring(0, 50) + '...',
+                    patientAge,
+                    ageGroup,
+                    communicationLevel,
+                    respondingParent,
+                    determinedSpeakerLabel: speakerLabel,
+                    determinedSender: sender
+                });
+            } else {
+                console.log('🔄 [patient-response] Non-pediatric case or missing pediatric profile');
             }
             
             // Convert the history to a format suitable for the API
@@ -77,10 +130,14 @@ export async function POST(request: NextRequest) {
                 .map((msg: Message) => `${msg.sender === 'student' ? 'STUDENT' : msg.sender === 'parent' ? 'PARENT' : 'PATIENT'}: ${msg.text}`)
                 .join('\n\n');
             
+            // Add speaker instruction to the prompt for pediatric cases
+            const speakerInstruction = isPediatric && speakerLabel ? 
+                `\n\nIMPORTANT: Respond as ${speakerLabel}. ${speakerLabel === 'Child' ? 'Speak like a child of this age.' : 'Speak like a concerned parent.'}` : '';
+            
             const response = await ai.generateContent({
                 model: 'gemini-2.5-flash-lite',
                 contents: [{ 
-                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric)
+                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
                 config: {
                     maxOutputTokens: 200
@@ -96,36 +153,31 @@ export async function POST(request: NextRequest) {
                 responsePreview: response.text.trim().substring(0, 50) + '...'
             });
             
-            // Clean the response text and extract speaker label
+            // Clean the response text - remove markdown formatting and speaker prefixes
             let cleanedResponse = response.text.trim();
-            let extractedSpeakerLabel = '';
             
-            // Try to extract speaker label from AI response
-            const speakerMatch = cleanedResponse.match(/^(Child|Mother|Father):\s*/i);
-            if (speakerMatch) {
-                extractedSpeakerLabel = speakerMatch[1];
-                cleanedResponse = cleanedResponse.replace(/^(Child|Mother|Father):\s*/i, '');
-            } else {
-                // Default to parent if no speaker label found
-                extractedSpeakerLabel = isPediatric && primaryContext.pediatricProfile?.respondingParent === 'mother' ? 'Mother' : 'Father';
-            }
-            
-            // Remove markdown formatting
+            // Remove markdown formatting like **speaker:** or **dare:**
             cleanedResponse = cleanedResponse.replace(/\*\*[^*]+\*\*:\s*/g, '');
+            
+            // Remove any remaining markdown formatting
             cleanedResponse = cleanedResponse.replace(/\*\*/g, '');
+            
+            // Remove any speaker prefixes like "Mother:" or "Child:"
+            cleanedResponse = cleanedResponse.replace(/^(mother|father|child|patient):\s*/i, '');
+            
+            // Clean up any extra whitespace
             cleanedResponse = cleanedResponse.trim();
             
-            console.log('🔄 [patient-response] Response processing:', {
+            console.log('🔄 [patient-response] Response cleaning:', {
                 original: response.text.trim().substring(0, 100) + '...',
-                extractedSpeakerLabel,
                 cleaned: cleanedResponse.substring(0, 100) + '...'
             });
             
             return NextResponse.json({ 
                 messages: [{
                     response: cleanedResponse,
-                    sender: extractedSpeakerLabel.toLowerCase().includes('child') ? 'patient' : 'parent',
-                    speakerLabel: extractedSpeakerLabel
+                    sender: sender as 'patient' | 'parent',
+                    speakerLabel: speakerLabel
                 }]
             });
         } catch (error) {
