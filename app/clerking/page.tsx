@@ -1,6 +1,7 @@
 'use client';
 
-
+// Force dynamic rendering to prevent prerendering issues with browser APIs
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 

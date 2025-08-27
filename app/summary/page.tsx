@@ -129,16 +129,17 @@ const SummaryScreen: React.FC = () => {
             if (examinationPlan.trim()) {
                 promises.push(
                     getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
-                        .then(results => {
-                            setExaminationResults(results);
-                            return { type: 'examination', results };
-                        })
+                        .then(results => ({ type: 'examination', results, success: true }))
                         .catch(async (examError) => {
                             console.warn('Failed to get examination results, retrying...', examError);
-                            // Retry examination results
-                            const retryResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                            setExaminationResults(retryResults);
-                            return { type: 'examination', results: retryResults };
+                            try {
+                                // Retry examination results
+                                const retryResults = await getExaminationResults(examinationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                                return { type: 'examination', results: retryResults, success: true };
+                            } catch (retryError) {
+                                console.error('Examination results retry failed:', retryError);
+                                return { type: 'examination', error: retryError, success: false };
+                            }
                         })
                 );
             }
@@ -147,22 +148,51 @@ const SummaryScreen: React.FC = () => {
             if (investigationPlan.trim()) {
                 promises.push(
                     getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined)
-                        .then(results => {
-                            setInvestigationResults(results);
-                            return { type: 'investigation', results };
-                        })
+                        .then(results => ({ type: 'investigation', results, success: true }))
                         .catch(async (invError) => {
                             console.warn('Failed to get investigation results, retrying...', invError);
-                            // Retry investigation results
-                            const retryResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
-                            setInvestigationResults(retryResults);
-                            return { type: 'investigation', results: retryResults };
+                            try {
+                                // Retry investigation results
+                                const retryResults = await getInvestigationResults(investigationPlan, caseState.caseId || undefined, caseState.sessionId || undefined);
+                                return { type: 'investigation', results: retryResults, success: true };
+                            } catch (retryError) {
+                                console.error('Investigation results retry failed:', retryError);
+                                return { type: 'investigation', error: retryError, success: false };
+                            }
                         })
                 );
             }
             
-            // Wait for all promises to complete
-            await Promise.all(promises);
+            // Wait for all promises to settle (both success and failure)
+            const results = await Promise.allSettled(promises);
+            
+            // Process results and update state atomically
+            let hasErrors = false;
+            
+            results.forEach((result) => {
+                if (result.status === 'fulfilled') {
+                    const { type, results: data, success } = result.value;
+                    
+                    if (success && data) {
+                        if (type === 'examination') {
+                            setExaminationResults(data as ExaminationResult[]);
+                        } else if (type === 'investigation') {
+                            setInvestigationResults(data as InvestigationResult[]);
+                        }
+                    } else {
+                        hasErrors = true;
+                        const error = (result.value as any).error;
+                        console.error(`${type} results failed:`, error);
+                    }
+                } else {
+                    hasErrors = true;
+                    console.error('Promise rejected:', result.reason);
+                }
+            });
+            
+            // Only proceed if we have at least some successful results
+            // Note: We can't check the state variables here as they haven't been updated yet
+            // The error handling is done above in the forEach loop
             
             setFinalDiagnosis(prelimDiagnosis);
             setPhase('results');
