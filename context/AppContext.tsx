@@ -572,9 +572,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
             console.log(`✅ [AppContext.completeCaseAndSave] Successfully cleared localStorage after case completion`);
           }
 
-          // Reset case state but preserve feedback and case ID
+          // Update case state but preserve feedback and case ID - don't reset everything
           setCaseState(prev => ({
-            ...initialCaseState,
+            ...prev, // Keep existing state including feedback
             caseId: result.caseId || prev.caseId, // Preserve the case ID from API response
             feedback: result.feedback || prev.feedback
           }));

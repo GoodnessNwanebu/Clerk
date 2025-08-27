@@ -64,6 +64,8 @@ export default function FeedbackPage() {
                 whatYouDidWell: feedback.whatYouDidWell?.length || 0
             } : null
         });
+        
+
     }, [feedback, department, departmentName, caseState.caseId]);
 
     // Load share data from localStorage

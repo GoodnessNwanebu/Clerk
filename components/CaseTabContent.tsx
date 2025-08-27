@@ -527,35 +527,51 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Presenting Complaint</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.presentingComplaint}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.presentingComplaint}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">History of Presenting Illness</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.historyOfPresentingIllness}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.historyOfPresentingIllness}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Past Medical History</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.pastMedicalHistory}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.pastMedicalHistory}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Medications</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.medications}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.medications}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Allergies</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.allergies}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.allergies}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Social History</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.socialHistory}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.socialHistory}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Family History</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.familyHistory}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.familyHistory}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Review of Systems</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.history.reviewOfSystems}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.history.reviewOfSystems}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -587,11 +603,15 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">General Examination</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.generalExamination}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.examination.generalExamination}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Systemic Examination</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.systemicExamination}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.examination.systemicExamination}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Expected Findings</h3>
@@ -599,14 +619,18 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.examination.findings.map((finding, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="list" size={14} className="mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
-                          {finding}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{finding}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Rationale</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.examination.rationale}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.examination.rationale}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -642,7 +666,9 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.investigations.requested.map((investigation, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="list" size={14} className="mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                          {investigation}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{investigation}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -653,14 +679,18 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.investigations.results.map((result, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="list" size={14} className="mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                          {result}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{result}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Rationale</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{caseData.caseReport.investigations.rationale}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.investigations.rationale}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -696,14 +726,18 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.assessment.differentialDiagnosis.map((diagnosis, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="list" size={14} className="mr-2 mt-0.5 text-amber-500 flex-shrink-0" />
-                          {diagnosis}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{diagnosis}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Final Diagnosis</h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{caseData.caseReport.assessment.finalDiagnosis}</p>
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <ReactMarkdown>{caseData.caseReport.assessment.finalDiagnosis}</ReactMarkdown>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-medium text-slate-900 dark:text-white mb-2">Clinical Reasoning</h3>
@@ -745,7 +779,9 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.management.immediate.map((item, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="alert-triangle" size={14} className="mr-2 mt-0.5 text-red-500 flex-shrink-0" />
-                          {item}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{item}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -756,7 +792,9 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.management.shortTerm.map((item, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="clock" size={14} className="mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
-                          {item}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{item}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -767,7 +805,9 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                       {caseData.caseReport.management.longTerm.map((item, index) => (
                         <li key={index} className="text-sm text-slate-700 dark:text-slate-300 flex items-start">
                           <Icon name="calendar" size={14} className="mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                          {item}
+                          <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                            <ReactMarkdown>{item}</ReactMarkdown>
+                          </div>
                         </li>
                       ))}
                     </ul>
