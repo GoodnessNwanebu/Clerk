@@ -36,7 +36,7 @@ export default function HomePage() {
   const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute, isAuthenticated } = useAuthCheck();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
-  const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string; caseId?: string } | null>(null);
+  const [savedCaseInfo, setSavedCaseInfo] = useState<{ department: string; lastUpdated: string; caseId?: string; sessionId?: string } | null>(null);
   const [showPWATutorial, setShowPWATutorial] = useState(false);
 
   // Check for saved case on mount
@@ -56,7 +56,8 @@ export default function HomePage() {
             setSavedCaseInfo({
               department: mostRecent.department.name,
               lastUpdated: mostRecent.updatedAt,
-              caseId: mostRecent.id
+              caseId: mostRecent.id,
+              sessionId: mostRecent.sessionId
             });
             setShowResumeModal(true);
             return;
@@ -246,13 +247,43 @@ export default function HomePage() {
     }
   };
 
-  const handleDismissCase = () => {
-    console.log(`🗑️ [page.handleDismissCase] User dismissed resume modal, clearing localStorage`);
+  const handleDismissCase = async () => {
+    console.log(`🗑️ [page.handleDismissCase] User dismissed resume modal, clearing localStorage and invalidating session`);
     console.trace('Stack trace for dismiss case localStorage clear');
     setShowResumeModal(false);
+    
     // Clear localStorage to start fresh
     ConversationStorageUtils.clearAll();
     console.log(`✅ [page.handleDismissCase] Successfully cleared localStorage after dismissing case`);
+    
+    // If we have case info and user is authenticated, invalidate the session in the database
+    if (savedCaseInfo?.caseId && savedCaseInfo?.sessionId && isAuthenticated) {
+      try {
+        console.log(`🔄 [page.handleDismissCase] Invalidating session for case: ${savedCaseInfo.caseId}, session: ${savedCaseInfo.sessionId}`);
+        
+        const response = await fetch('/api/sessions/invalidate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            caseId: savedCaseInfo.caseId,
+            sessionId: savedCaseInfo.sessionId
+          }),
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          console.log(`✅ [page.handleDismissCase] Successfully invalidated session in database`);
+        } else {
+          console.warn(`⚠️ [page.handleDismissCase] Failed to invalidate session in database: ${response.status}`);
+        }
+      } catch (error) {
+        console.error(`❌ [page.handleDismissCase] Error invalidating session:`, error);
+      }
+    } else {
+      console.log(`ℹ️ [page.handleDismissCase] Skipping session invalidation - missing caseId/sessionId or user not authenticated`);
+    }
   };
 
   const handleSavedCases = () => {

@@ -31,7 +31,7 @@ const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 export const useSavedCasesCache = (userEmail?: string | null): SavedCasesCache => {
   const [cases, setCases] = useState<CompletedCase[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state to prevent flash
   const [error, setError] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
 
