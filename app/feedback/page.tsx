@@ -85,8 +85,19 @@ export default function FeedbackPage() {
     // Scroll-to-bottom install guide trigger
     useEffect(() => {
         const handleScroll = () => {
-            // Check if user has scrolled to bottom
-            const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+            // More robust scroll detection with multiple fallbacks
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = Math.max(
+                document.body.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.scrollHeight,
+                document.documentElement.offsetHeight
+            );
+            
+            // Check if user has scrolled to bottom (within 150px for better detection)
+            const isAtBottom = scrollTop + windowHeight >= documentHeight - 150;
             
             if (isAtBottom && shouldShowInstallGuide()) {
                 handleShowInstallGuide();

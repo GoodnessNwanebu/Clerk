@@ -28,14 +28,16 @@ export const useInstallGuide = () => {
     // Get when we last showed it
     const lastShown = localStorage.getItem('installGuideLastShown');
     
-    // Don't show if shown recently (within 7 days)
+    // For non-installed users: Show more frequently
+    // Only limit to once per day to avoid spam, but show on every completed case
     if (lastShown) {
-      const daysSinceLastShown = (Date.now() - new Date(lastShown).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceLastShown < 7) return false;
+      const hoursSinceLastShown = (Date.now() - new Date(lastShown).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastShown < 24) return false; // Once per day max
     }
     
-    // VARYING FREQUENCY: Show on specific occasions (1, 3, 5, 8, 12)
-    const shouldShow = [1, 3, 5, 8, 12].includes(shownCount + 1);
+    // Show on every completed case for non-installed users
+    // But cap at 10 times total to avoid being too persistent
+    const shouldShow = shownCount < 10;
     
     return shouldShow;
   };
