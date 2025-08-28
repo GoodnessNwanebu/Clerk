@@ -123,8 +123,10 @@ export const useSavedCasesCache = (userEmail?: string | null): SavedCasesCache =
       fetchCases();
     } else if (cacheValid) {
       console.log('✅ Using cached data, no API call needed');
+      setIsLoading(false);
     } else if (!userEmail) {
       console.log('⚠️ No userEmail provided, cannot fetch cases');
+      setIsLoading(false);
     }
   }, [userEmail, fetchCases]); // Include fetchCases in dependencies
 
