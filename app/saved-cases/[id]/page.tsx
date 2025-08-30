@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDrag } from '@use-gesture/react';
 import { Icon } from '../../../components/Icon';
 import { CaseTabContent } from '../../../components/CaseTabContent';
 
@@ -123,9 +124,12 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 3 });
   const [tabsPerView, setTabsPerView] = useState(4);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeProgress, setSwipeProgress] = useState(0);
   
   // Refs
   const headerRef = useRef<HTMLElement>(null);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadParams = async () => {
@@ -279,6 +283,50 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   const canNavigateLeft = visibleRange.start > 0 && currentIndex > 0;
   const canNavigateRight = visibleRange.end < tabs.length - 1 && currentIndex < tabs.length - 1;
 
+  // Swipe gesture handling
+  const bindSwipeGesture = useDrag(
+    ({ movement: [mx], direction: [xDir], velocity: [vx], cancel, canceled, first, last }) => {
+      if (first) {
+        setIsSwiping(true);
+        setSwipeProgress(0);
+      }
+      
+      if (last) {
+        setIsSwiping(false);
+        setSwipeProgress(0);
+        
+        // Determine final navigation based on swipe distance and velocity
+        const swipeDistance = Math.abs(mx);
+        const swipeVelocity = Math.abs(vx);
+        const threshold = swipeVelocity > 0.5 ? 30 : 50; // Lower threshold for fast swipes
+        
+        if (swipeDistance > threshold) {
+          if (xDir > 0 && canNavigateLeft) {
+            // Swipe right to go to previous tab
+            handleTabNavigation('left');
+          } else if (xDir < 0 && canNavigateRight) {
+            // Swipe left to go to next tab
+            handleTabNavigation('right');
+          }
+        }
+      }
+      
+      // Real-time swipe progress for indicator movement
+      if (isSwiping) {
+        const maxSwipeDistance = 100; // Maximum swipe distance for full progress
+        const progress = Math.min(Math.abs(mx) / maxSwipeDistance, 1);
+        const direction = xDir > 0 ? -progress : progress; // Negative for left swipe, positive for right
+        setSwipeProgress(direction);
+      }
+    },
+    {
+      axis: 'x', // Only horizontal swipes
+      threshold: 10, // Lower threshold for more responsive feel
+      preventDefault: true, // Prevent default scroll behavior
+      filterTaps: true, // Ignore taps
+    }
+  );
+
   // Ensure active tab is visible
   useEffect(() => {
     const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
@@ -383,6 +431,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
         className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 fixed left-0 right-0 z-10"
         style={{ top: `${headerHeight || 180}px` }}
       >
+
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center">
             {/* Left Arrow */}
@@ -399,8 +448,12 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
             </button>
 
             {/* Tabs Container */}
-            <div className="flex-1 flex justify-center overflow-hidden relative">
-              <div className="flex space-x-1 transition-transform duration-800 ease-out">
+            <div 
+              ref={tabContainerRef}
+              {...bindSwipeGesture()}
+              className="flex-1 flex justify-center overflow-hidden relative touch-pan-y"
+            >
+              <div className="flex space-x-1 transition-transform duration-300 ease-out">
                 {tabs.slice(visibleRange.start, visibleRange.end + 1).map((tab) => (
                   <button
                     key={tab.id}
@@ -419,10 +472,15 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
               
               {/* Sliding Highlight Bar */}
               <div 
-                className="absolute bottom-0 h-0.5 bg-teal-500 transition-all duration-800 ease-out"
+                className={`absolute bottom-0 h-0.5 bg-teal-500 ${
+                  isSwiping ? 'transition-none' : 'transition-all duration-300 ease-out'
+                }`}
                 style={{
                   width: `${100 / tabsPerView}%`,
-                  left: `${(tabs.findIndex(tab => tab.id === activeTab) - visibleRange.start) * (100 / tabsPerView)}%`
+                  left: `${
+                    ((tabs.findIndex(tab => tab.id === activeTab) - visibleRange.start) * (100 / tabsPerView)) + 
+                    (swipeProgress * (100 / tabsPerView))
+                  }%`
                 }}
               />
             </div>
@@ -445,10 +503,11 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
       {/* Main Content */}
       <div 
-        className="max-w-6xl mx-auto px-6 py-8 transition-all duration-300 ease-in-out"
+        {...bindSwipeGesture()}
+        className="max-w-6xl mx-auto px-6 py-8 transition-all duration-250 ease-in-out touch-pan-y"
         style={{ marginTop: `${(headerHeight || 180) + 60}px` }}
       >
-        <div className="transition-opacity duration-300 ease-in-out">
+        <div className="transition-opacity duration-250 ease-in-out">
           <CaseTabContent
             activeTab={activeTab}
             caseData={caseData}

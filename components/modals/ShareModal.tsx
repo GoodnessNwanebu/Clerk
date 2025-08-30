@@ -229,7 +229,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         >
         
         {/* Header */}
-        <div className="text-center mb-6">
+        <div className="relative text-center mb-6">
+          {/* X Button */}
+          <button 
+            onClick={onClose}
+            disabled={isTransitioning}
+            className="absolute top-0 right-0 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Close modal"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
           <h3 
             className="text-xl font-bold mb-2 transition-all duration-500"
             style={{ color: isDarkMode ? '#ffffff' : '#0f172a' }}
