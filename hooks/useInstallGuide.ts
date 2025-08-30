@@ -59,10 +59,25 @@ export const useInstallGuide = () => {
     setShowInstallGuide(false);
   };
 
-  const handleCompleteInstallGuide = () => {
+  const handleCompleteInstallGuide = async () => {
     setShowInstallGuide(false);
     // Mark as completed
     localStorage.setItem('pwaTutorialCompleted', 'true');
+    
+    // Track PWA installation in database
+    try {
+      await fetch('/api/pwa/install', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          installSource: 'tutorial'
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track PWA installation:', error);
+    }
   };
 
   // Debug function to see current state

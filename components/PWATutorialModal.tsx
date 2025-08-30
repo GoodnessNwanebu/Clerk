@@ -153,11 +153,27 @@ const SafariTutorial: React.FC = () => (
 const PWATutorialModal: React.FC<PWATutorialModalProps> = ({ isOpen, onClose, onComplete }) => {
   const [browserType] = useState(detectBrowserAndDevice());
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     // Save that tutorial has been completed
     if (typeof window !== 'undefined') {
       localStorage.setItem('pwaTutorialCompleted', 'true');
     }
+    
+    // Track PWA installation in database
+    try {
+      await fetch('/api/pwa/install', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          installSource: 'tutorial'
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track PWA installation:', error);
+    }
+    
     onComplete();
   };
 

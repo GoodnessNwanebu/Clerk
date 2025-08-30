@@ -250,38 +250,28 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   ];
 
   const handleTabNavigation = (direction: 'left' | 'right') => {
-    if (direction === 'left' && visibleRange.start > 0) {
-      // Move window left
-      const newRange = {
-        start: visibleRange.start - 1,
-        end: visibleRange.end - 1
-      };
-      setVisibleRange(newRange);
-      
-      // Select the previous tab immediately for smooth highlight sliding
-      const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-      if (currentIndex > 0) {
-        setActiveTab(tabs[currentIndex - 1].id);
-      }
-    } else if (direction === 'right' && visibleRange.end < tabs.length - 1) {
-      // Move window right
-      const newRange = {
-        start: visibleRange.start + 1,
-        end: visibleRange.end + 1
-      };
-      setVisibleRange(newRange);
-      
-      // Select the next tab immediately for smooth highlight sliding
-      const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-      if (currentIndex < tabs.length - 1) {
-        setActiveTab(tabs[currentIndex + 1].id);
-      }
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    
+    if (direction === 'left' && currentIndex > 0) {
+      // Move to previous tab
+      setActiveTab(tabs[currentIndex - 1].id);
+    } else if (direction === 'right' && currentIndex < tabs.length - 1) {
+      // Move to next tab
+      setActiveTab(tabs[currentIndex + 1].id);
+    }
+    
+    // Update visible range if needed
+    const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < visibleRange.start || newIndex > visibleRange.end) {
+      const newStart = Math.max(0, newIndex - Math.floor(tabsPerView / 2));
+      const newEnd = Math.min(tabs.length - 1, newStart + tabsPerView - 1);
+      setVisibleRange({ start: newStart, end: newEnd });
     }
   };
 
   const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-  const canNavigateLeft = visibleRange.start > 0 && currentIndex > 0;
-  const canNavigateRight = visibleRange.end < tabs.length - 1 && currentIndex < tabs.length - 1;
+  const canNavigateLeft = currentIndex > 0;
+  const canNavigateRight = currentIndex < tabs.length - 1;
 
   // Swipe gesture handling
   const bindSwipeGesture = useDrag(
@@ -470,15 +460,14 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
                 ))}
               </div>
               
-              {/* Sliding Highlight Bar */}
+              {/* Short Snapping Underline */}
               <div 
-                className={`absolute bottom-0 h-0.5 bg-teal-500 ${
-                  isSwiping ? 'transition-none' : 'transition-all duration-300 ease-out'
-                }`}
+                className="absolute bottom-0 h-0.5 bg-teal-500 transition-all duration-300 ease-out"
                 style={{
-                  width: `${100 / tabsPerView}%`,
+                  width: '20px',
                   left: `${
                     ((tabs.findIndex(tab => tab.id === activeTab) - visibleRange.start) * (100 / tabsPerView)) + 
+                    ((100 / tabsPerView) / 2) - 10 + // Center the underline (10px = half of 20px width)
                     (swipeProgress * (100 / tabsPerView))
                   }%`
                 }}
