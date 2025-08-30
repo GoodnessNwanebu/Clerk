@@ -93,12 +93,6 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
             <Icon name="chrome" size={20} />
             <span>Sign in with Google</span>
           </button>
-          <button
-            onClick={onClose}
-            className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition-colors"
-          >
-            Maybe later
-          </button>
         </div>
       </div>
     </div>
