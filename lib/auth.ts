@@ -2,7 +2,7 @@ import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { prisma } from "./database/prisma"
 
-export const { auth, signIn, signOut } = NextAuth({
+export const handler = NextAuth({
   session: { strategy: "jwt" },
   providers: [
     Google({
@@ -88,3 +88,7 @@ export const { auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
   debug: true, // Enable debug mode
 })
+
+
+
+export const { auth, signIn, signOut } = handler
