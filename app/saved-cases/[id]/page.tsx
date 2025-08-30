@@ -448,30 +448,17 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-300 ease-in-out flex-1 max-w-[120px] justify-center relative ${
+                    className={`flex items-center px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-0 ease-in-out flex-1 max-w-[120px] justify-center relative ${
                       activeTab === tab.id
                         ? 'text-teal-600 dark:text-teal-400 scale-105'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:scale-102'
                     }`}
                   >
-                    {tab.icon && <Icon name={tab.icon} size={16} className="mr-2 transition-transform duration-200" />}
-                    <span className="transition-all duration-200">{tab.label}</span>
+                    {tab.icon && <Icon name={tab.icon} size={16} className="mr-2 transition-transform duration-0" />}
+                    <span className="transition-all duration-0">{tab.label}</span>
                   </button>
                 ))}
               </div>
-              
-              {/* Short Snapping Underline */}
-              <div 
-                className="absolute bottom-0 h-0.5 bg-teal-500 transition-all duration-300 ease-out"
-                style={{
-                  width: '20px',
-                  left: `${
-                    ((tabs.findIndex(tab => tab.id === activeTab) - visibleRange.start) * (100 / tabsPerView)) + 
-                    ((100 / tabsPerView) / 2) - 10 + // Center the underline (10px = half of 20px width)
-                    (swipeProgress * (100 / tabsPerView))
-                  }%`
-                }}
-              />
             </div>
 
             {/* Right Arrow */}
