@@ -370,7 +370,99 @@ FROM (
 GROUP BY user_type;
 
 -- =====================================================
--- 9. COMBINED DASHBOARD QUERY
+-- 9. PWA INSTALLATION TRACKING
+-- =====================================================
+
+-- Overall PWA installation rate
+WITH user_stats AS (
+  SELECT 
+    COUNT(*) as total_users,
+    COUNT("pwaInstalledAt") as pwa_installed_users
+  FROM users
+)
+SELECT 
+  total_users,
+  pwa_installed_users,
+  ROUND(
+    (pwa_installed_users::DECIMAL / total_users) * 100, 2
+  ) as pwa_installation_rate_percent
+FROM user_stats;
+
+-- PWA installations over time (last 30 days)
+WITH daily_installations AS (
+  SELECT 
+    DATE("pwaInstalledAt") as install_date,
+    COUNT(*) as daily_installations
+  FROM users 
+  WHERE "pwaInstalledAt" IS NOT NULL 
+    AND "pwaInstalledAt" >= CURRENT_DATE - INTERVAL '30 days'
+  GROUP BY DATE("pwaInstalledAt")
+)
+SELECT 
+  install_date as date,
+  daily_installations as installations,
+  SUM(daily_installations) OVER (ORDER BY install_date) as cumulative_installations
+FROM daily_installations
+ORDER BY install_date DESC;
+
+-- PWA installation by source
+WITH installation_sources AS (
+  SELECT 
+    "pwaInstallSource",
+    COUNT(*) as source_count
+  FROM users 
+  WHERE "pwaInstalledAt" IS NOT NULL
+  GROUP BY "pwaInstallSource"
+),
+total_installations AS (
+  SELECT COUNT(*) as total_installed
+  FROM users 
+  WHERE "pwaInstalledAt" IS NOT NULL
+)
+SELECT 
+  ins."pwaInstallSource",
+  ins.source_count as installation_count,
+  ROUND(
+    (ins.source_count::DECIMAL / ti.total_installed) * 100, 2
+  ) as percentage_of_installations
+FROM installation_sources ins
+CROSS JOIN total_installations ti
+ORDER BY ins.source_count DESC;
+
+-- PWA installation vs engagement correlation
+WITH user_engagement AS (
+  SELECT 
+    u.id,
+    u."pwaInstalledAt",
+    CASE 
+      WHEN u."pwaInstalledAt" IS NOT NULL THEN 'PWA Installed'
+      ELSE 'PWA Not Installed'
+    END as installation_status,
+    COALESCE(case_stats.case_count, 0) as case_count,
+    COALESCE(completed_stats.completed_count, 0) as completed_count
+  FROM users u
+  LEFT JOIN (
+    SELECT "userId", COUNT(*) as case_count
+    FROM cases 
+    GROUP BY "userId"
+  ) case_stats ON u.id = case_stats."userId"
+  LEFT JOIN (
+    SELECT "userId", COUNT(*) as completed_count
+    FROM cases 
+    WHERE "isCompleted" = true
+    GROUP BY "userId"
+  ) completed_stats ON u.id = completed_stats."userId"
+)
+SELECT 
+  installation_status,
+  COUNT(*) as user_count,
+  ROUND(AVG(case_count), 2) as avg_cases_per_user,
+  ROUND(AVG(completed_count), 2) as avg_completed_cases_per_user
+FROM user_engagement
+GROUP BY installation_status;
+
+-- =====================================================
+-- 10. COMBINED DASHBOARD QUERY
 -- =====================================================
 
 -- Daily summary dashboard (last 7 days)

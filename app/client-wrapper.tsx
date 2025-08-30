@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { AccountValidation } from '../components/AccountValidation';
 import { useAppContext } from '../context/AppContext';
+import { usePWAInstallation } from '../hooks/usePWAInstallation';
 
 // Branded loading screen component
 const LoadingScreen = () => (
@@ -44,6 +45,9 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Track PWA installations
+  usePWAInstallation();
   
   useEffect(() => {
     // Wait for session to load before making any decisions
