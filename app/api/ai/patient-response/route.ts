@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
                 `\n\nIMPORTANT: Respond as ${speakerLabel}. ${speakerLabel === 'Child' ? 'Speak like a child of this age.' : 'Speak like a concerned parent.'}` : '';
             
             const response = await ai.generateContent({
-                model: 'gemini-2.5-flash-lite',
+                model: 'gemini-2.5-flash',
                 contents: [{ 
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
