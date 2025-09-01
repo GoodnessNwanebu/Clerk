@@ -10,8 +10,7 @@ import ShareModal from '../../components/modals/ShareModal';
 import { shareOnWhatsApp } from '../../lib/shared/shareUtils';
 import { ShareData } from '../../types/share';
 import { ConversationStorageUtils } from '../../lib/storage/localStorage';
-import { useInstallGuide } from '../../hooks/useInstallGuide';
-import PWATutorialModal from '../../components/PWATutorialModal';
+
 
 export default function FeedbackPage() {
     const { 
@@ -41,14 +40,7 @@ export default function FeedbackPage() {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const [saveMessage, setSaveMessage] = useState('');
     
-    // Install guide hook
-    const {
-        showInstallGuide,
-        shouldShowInstallGuide,
-        handleShowInstallGuide,
-        handleCloseInstallGuide,
-        handleCompleteInstallGuide
-    } = useInstallGuide();
+
 
     // Debug logging for feedback page state
     useEffect(() => {
@@ -82,31 +74,7 @@ export default function FeedbackPage() {
         }
     }, []);
 
-    // Scroll-to-bottom install guide trigger
-    useEffect(() => {
-        const handleScroll = () => {
-            // More robust scroll detection with multiple fallbacks
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-            const windowHeight = window.innerHeight;
-            const documentHeight = Math.max(
-                document.body.scrollHeight,
-                document.body.offsetHeight,
-                document.documentElement.clientHeight,
-                document.documentElement.scrollHeight,
-                document.documentElement.offsetHeight
-            );
-            
-            // Check if user has scrolled to bottom (within 150px for better detection)
-            const isAtBottom = scrollTop + windowHeight >= documentHeight - 150;
-            
-            if (isAtBottom && shouldShowInstallGuide()) {
-                handleShowInstallGuide();
-            }
-        };
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [shouldShowInstallGuide, handleShowInstallGuide]);
 
     const toggleSection = (section: 'clinicalOpportunities' | 'clinicalPearls') => {
         setExpandedSections(prev => ({
@@ -627,13 +595,6 @@ export default function FeedbackPage() {
                 onClose={handleSkipShare}
                 onShare={handleShare}
                 shareData={shareData}
-            />
-            
-            {/* Install Guide Modal */}
-            <PWATutorialModal
-                isOpen={showInstallGuide}
-                onClose={handleCloseInstallGuide}
-                onComplete={handleCompleteInstallGuide}
             />
         </div>
     );
