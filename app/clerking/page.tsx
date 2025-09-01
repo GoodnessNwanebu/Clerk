@@ -23,6 +23,10 @@ import { Message } from '../../types';
 
 import { getDepartmentConfig } from '../../lib/shared/department-utils';
 
+import { useClerkingPWAInstall } from '../../hooks/useClerkingPWAInstall';
+
+import PWATutorialModal from '../../components/PWATutorialModal';
+
 
 
 const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
@@ -62,6 +66,15 @@ const ClerkingScreen: React.FC = () => {
   const { caseState, addMessage, userCountry, navigationEntryPoint } = useAppContext();
 
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
+  
+  // PWA Install Modal
+  const { 
+    showInstallModal, 
+    shouldShowInstallModal, 
+    handleShowInstallModal, 
+    handleCloseInstallModal, 
+    handleCompleteInstallModal 
+  } = useClerkingPWAInstall();
 
   
 
@@ -351,6 +364,30 @@ const ClerkingScreen: React.FC = () => {
     }
 
   }, [caseState.department, router]);
+
+  
+
+  // Show PWA install modal after case generation is complete
+
+  useEffect(() => {
+
+    if (caseState.department && caseState.caseId && shouldShowInstallModal()) {
+
+      // Small delay to ensure the page is fully loaded
+
+      const timer = setTimeout(() => {
+
+        handleShowInstallModal();
+
+      }, 1000);
+
+      
+
+      return () => clearTimeout(timer);
+
+    }
+
+  }, [caseState.department, caseState.caseId, shouldShowInstallModal, handleShowInstallModal]);
 
   
 
@@ -939,6 +976,15 @@ const ClerkingScreen: React.FC = () => {
         {(speechError || apiError) && <p className="text-red-400 text-xs text-center mt-2 max-w-xs mx-auto">{speechError || apiError}</p>}
 
       </footer>
+
+      
+
+      {/* PWA Install Modal */}
+      <PWATutorialModal
+        isOpen={showInstallModal}
+        onClose={handleCloseInstallModal}
+        onComplete={handleCompleteInstallModal}
+      />
 
     </div>
 
