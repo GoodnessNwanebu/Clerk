@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
                 config: {
-                    maxOutputTokens: 200
+                    maxOutputTokens: 350
                 }
             });
             
