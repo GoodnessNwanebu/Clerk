@@ -137,12 +137,12 @@ export async function POST(request: NextRequest) {
             console.log('🔄 [patient-response] Using AI model:', 'gemini-2.5-flash');
             
             const response = await ai.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.5-flash-lite',
                 contents: [{ 
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
                 config: {
-                    maxOutputTokens: 350
+                    maxOutputTokens: 250
                 }
             });
             
