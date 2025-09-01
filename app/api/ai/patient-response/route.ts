@@ -134,15 +134,15 @@ export async function POST(request: NextRequest) {
             const speakerInstruction = isPediatric && speakerLabel ? 
                 `\n\nIMPORTANT: Respond as ${speakerLabel}. ${speakerLabel === 'Child' ? 'Speak like a child of this age.' : 'Speak like a concerned parent.'}` : '';
             
-            console.log('🔄 [patient-response] Using AI model:', 'gemini-2.5-flash-lite');
+            console.log('🔄 [patient-response] Using AI model:', 'gemini-2.5-flash');
             
             const response = await ai.generateContent({
-                model: 'gemini-2.5-flash-lite',
+                model: 'gemini-2.5-flash',
                 contents: [{ 
                     text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
                 }],
                 config: {
-                    maxOutputTokens: 150
+                    maxOutputTokens: 200
                 }
             });
             
