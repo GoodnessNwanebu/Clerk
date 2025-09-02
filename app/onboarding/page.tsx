@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import { Icon } from '../../components/Icon';
@@ -131,21 +131,82 @@ const OnboardingScreen: React.FC = () => {
     );
   }
 
+  // Refs to measure and scale hero content to ensure zero-scroll layout on small viewports
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [heroScale, setHeroScale] = useState<number>(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      const container = containerRef.current;
+      const hero = heroRef.current;
+      const bottom = bottomRef.current;
+      if (!container || !hero || !bottom) return;
+
+      const containerHeight = container.clientHeight;
+      const bottomHeight = bottom.offsetHeight;
+
+      // Compute vertical paddings from computed styles to get accurate available height
+      const styles = window.getComputedStyle(container);
+      const paddingTop = parseFloat(styles.paddingTop || '0');
+      const paddingBottom = parseFloat(styles.paddingBottom || '0');
+
+      const availableHeight = containerHeight - bottomHeight - paddingTop - paddingBottom;
+      const heroHeight = hero.scrollHeight;
+
+      if (availableHeight > 0 && heroHeight > 0) {
+        const scale = Math.min(1, availableHeight / heroHeight);
+        setHeroScale(scale);
+      } else {
+        setHeroScale(1);
+      }
+    };
+
+    updateScale();
+
+    const resizeObserver = new ResizeObserver(() => updateScale());
+    if (containerRef.current) resizeObserver.observe(containerRef.current);
+    if (heroRef.current) resizeObserver.observe(heroRef.current);
+    if (bottomRef.current) resizeObserver.observe(bottomRef.current);
+
+    const onResize = () => updateScale();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, [step, isSignInStep, isCountryStep]);
+
   return (
     <>
       <Head>
         <title>Welcome to ClerkSmart</title>
       </Head>
-      <div className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-6 pb-8 transition-colors duration-300">
-        <div className="flex-grow flex flex-col items-center justify-center text-center">
-          <div className="bg-teal-500/10 p-6 rounded-full mb-8">
-              <div className="bg-teal-500/20 p-5 rounded-full">
-                  <Icon name={currentStep.icon} size={48} className="text-teal-400" />
-              </div>
+      <div
+        ref={containerRef}
+        className="min-h-dvh bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] transition-colors duration-300"
+      >
+        <div
+          ref={heroRef}
+          className="flex flex-col items-center justify-center text-center mx-auto"
+          style={{
+            transform: `scale(${heroScale})`,
+            transformOrigin: 'top center',
+            willChange: 'transform',
+          }}
+        >
+          <div className="bg-teal-500/10 p-4 sm:p-6 rounded-full mb-6 sm:mb-8">
+            <div className="bg-teal-500/20 p-4 sm:p-5 rounded-full">
+              <Icon name={currentStep.icon} size={48} className="text-teal-400" />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold mb-4">{currentStep.title}</h1>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">{currentStep.description}</p>
-          
+          <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">{currentStep.title}</h1>
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6 sm:mb-8">{currentStep.description}</p>
+
           {isSignInStep && (
             <div className="w-full max-w-sm space-y-4">
               {session ? (
@@ -192,20 +253,20 @@ const OnboardingScreen: React.FC = () => {
           )}
           
           {isCountryStep && (
-             <div className="w-full max-w-sm">
-               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                 Select your country
-               </label>
-               <CountrySelect
-                 value={selectedCountry}
-                 onChange={setSelectedCountry}
-                 placeholder="Choose your country..."
-               />
-             </div>
-           )}
+            <div className="w-full max-w-sm">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Select your country
+              </label>
+              <CountrySelect
+                value={selectedCountry}
+                onChange={setSelectedCountry}
+                placeholder="Choose your country..."
+              />
+            </div>
+          )}
         </div>
 
-        <div className="flex-shrink-0 w-full max-w-sm mx-auto  mb-4">
+        <div ref={bottomRef} className="w-full max-w-sm mx-auto">
           <div className="flex justify-center items-center mb-6 space-x-2">
               {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Back</button>}
               <div className="flex-grow flex justify-center items-center space-x-2">
@@ -223,7 +284,7 @@ const OnboardingScreen: React.FC = () => {
           <button
             onClick={handleNext}
             disabled={!canContinue}
-            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
+            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 sm:py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
               !canContinue ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
             }`}
           >

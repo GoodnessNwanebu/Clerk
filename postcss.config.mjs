@@ -1,8 +1,11 @@
+import postcssColorFunctionalNotation from 'postcss-color-functional-notation';
+import postcssOKLabFunction from '@csstools/postcss-oklab-function';
+
 export default {
   plugins: {
-    '@tailwindcss/postcss': {
-      colorMode: 'rgb',
-    },
-    autoprefixer: {},
+    'postcss-color-functional-notation': {},
+    '@csstools/postcss-oklab-function': {},
+    '@tailwindcss/postcss': {},
+    'autoprefixer': {},
   },
 };

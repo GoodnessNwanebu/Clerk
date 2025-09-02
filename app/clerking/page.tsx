@@ -657,7 +657,7 @@ const ClerkingScreen: React.FC = () => {
 
         <div className="flex justify-between items-center max-w-4xl mx-auto">
 
-          <button onClick={() => router.push(navigationEntryPoint || '/departments')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white flex-shrink-0">
+          <button onClick={() => router.push('/')} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-800 dark:text-white flex-shrink-0">
 
             <Icon name="arrow-left" size={20} className="sm:w-6 sm:h-6" />
 
