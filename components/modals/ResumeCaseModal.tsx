@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../Icon';
 
 interface ResumeCaseModalProps {
@@ -19,7 +19,19 @@ export const ResumeCaseModal: React.FC<ResumeCaseModalProps> = ({
   onDismiss,
   caseInfo
 }) => {
+  const [isResuming, setIsResuming] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleResume = async () => {
+    setIsResuming(true);
+    try {
+      await onResume();
+    } finally {
+      // Keep the loading state for a moment to show feedback
+      setTimeout(() => setIsResuming(false), 500);
+    }
+  };
 
   const formatLastUpdated = (dateString: string) => {
     const date = new Date(dateString);
@@ -83,10 +95,22 @@ export const ResumeCaseModal: React.FC<ResumeCaseModalProps> = ({
 
         {/* Action Button */}
         <button
-          onClick={onResume}
-          className="w-full py-4 px-6 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold rounded-xl hover:scale-[1.02] transform transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+          onClick={handleResume}
+          disabled={isResuming}
+          className={`w-full py-4 px-6 font-semibold rounded-xl transform transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${
+            isResuming 
+              ? 'bg-gradient-to-r from-teal-600 to-emerald-700 text-white/80 cursor-not-allowed scale-[0.98] shadow-md' 
+              : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
+          }`}
         >
-          Resume Case
+          {isResuming ? (
+            <div className="flex items-center justify-center space-x-2">
+              <Icon name="loader-2" size={20} className="animate-spin" />
+              <span>Resuming...</span>
+            </div>
+          ) : (
+            'Resume Case'
+          )}
         </button>
       </div>
     </div>

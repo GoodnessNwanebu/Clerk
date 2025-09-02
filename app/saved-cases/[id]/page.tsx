@@ -123,7 +123,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
   // Tab navigation state
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 3 });
   const [tabsPerView, setTabsPerView] = useState(4);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(180); // Set a reasonable initial height
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
   
@@ -175,7 +175,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
               const height = headerRef.current.offsetHeight;
               setHeaderHeight(height);
             }
-          }, 200);
+          }, 100); // Reduced delay for faster update
         } else {
           setError('Invalid case data received');
         }
@@ -210,7 +210,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
           const height = headerRef.current.offsetHeight;
           setHeaderHeight(height);
         }
-      }, 100);
+      }, 50); // Reduced delay for faster update
     };
 
     updateLayout();
@@ -327,7 +327,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
     }
   }, [activeTab, tabsPerView]);
 
-  if (isLoading) {
+  if (isLoading || !caseData) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
         <div className="text-center">
@@ -356,16 +356,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  if (!caseData) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center">
-        <div className="text-center">
-          <Icon name="file-x" size={48} className="text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-500 dark:text-slate-400">No case data available</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white">
@@ -418,8 +409,8 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
 
       {/* Fixed Tab Navigation */}
       <div 
-        className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 fixed left-0 right-0 z-10"
-        style={{ top: `${headerHeight || 180}px` }}
+        className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 fixed left-0 right-0 z-10 transition-all duration-300 ease-out"
+        style={{ top: `${headerHeight}px` }}
       >
 
         <div className="max-w-6xl mx-auto px-6">
@@ -480,10 +471,10 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
       {/* Main Content */}
       <div 
         {...bindSwipeGesture()}
-        className="max-w-6xl mx-auto px-6 py-8 transition-all duration-250 ease-in-out touch-pan-y"
-        style={{ marginTop: `${(headerHeight || 180) + 60}px` }}
+        className="max-w-6xl mx-auto px-6 py-8 transition-all duration-300 ease-out touch-pan-y"
+        style={{ marginTop: `${headerHeight + 60}px` }}
       >
-        <div className="transition-opacity duration-250 ease-in-out">
+        <div className="transition-opacity duration-300 ease-out opacity-100">
           <CaseTabContent
             activeTab={activeTab}
             caseData={caseData}
