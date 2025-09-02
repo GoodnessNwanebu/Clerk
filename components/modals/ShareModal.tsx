@@ -63,10 +63,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         debugCanvasColors();
         
         // Capture the ShareCard with html2canvas
+        const deviceScale = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+        // Keep HD while avoiding iOS Safari memory limits
+        const safeScale = Math.min(2.5, Math.max(2, deviceScale));
         const canvas = await html2canvas(shareCardRef.current, {
           width: 1080,
           height: 1350,
-          scale: 2, // Higher quality
+          scale: safeScale,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
@@ -220,28 +223,27 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       >
         <div 
-          className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out"
+          className="relative rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-700 ease-in-out"
           style={{ 
             backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
             transform: isTransitioning ? 'scale(0.9) translateY(16px)' : 'scale(1) translateY(0)',
             opacity: isTransitioning ? 0 : 1
           }}
         >
+        {/* X Button - top-right of modal container */}
+        <button 
+          onClick={onClose}
+          disabled={isTransitioning}
+          className="absolute top-3 right-3 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+          aria-label="Close modal"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
         
         {/* Header */}
-        <div className="relative text-center mb-6">
-          {/* X Button */}
-          <button 
-            onClick={onClose}
-            disabled={isTransitioning}
-            className="absolute top-0 right-0 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Close modal"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          
+        <div className="text-center mb-6">
           <h3 
             className="text-xl font-bold mb-2 transition-all duration-500"
             style={{ color: isDarkMode ? '#ffffff' : '#0f172a' }}

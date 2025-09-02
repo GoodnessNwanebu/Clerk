@@ -592,7 +592,7 @@ export default function FeedbackPage() {
             {/* Share Modal */}
             <ShareModal
                 isOpen={showShareModal}
-                onClose={handleSkipShare}
+                onClose={() => setShowShareModal(false)}
                 onShare={handleShare}
                 shareData={shareData}
             />
