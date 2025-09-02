@@ -110,6 +110,12 @@ const OnboardingScreen: React.FC = () => {
     router.push('/');
   };
 
+  // Refs to measure and scale hero content to ensure zero-scroll layout on small viewports
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [heroScale, setHeroScale] = useState<number>(1);
+
   const currentStep = onboardingSteps[step];
 
   if (!isReady) {
@@ -130,12 +136,6 @@ const OnboardingScreen: React.FC = () => {
       </div>
     );
   }
-
-  // Refs to measure and scale hero content to ensure zero-scroll layout on small viewports
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const [heroScale, setHeroScale] = useState<number>(1);
 
   useEffect(() => {
     const updateScale = () => {
