@@ -127,14 +127,14 @@ LOCATION GENERATION GUIDELINES:
 
 MANDATORY LOCATION FORMAT:
 The patient's location in social history MUST be specific and realistic:
-- "I live in [specific neighborhood], [city], near [landmark/hospital]"
+- "I live in [specific neighborhood], [city]"
 - "I'm from [neighborhood] in [city], close to [hospital/landmark]"
 - "I reside in [area], about [time] from [landmark] in [city]"
 
 EXAMPLES OF GOOD LOCATIONS:
 - "I live in Victoria Island, Lagos, near the Lagos University Teaching Hospital"
-- "I'm from Barnawa neighborhood in Kaduna city, close to Ahmadu Bello University"
-- "I reside in Surulere, about 15 minutes from the National Stadium in Lagos"
+- "I live in Barnawa close, Makoto, in Kaduna city"
+- "I reside in Ajah estate, in Surulere"
 - "My home is in Ungwan Rimi, Kaduna, near the Central Market"
 
 AVOID GENERIC DESCRIPTIONS:
