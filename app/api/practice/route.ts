@@ -199,6 +199,39 @@ export async function POST(request: NextRequest) {
         const locationPrompt = userCountry 
             ? `🌍 LOCATION: ${userCountry}
             
+            SPECIFIC LOCATION REQUIREMENTS:
+            - Generate a SPECIFIC city, neighborhood, and landmark for the patient
+            - Use REALISTIC local place names and addresses
+            - Include actual hospitals, clinics, or medical facilities in the area
+            - Reference authentic local landmarks, markets, or notable locations
+            - Consider local socioeconomic factors and cultural context
+            
+            LOCATION GENERATION GUIDELINES:
+            - Choose a REAL city within ${userCountry} (not generic descriptions)
+            - Select a SPECIFIC neighborhood or district within that city
+            - Include a REALISTIC nearby landmark, hospital, or notable location
+            - Provide specific address details or proximity descriptions
+            - Use authentic local place names and cultural references
+            
+            MANDATORY LOCATION FORMAT:
+            The patient's location in social history MUST be specific and realistic:
+            - "I live in [specific neighborhood], [city], near [landmark/hospital]"
+            - "I'm from [neighborhood] in [city], close to [hospital/landmark]"
+            - "I reside in [area], about [time] from [landmark] in [city]"
+            
+            EXAMPLES OF GOOD LOCATIONS:
+            - "I live in Victoria Island, Lagos, near the Lagos University Teaching Hospital"
+            - "I'm from Barnawa neighborhood in Kaduna city, close to Ahmadu Bello University"
+            - "I reside in Surulere, about 15 minutes from the National Stadium in Lagos"
+            - "My home is in Ungwan Rimi, Kaduna, near the Central Market"
+            
+            AVOID GENERIC DESCRIPTIONS:
+            - ❌ "I live in a suburban area of [city]"
+            - ❌ "I'm from a residential neighborhood"
+            - ❌ "I live in the city center"
+            - ❌ "I'm from the outskirts of [city]"
+            - ✅ Use specific neighborhood names, landmarks, and hospitals
+            
             CULTURAL CONSIDERATIONS:
             - Use culturally authentic names and contexts appropriate to ${userCountry}
             - Consider local healthcare systems and communication styles
@@ -319,7 +352,7 @@ DIFFICULT DIFFICULTY REQUIREMENTS:
                 - ## Past Medical and Surgical History
                 - ## Drug History
                 - ## Family History
-                - ## Social History
+                - ## Social History (INCLUDE SPECIFIC LOCATION: city, neighborhood, landmark, local hospital)
                 - ## Review of Systems
             - "openingLine": A natural, first-person statement from the patient that initiates the consultation.
 
