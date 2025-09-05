@@ -108,7 +108,7 @@ export async function getPrimaryContext(caseId: string): Promise<CachedPrimaryCo
           where: {
             caseId,
             isActive: true,
-            expiresAt: { gt: new Date() }
+            // expiresAt: { gt: new Date() }
           }
         });
 

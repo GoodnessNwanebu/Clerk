@@ -25,7 +25,7 @@ import { getDepartmentConfig } from '../../lib/shared/department-utils';
 
 import { useClerkingPWAInstall } from '../../hooks/useClerkingPWAInstall';
 
-import PWATutorialModal from '../../components/PWATutorialModal';
+import PWATutorialModal from '../../components/modals/PWATutorialModal';
 
 
 

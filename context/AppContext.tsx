@@ -19,21 +19,11 @@ import {
   DifficultyLevel,
 } from "../types";
 import {
-  generateClinicalCase,
-  generateClinicalCaseWithDifficulty,
-  generatePracticeCase as generatePracticeCaseService,
   validateCaseSession,
-  getActiveCases,
   completeCase,
-  getSavedCases,
   updateCaseVisibility,
 } from "../lib/ai/geminiService";
 import { ConversationStorage } from "../lib/storage/localStorage";
-import {
-  getCaseFeedback,
-  getDetailedCaseFeedback,
-  getComprehensiveCaseFeedback,
-} from "../lib/ai/geminiService";
 import { generateShareData } from "../lib/shared/shareUtils";
 import { fetchDepartments, transformDepartmentsForFrontend } from '../lib/services/departmentService';
 
@@ -44,7 +34,7 @@ interface AppContextType {
   userCountry: string | null;
   navigationEntryPoint: string | null;
   setUserEmail: (email: string) => void;
-  setUserCountry: (country: string) => void;
+  setUserCountry: (country: string) => Promise<void>;
   setNavigationEntryPoint: (entryPoint: string) => void;
   generateNewCase: (department: Department) => Promise<void>;
   generateNewCaseWithDifficulty: (
@@ -205,12 +195,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setUserEmailState(email);
   };
 
-  const setUserCountry = (country: string) => {
+  const setUserCountry = useCallback(async (country: string) => {
     if (isBrowser) {
       localStorage.setItem("userCountry", country);
     }
     setUserCountryState(country);
-  };
+    
+    // Update user country in database
+    try {
+      const response = await fetch('/api/user', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ country }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log(`✅ Updated user country to: ${country}`);
+    } catch (error) {
+      console.error('Failed to update user country in database:', error);
+      // Don't throw error - localStorage update still succeeded
+    }
+  }, []);
 
   const setNavigationEntryPoint = (entryPoint: string) => {
     if (isBrowser) {

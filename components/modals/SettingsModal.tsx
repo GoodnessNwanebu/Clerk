@@ -6,7 +6,7 @@ import { Icon } from '../Icon';
 import { CountrySelect } from '../CountrySelect';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useInstallGuide } from '../../hooks/useInstallGuide';
-import PWATutorialModal from '../PWATutorialModal';
+import PWATutorialModal from './PWATutorialModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
