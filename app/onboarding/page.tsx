@@ -62,6 +62,7 @@ const OnboardingScreen: React.FC = () => {
   const isCountryStep = step === onboardingSteps.length - 2; // Second to last step
   const isSignInStep = step === onboardingSteps.length - 1; // Last step
   const canContinue = isCountryStep ? selectedCountry !== '' : true;
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
 
   // Auto-advance if user is already signed in and we're on the sign-in step
   useEffect(() => {
@@ -222,6 +223,7 @@ const OnboardingScreen: React.FC = () => {
                 value={selectedCountry}
                 onChange={setSelectedCountry}
                 placeholder="Choose your country..."
+                onOpenChange={setIsCountryDropdownOpen}
               />
             </div>
           )}
@@ -245,8 +247,10 @@ const OnboardingScreen: React.FC = () => {
           <button
             onClick={handleNext}
             disabled={!canContinue}
-            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 sm:py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
-              !canContinue ? ' cursor-not-allowed hover:scale-100' : ''
+            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 sm:py-4 rounded-xl flex items-center justify-center space-x-2 transform transition-all duration-200 ${
+              !canContinue && !isCountryDropdownOpen
+                ? 'opacity-50 cursor-not-allowed hover:scale-100' 
+                : 'opacity-100 hover:scale-105'
             }`}
           >
             <span>{step === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}</span>

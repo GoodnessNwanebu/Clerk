@@ -10,6 +10,7 @@ interface CountrySelectProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
 export const CountrySelect: React.FC<CountrySelectProps> = ({
@@ -17,7 +18,8 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
   onChange,
   placeholder = "Choose your country...",
   className = "",
-  disabled = false
+  disabled = false,
+  onOpenChange
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +31,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        onOpenChange?.(false);
         setSearchTerm('');
       }
     };
@@ -42,6 +45,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        onOpenChange?.(false);
         setSearchTerm('');
       }
     };
@@ -60,12 +64,15 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
   const handleSelect = (country: Country) => {
     onChange(country.name);
     setIsOpen(false);
+    onOpenChange?.(false);
     setSearchTerm('');
   };
 
   const handleToggle = () => {
     if (!disabled) {
-      setIsOpen(!isOpen);
+      const newIsOpen = !isOpen;
+      setIsOpen(newIsOpen);
+      onOpenChange?.(newIsOpen);
       if (!isOpen) {
         // Focus the search input when opening
         setTimeout(() => {
@@ -102,7 +109,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-hidden backdrop-blur-md">
           {/* Search input */}
           <div className="p-2 border-b border-slate-200 dark:border-slate-700">
             <div className="relative">
@@ -132,7 +139,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
                   onClick={() => handleSelect(country)}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${
                     country.name === value 
-                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300' 
+                      ? 'text-teal-700 dark:text-teal-300' 
                       : 'text-slate-900 dark:text-white'
                   }`}
                 >
