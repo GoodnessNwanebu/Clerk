@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
             image: session.user.image || undefined,
           },
         });
-        console.log('✅ Account created for logged-in user:', dbUser.id);
+        console.log('✅ Account created for logged-in user:', dbUser);
       } catch (error) {
         console.error('❌ Error creating user account:', error);
         return NextResponse.json(
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      console.log('✅ User account found:', dbUser.id);
+      console.log('✅ User account found:', dbUser);
     }
 
     return NextResponse.json({

@@ -1,8 +1,10 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./database/prisma"
 
 export const handler = NextAuth({
+  adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
     Google({
@@ -16,7 +18,7 @@ export const handler = NextAuth({
       console.log('🔐 SignIn callback triggered:', { 
         userEmail: user.email, 
         userName: user.name,
-        provider: account?.provider 
+        provider: account?.provider ,
       });
       
       // Manually create/update user in database

@@ -80,7 +80,10 @@ const OnboardingScreen: React.FC = () => {
     if (step < onboardingSteps.length - 1) {
       // If moving from country step to sign-in step, save the country selection
       if (isCountryStep) {
-        setUserCountry(selectedCountry);
+        // Store country in localStorage for NextAuth signup process
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pendingUserCountry', selectedCountry);
+        }
       }
       setStep(step + 1);
     } else {

@@ -188,6 +188,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [isBrowser]);
 
+  // Check for pending country after authentication and update user
+  useEffect(() => {
+    if (!isBrowser) return;
+    
+    const checkPendingCountry = async () => {
+      const pendingCountry = localStorage.getItem('pendingUserCountry');
+      if (pendingCountry && userEmail) {
+        setUserCountry(pendingCountry);
+          console.log(`✅ Updated user country from onboarding: ${pendingCountry}`);
+          // Clear the pending country
+          localStorage.removeItem('pendingUserCountry'); 
+      }
+    };
+
+    checkPendingCountry();
+  }, [isBrowser, userEmail]);
+
   const setUserEmail = (email: string) => {
     if (isBrowser) {
       localStorage.setItem("userEmail", email);
@@ -200,6 +217,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       localStorage.setItem("userCountry", country);
     }
     setUserCountryState(country);
+
+ 
     
     // Update user country in database
     try {
