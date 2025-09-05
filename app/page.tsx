@@ -10,7 +10,7 @@ import { useAppContext } from '../context/AppContext';
 import { useAuthCheck } from '../hooks/useAuthCheck';
 import { ConversationStorageUtils } from '../lib/storage/localStorage';
 import { getActiveCases } from '../lib/ai/geminiService';
-import PWATutorialModal from '../components/PWATutorialModal';
+import PWATutorialModal from '../components/modals/PWATutorialModal';
 
 const ActionCard: React.FC<{ icon: string; title: string; subtitle: string; onClick?: () => void; disabled?: boolean }> = ({ icon, title, subtitle, onClick, disabled }) => {
   const cardClasses = `

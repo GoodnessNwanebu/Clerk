@@ -124,12 +124,9 @@ LOCATION GENERATION GUIDELINES:
 - Include a REALISTIC nearby landmark, hospital, or notable location
 - Provide specific address details or proximity descriptions
 - Use authentic local place names and cultural references
+- Generate a realistic state of origin or city of origin for the patient
 
-MANDATORY LOCATION FORMAT:
-The patient's location in social history MUST be specific and realistic:
-- "I live in [specific neighborhood], [city]"
-- "I'm from [neighborhood] in [city], close to [hospital/landmark]"
-- "I reside in [area], about [time] from [landmark] in [city]"
+
 
 EXAMPLES OF GOOD LOCATIONS:
 - "I live in Victoria Island, Lagos, near the Lagos University Teaching Hospital"
@@ -144,8 +141,8 @@ AVOID GENERIC DESCRIPTIONS:
 - ❌ "I'm from the outskirts of [city]"
 - ✅ Use specific neighborhood names, landmarks, and hospitals
 
-CULTURAL CONSIDERATIONS: Use culturally authentic names, consider local healthcare systems, regional factors, socioeconomic diversity
-LOCATION CONTEXT: ${LOCATION_CONTEXTS[userCountry] || 'local cultural context'}`
+CULTURAL CONSIDERATIONS: Use diverse culturally authentic names, consider local healthcare systems, regional factors, socioeconomic diversity
+LOCATION CONTEXT: ${LOCATION_CONTEXTS[userCountry] ? `${LOCATION_CONTEXTS[userCountry].healthSystem}. ${LOCATION_CONTEXTS[userCountry].diseasePatterns}. ${LOCATION_CONTEXTS[userCountry].accessPatterns}` : 'local cultural context'}`
         : `Use culturally diverse names and consider common global disease patterns.`;
 };
 

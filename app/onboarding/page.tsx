@@ -62,6 +62,7 @@ const OnboardingScreen: React.FC = () => {
   const isCountryStep = step === onboardingSteps.length - 2; // Second to last step
   const isSignInStep = step === onboardingSteps.length - 1; // Last step
   const canContinue = isCountryStep ? selectedCountry !== '' : true;
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
 
   // Auto-advance if user is already signed in and we're on the sign-in step
   useEffect(() => {
@@ -80,7 +81,10 @@ const OnboardingScreen: React.FC = () => {
     if (step < onboardingSteps.length - 1) {
       // If moving from country step to sign-in step, save the country selection
       if (isCountryStep) {
-        setUserCountry(selectedCountry);
+        // Store country in localStorage for NextAuth signup process
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pendingUserCountry', selectedCountry);
+        }
       }
       setStep(step + 1);
     } else {
@@ -89,6 +93,13 @@ const OnboardingScreen: React.FC = () => {
         localStorage.setItem('hasOnboarded', 'true');
       }
       router.push('/');
+    }
+  };
+
+  const handleDotClick = (index: number) => {
+    // Allow navigation to any previous step or current step
+    if (index <= step) {
+      setStep(index);
     }
   };
 
@@ -109,12 +120,6 @@ const OnboardingScreen: React.FC = () => {
     }
     router.push('/');
   };
-
-  // Refs to measure and scale hero content to ensure zero-scroll layout on small viewports
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const [heroScale, setHeroScale] = useState<number>(1);
 
   const currentStep = onboardingSteps[step];
 
@@ -137,49 +142,6 @@ const OnboardingScreen: React.FC = () => {
     );
   }
 
-  useEffect(() => {
-    const updateScale = () => {
-      const container = containerRef.current;
-      const hero = heroRef.current;
-      const bottom = bottomRef.current;
-      if (!container || !hero || !bottom) return;
-
-      const containerHeight = container.clientHeight;
-      const bottomHeight = bottom.offsetHeight;
-
-      // Compute vertical paddings from computed styles to get accurate available height
-      const styles = window.getComputedStyle(container);
-      const paddingTop = parseFloat(styles.paddingTop || '0');
-      const paddingBottom = parseFloat(styles.paddingBottom || '0');
-
-      const availableHeight = containerHeight - bottomHeight - paddingTop - paddingBottom;
-      const heroHeight = hero.scrollHeight;
-
-      if (availableHeight > 0 && heroHeight > 0) {
-        const scale = Math.min(1, availableHeight / heroHeight);
-        setHeroScale(scale);
-      } else {
-        setHeroScale(1);
-      }
-    };
-
-    updateScale();
-
-    const resizeObserver = new ResizeObserver(() => updateScale());
-    if (containerRef.current) resizeObserver.observe(containerRef.current);
-    if (heroRef.current) resizeObserver.observe(heroRef.current);
-    if (bottomRef.current) resizeObserver.observe(bottomRef.current);
-
-    const onResize = () => updateScale();
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-    };
-  }, [step, isSignInStep, isCountryStep]);
 
   return (
     <>
@@ -187,14 +149,14 @@ const OnboardingScreen: React.FC = () => {
         <title>Welcome to ClerkSmart</title>
       </Head>
       <div
-        ref={containerRef}
-        className="min-h-dvh bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-between p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] transition-colors duration-300"
+        
+        className="min-h-dvh bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col justify-center p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] transition-colors duration-300"
       >
         <div
-          ref={heroRef}
+          
           className="flex flex-col items-center justify-center text-center mx-auto"
           style={{
-            transform: `scale(${heroScale})`,
+            transform: `scale(1)`,
             transformOrigin: 'top center',
             willChange: 'transform',
           }}
@@ -261,31 +223,34 @@ const OnboardingScreen: React.FC = () => {
                 value={selectedCountry}
                 onChange={setSelectedCountry}
                 placeholder="Choose your country..."
+                onOpenChange={setIsCountryDropdownOpen}
               />
             </div>
           )}
         </div>
 
-        <div ref={bottomRef} className="w-full max-w-sm mx-auto">
+        <div className="w-full max-w-sm mx-auto mt-8">
           <div className="flex justify-center items-center mb-6 space-x-2">
-              {step > 0 && <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Back</button>}
               <div className="flex-grow flex justify-center items-center space-x-2">
                   {onboardingSteps.map((_, index) => (
-                  <div
+                  <button
+                      onClick={() => handleDotClick(index)}
+                      disabled={index > step}
                       key={index}
                       className={`h-2 rounded-full transition-all duration-300 ${
                       step === index ? 'w-6 bg-teal-400' : 'w-2 bg-slate-300 dark:bg-slate-600'
-                      }`}
+                      } ${index <= step ? 'cursor-pointer hover:bg-slate-400 dark:hover:bg-slate-500' : 'cursor-not-allowed'}`}
                   />
                   ))}
               </div>
-               {step > 0 && <div className="w-10"></div>}
-          </div>
+           </div>
           <button
             onClick={handleNext}
             disabled={!canContinue}
-            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 sm:py-4 rounded-xl flex items-center justify-center space-x-2 hover:scale-105 transform transition-transform duration-200 ${
-              !canContinue ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
+            className={`w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold py-3 sm:py-4 rounded-xl flex items-center justify-center space-x-2 transform transition-all duration-200 ${
+              !canContinue && !isCountryDropdownOpen
+                ? 'opacity-50 cursor-not-allowed hover:scale-100' 
+                : 'opacity-100 hover:scale-105'
             }`}
           >
             <span>{step === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}</span>

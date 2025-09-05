@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
                 primaryContext.diagnosis, 
                 primaryContext.department, 
                 timeContext.formattedContext, 
+                userCountry,
                 seed
             );
 
