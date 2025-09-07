@@ -1,5 +1,4 @@
 import { DifficultyLevel } from '../../../types';
-import { LOCATION_CONTEXTS } from '../ai-utils';
 
 // Difficulty-specific prompt functions
 export const getDifficultyPrompt = (difficulty: DifficultyLevel): string => {
@@ -47,30 +46,60 @@ export const generateCasePrompt = (
     surgicalPrompt: string, 
     pediatricPrompt: string, 
     isPediatric: boolean, 
-    isSurgical: boolean
-) => 
-`Generate a clinical case for medical students in '${departmentName}' department.
+    isSurgical: boolean,
+    difficulty: DifficultyLevel,
+    specificPatientProfileRequest?: string,
+    specificDiagnosisRequest?: string
+) => {
+    const difficultyPrompt = getDifficultyPrompt(difficulty);
+    
+    return `You are an experienced clinical educator creating realistic medical cases for medical students. Your goal is to create cases that are:
+- Educationally valuable and clinically relevant
+- Solvable by medical students with proper history taking and examination
+- Realistic and authentic to real clinical practice
+- Appropriate for the student's learning level
+
+Your task is to generate a detailed clinical case for medical students in the **'${departmentName}'** department, focusing on the **"${randomBucket}"** pathophysiology category.
 
 ${timeContext}
 ${locationPrompt}
 ${surgicalPrompt}
 ${pediatricPrompt}
+${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+
+CRITICAL GUIDELINES FOR PATIENT PROFILE DIVERSITY AND AVOIDING STEREOTYPES:
+1.  **Do NOT Stereotype by Location:** For any given 'LOCATION' (e.g., Nigeria), **absolutely do not default** to specific 'educationLevel', 'healthLiteracy', or 'occupation' stereotypes (e.g., do not always choose 'basic' education or 'market trader' for Nigeria).
+2.  **Actively Vary Patient Profiles:** Ensure a realistic and diverse distribution of patient profiles across requests, especially for the same location. This includes, but is not limited to:
+    *   **Education Levels:** From basic/primary school to well-informed/postgraduate degrees.
+    *   **Health Literacy:** From minimal understanding to high medical knowledge.
+    *   **Occupations:** Include a wide range, such as university lecturers, doctors, engineers, bankers, accountants, IT specialists, civil servants (all levels), architects, business owners (small to large scale), students, retired executives, as well as artisans, traders, farmers, teachers, taxi/bus drivers, factory workers, etc.
+    *   **Socioeconomic Status:** Imply variety through the chosen occupation, residence (as described by \`locationPrompt\`), and general lifestyle/dietary habits in the social history.
+    *   **Age and Marital Status:** Vary these naturally and realistically across cases.
+3.  **Prioritize Specific Patient Profile Requests:** ${specificPatientProfileRequest ? `**For this specific case, the patient profile must be: "${specificPatientProfileRequest}".** This instruction overrides general diversity guidelines.` : `If no 'specificPatientProfileRequest' is provided (as in this case), then aim for broad and realistic diversity, considering the 'LOCATION CONTEXT' provided.`}
+
+CRITICAL GUIDELINES FOR DIAGNOSIS VARIETY:
+1.  **Do NOT Default to Most Common Diagnosis:** Within the specified '${departmentName}' department and "${randomBucket}" pathophysiology category, **do not always generate the single most common condition.**
+2.  **Actively Diversify Diagnoses:** Draw from your broad medical knowledge to select a variety of clinically relevant diagnoses within these constraints.
+    *   For 'Standard' difficulty, aim for variety among *common* conditions. (e.g., for Obstetrics/Endocrine, vary between Gestational Diabetes, Hypothyroidism in Pregnancy, Hyperthyroidism in Pregnancy, Pre-existing Diabetes in Pregnancy, etc).
+    *   For 'Intermediate' and 'Difficult' cases, you may explore less common but still relevant conditions or more complex presentations.
+3.  **Avoid Repetition (Sequential Calls):** If generating multiple cases for the same department and bucket, strive to present a *different* diagnosis each time unless explicitly requested otherwise.
+4.  **Prioritize Specific Diagnosis Requests:** ${specificDiagnosisRequest ? `**For this specific case, the diagnosis must be: "${specificDiagnosisRequest}".** This instruction overrides general diagnostic diversity guidelines.` : `If no 'specificDiagnosisRequest' is provided, then ensure diagnostic variety within the specified constraints.`}
 
 REQUIREMENTS:
 - Pathophysiology category: "${randomBucket}"
 - Solvable by medical students
 - Balance authenticity with educational value
 ${isPediatric ? '- Age-appropriate presentation and developmental context' : ''}
-${isSurgical ? '- Focus on surgical intervention and context' : ''}
+${isSurgical ? '- Focus on surgical intervention and context (pre-op, intra-op, post-op considerations where relevant)' : ''}
 
 PATIENT COMMUNICATION GUIDELINES:
 - Patients use lay terms, not medical terminology
 - Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
 - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
-- Avoid patients using exact drug names or dosages
+- Avoid patients using exact drug names or dosages unless they have high health literacy or in a specific situation where its a routine medication
 - Match communication style to education level and health literacy
 
-EXAMPLES by category:
+EXAMPLES by category (DON'T LIMIT YOURSELF TO THESE):
 - Vascular: MI, Stroke, PVD${departmentName.toLowerCase().includes('cardiothoracic') ? ', Aortic Aneurysm, CAD' : ''}
 - Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis${departmentName.toLowerCase().includes('surgery') ? ', Appendicitis, Cholecystitis' : ''}
 - Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
@@ -106,7 +135,8 @@ ${isPediatric ? `
 - "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}` : `
 - "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}`}
 
-Generate case fitting "${randomBucket}" category in ${departmentName}.`;
+Generate the complete JSON output for this clinical case, ensuring all instructions, especially those for patient profile diversity, location realism, and **diagnostic variety**, are strictly followed.`;
+};
 
 export const getLocationPrompt = (userCountry?: string) => {
     return userCountry 
@@ -130,8 +160,8 @@ LOCATION GENERATION GUIDELINES:
 
 EXAMPLES OF GOOD LOCATIONS:
 - "I live in Victoria Island, Lagos, near the Lagos University Teaching Hospital"
-- "I live in Barnawa close, Makoto, in Kaduna city"
-- "I reside in Ajah estate, in Surulere"
+- "I live in Barnawa close, Makoto"
+- "I reside in Ajah estate"
 - "My home is in Ungwan Rimi, Kaduna, near the Central Market"
 
 AVOID GENERIC DESCRIPTIONS:
@@ -141,8 +171,7 @@ AVOID GENERIC DESCRIPTIONS:
 - ❌ "I'm from the outskirts of [city]"
 - ✅ Use specific neighborhood names, landmarks, and hospitals
 
-CULTURAL CONSIDERATIONS: Use diverse culturally authentic names, consider local healthcare systems, regional factors, socioeconomic diversity
-LOCATION CONTEXT: ${LOCATION_CONTEXTS[userCountry] ? `${LOCATION_CONTEXTS[userCountry].healthSystem}. ${LOCATION_CONTEXTS[userCountry].diseasePatterns}. ${LOCATION_CONTEXTS[userCountry].accessPatterns}` : 'local cultural context'}`
+CULTURAL CONSIDERATIONS: Use diverse culturally authentic names, consider local healthcare systems, regional factors, socioeconomic diversity`
         : `Use culturally diverse names and consider common global disease patterns.`;
 };
 

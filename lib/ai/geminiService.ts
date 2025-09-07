@@ -325,14 +325,7 @@ export const generatePracticeCase = async (departmentName: string, condition: st
 
     const practiceCase = await response.json();
     if (practiceCase && typeof practiceCase.primaryInfo === 'string') {
-        // Generate a random patient profile for practice cases too
-        const patientProfile = await fetchFromApi('generatePatientProfile', { 
-            diagnosis: practiceCase.diagnosis,
-            departmentName,
-            userCountry,
-            randomSeed: Math.floor(Math.random() * 10000)
-        });
-        return { ...practiceCase, patientProfile };
+        return practiceCase;
     }
     throw new Error("The server returned an invalid case format.");
 };

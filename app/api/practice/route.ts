@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
             - Consider regionally relevant health risks and lifestyle factors
             - Maintain cultural sensitivity while avoiding stereotypes
             
-            LOCATION-SPECIFIC CONTEXT: ${getLocationContext(userCountry)}`
+            LOCATION-SPECIFIC CONTEXT: Use culturally diverse names and consider common global disease patterns`
             : `Use culturally diverse names and consider common global disease patterns.`;
 
         // Add difficulty-specific requirements

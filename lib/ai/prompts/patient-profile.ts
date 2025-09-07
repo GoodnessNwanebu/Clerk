@@ -1,11 +1,6 @@
-import { getEpidemiologicalContext } from '../ai-utils';
-
 export const patientProfilePrompt = (diagnosis: string, departmentName: string, timeContext: string, userCountry: string, randomSeed: number) => {
-    const epidemiologicalContext = getEpidemiologicalContext(userCountry);
-    
     return `Generate patient profile for ${diagnosis} in ${departmentName}.
 ${timeContext}
-${epidemiologicalContext}
 
 RANDOM SEED: ${randomSeed} (use for variety, but follow anti-bias requirements above)
 
