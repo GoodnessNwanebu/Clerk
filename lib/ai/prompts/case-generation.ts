@@ -9,9 +9,9 @@ export const getDifficultyPrompt = (difficulty: DifficultyLevel): string => {
         case 'intermediate':
             return `
 INTERMEDIATE DIFFICULTY REQUIREMENTS:
+- less common conditions
 - Include 1-2 relevant comorbidities
 - Slightly atypical presentation of the primary diagnosis
-- Some conflicting or unclear information
 - Multiple possible diagnoses to consider
 - Age-related factors affecting presentation
 - Medication interactions or side effects
@@ -22,15 +22,13 @@ INTERMEDIATE DIFFICULTY REQUIREMENTS:
         case 'difficult':
             return `
 DIFFICULT DIFFICULTY REQUIREMENTS:
-- Multiple comorbidities (3+ relevant conditions)
-- Highly atypical presentation of the primary diagnosis
+- Multiple comorbidities (3 relevant conditions)
+- Moderately atypical presentation of the primary diagnosis
 - Red herrings and confounding factors
 - Complex social determinants of health
 - Multiple organ system involvement
 - Rare disease presentations or complications
-- Complex medication interactions
-- Cultural or language barriers
-- Require comprehensive assessment and differential diagnosis
+- Require detailed history and differential diagnosis
 `;
             
         default:
@@ -78,12 +76,13 @@ CRITICAL GUIDELINES FOR PATIENT PROFILE DIVERSITY AND AVOIDING STEREOTYPES:
 3.  **Prioritize Specific Patient Profile Requests:** ${specificPatientProfileRequest ? `**For this specific case, the patient profile must be: "${specificPatientProfileRequest}".** This instruction overrides general diversity guidelines.` : `If no 'specificPatientProfileRequest' is provided (as in this case), then aim for broad and realistic diversity, considering the 'LOCATION CONTEXT' provided.`}
 
 CRITICAL GUIDELINES FOR DIAGNOSIS VARIETY:
-1.  **Do NOT Default to Most Common Diagnosis:** Within the specified '${departmentName}' department and "${randomBucket}" pathophysiology category, **do not always generate the single most common condition.**
-2.  **Actively Diversify Diagnoses:** Draw from your broad medical knowledge to select a variety of clinically relevant diagnoses within these constraints.
-    *   For 'Standard' difficulty, aim for variety among *common* conditions. (e.g., for Obstetrics/Endocrine, vary between Gestational Diabetes, Hypothyroidism in Pregnancy, Hyperthyroidism in Pregnancy, Pre-existing Diabetes in Pregnancy, etc).
+1. Every ${randomBucket} category within the ${departmentName} department has an equal chance of being selected. 
+2.  **Do NOT Default to Most Common Diagnosis:** Within the specified '${departmentName}' department and "${randomBucket}" pathophysiology category, **do not always generate the single most common condition.**
+3.  **Actively Diversify Diagnoses:** Draw from your broad medical knowledge to select a variety of clinically relevant diagnoses within these constraints.
+    *   For 'Standard' difficulty, aim for variety among *common* conditions.
     *   For 'Intermediate' and 'Difficult' cases, you may explore less common but still relevant conditions or more complex presentations.
-3.  **Avoid Repetition (Sequential Calls):** If generating multiple cases for the same department and bucket, strive to present a *different* diagnosis each time unless explicitly requested otherwise.
-4.  **Prioritize Specific Diagnosis Requests:** ${specificDiagnosisRequest ? `**For this specific case, the diagnosis must be: "${specificDiagnosisRequest}".** This instruction overrides general diagnostic diversity guidelines.` : `If no 'specificDiagnosisRequest' is provided, then ensure diagnostic variety within the specified constraints.`}
+4.  **Avoid Repetition (Sequential Calls):** If generating multiple cases for the same department and bucket, strive to present a *different* diagnosis each time unless explicitly requested otherwise.
+5.  **Prioritize Specific Diagnosis Requests:** ${specificDiagnosisRequest ? `**For this specific case, the diagnosis must be: "${specificDiagnosisRequest}".** This instruction overrides general diagnostic diversity guidelines.` : `If no 'specificDiagnosisRequest' is provided, then ensure diagnostic variety within the specified constraints.`}
 
 REQUIREMENTS:
 - Pathophysiology category: "${randomBucket}"

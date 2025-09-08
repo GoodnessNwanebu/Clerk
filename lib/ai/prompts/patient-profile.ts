@@ -10,6 +10,9 @@ REALISTIC PATIENT CHARACTERISTICS:
 - Patients describe symptoms in lay terms, not medical terminology
 - Education level should influence medical knowledge and communication style
 
+LOGICAL CONSISTENCY:
+Ensure all patient profile variables are logically consistent with each other. Use common sense and realistic combinations.
+
 OUTPUT: {
     "educationLevel": "basic" | "moderate" | "well-informed",
     "healthLiteracy": "minimal" | "average" | "high", 
