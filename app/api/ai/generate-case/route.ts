@@ -4,7 +4,7 @@ import { auth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/database/prisma';
 import { Case, DifficultyLevel } from '../../../../types';
 import { getTimeContext } from '../../../../lib/shared/timeContext';
-import { ai, MODEL, MEDICAL_BUCKETS, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
+import { ai, MODEL, MEDICAL_BUCKETS, getBucketForDepartment, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { 
     generateCasePrompt, 
     getDifficultyPrompt, 
@@ -118,8 +118,8 @@ export async function POST(request: NextRequest) {
             randomBucket = 'Practice Case';
         } else {
             // Regular case generation
-            // Randomly select a medical bucket
-            randomBucket = MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
+            // Select appropriate bucket for department (specific or generic)
+            randomBucket = getBucketForDepartment(departmentRecord.name);
             
             // Get optimized prompts
             const locationPrompt = getLocationPrompt(userCountry);
@@ -138,8 +138,11 @@ export async function POST(request: NextRequest) {
                 surgicalPrompt, 
                 pediatricPrompt, 
                 isPediatric, 
-                isSurgical
-            ) + subspecialtyContext + (difficultyPrompt ? `\n\n${difficultyPrompt}` : '');
+                isSurgical,
+                difficulty as DifficultyLevel,
+                undefined, // specificPatientProfileRequest
+                undefined // specificDiagnosisRequest
+            ) + subspecialtyContext;
         }
 
         const response = await ai.generateContent({

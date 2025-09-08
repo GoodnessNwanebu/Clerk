@@ -300,7 +300,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
+              text: "The patient is here to see you now",
               timestamp: new Date().toISOString(),
             },
           ],
@@ -372,7 +372,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           messages: [
             {
               sender: "system" as const,
-              text: `The patient is here today with the following complaint:\n\n"${result.case.openingLine}"`,
+              text: "The patient is here to see you now",
               timestamp: new Date().toISOString(),
             },
           ],

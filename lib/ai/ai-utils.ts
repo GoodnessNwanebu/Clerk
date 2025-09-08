@@ -13,7 +13,7 @@ if (!process.env.GEMINI_API_KEY) {
 export const ai = createAIClient(process.env.GEMINI_API_KEY);
 export const MODEL = 'gemini-2.5-flash';
 
-// Medical education pathophysiology buckets
+// Medical education pathophysiology buckets (generic)
 export const MEDICAL_BUCKETS = [
     'Vascular',
     'Infectious/Inflammatory',
@@ -27,185 +27,47 @@ export const MEDICAL_BUCKETS = [
     'Psychiatric/Functional'
 ];
 
-// Epidemiological context data for different countries/regions
-export const EPIDEMIOLOGICAL_DATA: { [key: string]: { healthSystem: string; diseasePatterns: string; accessPatterns: string } } = {
-    'Nigeria': {
-        healthSystem: 'Mixed public/private healthcare with infrastructure challenges and referral limitations',
-        diseasePatterns: 'Endemic diseases: malaria, typhoid, HIV/AIDS, tuberculosis, Lassa fever. Also include global conditions for comprehensive education',
-        accessPatterns: 'Varied healthcare access with urban/rural disparities, traditional medicine integration, and limited advanced facilities in some regions'
-    },
-    'United States': {
-        healthSystem: 'Insurance-based healthcare system with significant access disparities and high-cost barriers',
-        diseasePatterns: 'High chronic disease burden: obesity, diabetes, cardiovascular disease. Also include rare conditions and global diseases',
-        accessPatterns: 'Varied access based on insurance status, socioeconomic factors, and geographic location'
-    },
-    'India': {
-        healthSystem: 'Mixed public/private healthcare systems with significant regional variations and quality disparities',
-        diseasePatterns: 'Tropical diseases: dengue, malaria, typhoid. High population density effects. Also include global conditions for comprehensive education',
-        accessPatterns: 'Varied access based on urban/rural location, socioeconomic status, and public vs private system availability'
-    },
-    'China': {
-        healthSystem: 'Evolving healthcare system with rapid urbanization effects and improving access',
-        diseasePatterns: 'Lifestyle diseases from urbanization, aging population effects, air pollution impacts. Also include global conditions',
-        accessPatterns: 'Varied access between urban and rural areas, with improving but still developing infrastructure'
-    },
-    'Brazil': {
-        healthSystem: 'Mixed healthcare system with significant socioeconomic disparities and regional variations',
-        diseasePatterns: 'Tropical diseases: dengue, Zika, Chagas. Also include chronic conditions and global diseases',
-        accessPatterns: 'Varied access based on socioeconomic status, urban/rural location, and public vs private system'
-    },
-    'United Kingdom': {
-        healthSystem: 'NHS universal healthcare system with some access variations and waiting times',
-        diseasePatterns: 'Aging population effects, lifestyle diseases, health inequalities. Also include global conditions for comprehensive education',
-        accessPatterns: 'Universal access with some regional variations and waiting time differences'
-    },
-    'Germany': {
-        healthSystem: 'Universal healthcare system with strong social support and comprehensive coverage',
-        diseasePatterns: 'Aging population effects, lifestyle diseases, strong preventive care. Also include global conditions',
-        accessPatterns: 'Universal access with high-quality care and strong social support systems'
-    },
-    'Japan': {
-        healthSystem: 'Universal healthcare system with aging population focus and cultural health practices',
-        diseasePatterns: 'Aging population effects, lifestyle diseases, cultural health practices. Also include global conditions',
-        accessPatterns: 'Universal access with focus on preventive care and aging population needs'
-    },
-    'Australia': {
-        healthSystem: 'Medicare universal healthcare with multicultural population considerations',
-        diseasePatterns: 'Sun exposure risks, lifestyle diseases, multicultural health patterns. Also include global conditions',
-        accessPatterns: 'Universal access with some rural/urban variations and multicultural considerations'
-    },
-    'Canada': {
-        healthSystem: 'Universal healthcare system with multicultural population and cold climate considerations',
-        diseasePatterns: 'Cold climate effects, lifestyle diseases, multicultural health patterns. Also include global conditions',
-        accessPatterns: 'Universal access with some rural/urban variations and geographic challenges'
-    }
+// Department-specific pathophysiology buckets for specialized departments
+export const DEPARTMENT_SPECIFIC_BUCKETS: { [key: string]: string[] } = {
+    'Obstetrics': [
+        'Antenatal Care',
+        'Pregnancy Complications',
+        'Labour & Delivery',
+        'Postpartum Complications',
+        'Emergency Presentations'
+    ],
+    'Gynaecology': [
+        'Menstrual Disorders',
+        'Pelvic Pain Syndromes',
+        'Benign Reproductive Conditions',
+        'Gynaecological Cancers',
+        'Infertility & Reproductive Endocrinology'
+    ],
+    'Dentistry': [
+        'Dental Caries & Complications',
+        'Periodontal Disease',
+        'Oral Infections',
+        'Oral Trauma',
+        'Oral Cancers',
+        'Jaw Disorders'
+    ]
 };
 
-// Location contexts now use comprehensive epidemiological data
-export const LOCATION_CONTEXTS = EPIDEMIOLOGICAL_DATA;
-
-// Regional fallback data
-export const REGIONAL_EPIDEMIOLOGICAL_DATA: { [key: string]: { healthSystem: string; diseasePatterns: string; accessPatterns: string } } = {
-    'Sub-Saharan Africa': {
-        healthSystem: 'Limited healthcare infrastructure with referral challenges and resource constraints',
-        diseasePatterns: 'Endemic diseases: malaria, HIV/AIDS, tuberculosis, neglected tropical diseases. Also include global conditions',
-        accessPatterns: 'Limited access with significant urban/rural disparities and resource constraints'
-    },
-    'South Asia': {
-        healthSystem: 'Mixed healthcare systems with high population density effects and quality variations',
-        diseasePatterns: 'Tropical diseases, high population density effects, mixed healthcare systems. Also include global conditions',
-        accessPatterns: 'Varied access based on population density, urban/rural location, and system quality'
-    },
-    'Southeast Asia': {
-        healthSystem: 'Diverse healthcare systems with regional variations and developing infrastructure',
-        diseasePatterns: 'Dengue, tuberculosis, diverse healthcare systems, regional variations. Also include global conditions',
-        accessPatterns: 'Varied access based on regional development and healthcare system diversity'
-    },
-    'Middle East': {
-        healthSystem: 'Mixed healthcare systems with refugee health challenges and conflict effects',
-        diseasePatterns: 'Non-communicable diseases, refugee health challenges, mixed systems. Also include global conditions',
-        accessPatterns: 'Varied access affected by conflict, displacement, and system development'
-    },
-    'Latin America': {
-        healthSystem: 'Mixed healthcare systems with significant socioeconomic disparities',
-        diseasePatterns: 'Dengue, Chagas disease, healthcare disparities, regional patterns. Also include global conditions',
-        accessPatterns: 'Varied access based on socioeconomic status and regional development'
-    },
-    'Western Europe': {
-        healthSystem: 'Universal healthcare systems with aging populations and health inequalities',
-        diseasePatterns: 'Aging population effects, lifestyle diseases, health inequalities. Also include global conditions',
-        accessPatterns: 'Universal access with some regional variations and social factors'
-    },
-    'Eastern Europe': {
-        healthSystem: 'Evolving healthcare systems with transition challenges and developing infrastructure',
-        diseasePatterns: 'Transition health challenges, lifestyle diseases, evolving systems. Also include global conditions',
-        accessPatterns: 'Varied access based on economic transition and system development'
-    },
-    'North America': {
-        healthSystem: 'Mixed healthcare systems with significant access disparities and cost barriers',
-        diseasePatterns: 'Chronic disease burden, healthcare access disparities, lifestyle factors. Also include global conditions',
-        accessPatterns: 'Varied access based on insurance, socioeconomic status, and geographic location'
-    },
-    'East Asia': {
-        healthSystem: 'Evolving healthcare systems with aging populations and rapid development',
-        diseasePatterns: 'Aging population effects, lifestyle diseases, evolving systems. Also include global conditions',
-        accessPatterns: 'Varied access based on development level and aging population needs'
-    },
-    'Oceania': {
-        healthSystem: 'Limited healthcare infrastructure with island geography challenges',
-        diseasePatterns: 'Tropical diseases, limited infrastructure, island health patterns. Also include global conditions',
-        accessPatterns: 'Limited access due to island geography and infrastructure constraints'
+// Helper function to get appropriate pathophysiology bucket for a department
+export const getBucketForDepartment = (departmentName: string): string => {
+    const specificBuckets = DEPARTMENT_SPECIFIC_BUCKETS[departmentName];
+    if (specificBuckets) {
+        return specificBuckets[Math.floor(Math.random() * specificBuckets.length)];
     }
+    return MEDICAL_BUCKETS[Math.floor(Math.random() * MEDICAL_BUCKETS.length)];
 };
 
-// Single epidemiological context function
-export function getEpidemiologicalContext(userCountry: string): string {
-    const countryLower = userCountry.toLowerCase();
-    
-    // Try to get country-specific data
-    let data = EPIDEMIOLOGICAL_DATA[userCountry] || EPIDEMIOLOGICAL_DATA[countryLower];
-    
-    // If not found, try regional fallback
-    if (!data) {
-        if (isSubSaharanAfrica(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Sub-Saharan Africa'];
-        } else if (isSouthAsia(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['South Asia'];
-        } else if (isSoutheastAsia(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Southeast Asia'];
-        } else if (isMiddleEast(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Middle East'];
-        } else if (isLatinAmerica(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Latin America'];
-        } else if (isWesternEurope(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Western Europe'];
-        } else if (isEasternEurope(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Eastern Europe'];
-        } else if (isNorthAmerica(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['North America'];
-        } else if (isEastAsia(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['East Asia'];
-        } else if (isOceania(countryLower)) {
-            data = REGIONAL_EPIDEMIOLOGICAL_DATA['Oceania'];
-        }
-    }
-    
-    // Global fallback
-    if (!data) {
-        data = {
-            healthSystem: 'Diverse global healthcare systems with varying access patterns',
-            diseasePatterns: 'Diverse global health patterns and worldwide disease burden',
-            accessPatterns: 'Varied access based on global healthcare system diversity'
-        };
-    }
-    
-    return `
-**EPIDEMIOLOGICAL CONTEXT (${userCountry}):**
-Consider local disease patterns and healthcare system characteristics as INFORMATIONAL CONTEXT ONLY. This should inform disease and medical conditionsselection and presentation patterns, but should NOT limit case diversity or dictate patient demographics.
 
-**HEALTH SYSTEM CONTEXT:**
-- Healthcare system: ${data.healthSystem}
-- Access patterns: ${data.accessPatterns}
+    
+   
+    
+ 
 
-**DISEASE PATTERNS (INFORMATIONAL ONLY):**
-- Local/regional patterns: ${data.diseasePatterns}
-- BUT: Include both local AND global conditions for comprehensive education
-
-**CRITICAL ANTI-BIAS REQUIREMENTS:**
-- Patient occupations must vary widely (unemployed, low income jobs,manual labor, civil service workers, professionals, students, retirees, etc.)
-- Education levels MUST be diverse (basic, moderate, well-informed)
-- Health literacy must vary (minimal, average, high)
-- Socioeconomic backgrounds must be randomized
-- DO NOT assume patient demographics based on location
-- Generate cases across the full spectrum of disease complexity and rarity
-
-**EDUCATIONAL REQUIREMENTS:**
-- Include both endemic and global conditions
-- Show varied presentation timings (early and late)
-- Maintain diversity in disease complexity and rarity
-- Consider how healthcare systems might influence case progression
-`;
-}
 
 // Regional classification helper functions
 function isSubSaharanAfrica(country: string): boolean {
