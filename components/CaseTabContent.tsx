@@ -249,7 +249,7 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
               <span className="text-slate-600 dark:text-slate-400">Case ID:</span>
               <div className="flex items-center space-x-2">
                 <span className="font-mono text-sm text-slate-700 dark:text-slate-300">
-                  {caseData.id}
+                  {caseData.id.substring(0, 14)}...
                 </span>
                 <button
                   onClick={() => copyToClipboard(caseData.id, 'Case ID')}
@@ -257,19 +257,13 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
                   title="Copy Case ID"
                 >
                   {copySuccess === 'Case ID' ? (
-                    <Icon name="check" size={16} className="text-green-500" />
+                    <Icon name="check" size={16} className="text-teal-600 dark:text-teal-400" />
                   ) : (
                     <Icon name="copy" size={16} />
                   )}
                 </button>
               </div>
             </div>
-            {copySuccess === 'Case ID' && (
-              <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
-                <Icon name="check" size={12} className="mr-1" />
-                Copied!
-              </div>
-            )}
           </div>
         </div>
       </div>
