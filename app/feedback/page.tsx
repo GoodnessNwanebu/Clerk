@@ -102,7 +102,7 @@ export default function FeedbackPage() {
             if (success) {
                 setIsCaseVisible(true);
                 setSaveStatus('success');
-                setSaveMessage('Case saved successfully!');
+                setSaveMessage('');
                 
                 // Add case to cache for immediate availability in saved cases
                 if (feedback && caseState.department) {
@@ -553,7 +553,7 @@ export default function FeedbackPage() {
                         ) : saveStatus === 'success' ? (
                             <>
                                 <Icon name="check" size={20}/>
-                                <span>Saved ✓</span>
+                                <span>Saved</span>
                             </>
                         ) : saveStatus === 'error' ? (
                             <>
@@ -568,16 +568,6 @@ export default function FeedbackPage() {
                         )}
                     </button>
                     
-                    {/* Status message - only show for success/error, not loading */}
-                    {saveMessage && (saveStatus === 'success' || saveStatus === 'error') && (
-                        <div className={`text-center text-sm px-4 py-2 rounded-lg ${
-                            saveStatus === 'success' 
-                                ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
-                                : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-                        }`}>
-                            {saveMessage}
-                        </div>
-                    )}
                     
                     <button
                         onClick={handleDone}
@@ -593,6 +583,7 @@ export default function FeedbackPage() {
             <ShareModal
                 isOpen={showShareModal}
                 onClose={() => setShowShareModal(false)}
+                onSkip={handleSkipShare}
                 onShare={handleShare}
                 shareData={shareData}
             />
