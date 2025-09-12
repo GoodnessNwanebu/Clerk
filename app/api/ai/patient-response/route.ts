@@ -124,6 +124,18 @@ export async function POST(request: NextRequest) {
                 console.log('🔄 [patient-response] Non-pediatric case or missing pediatric profile');
             }
             
+            // Get the last student question to respond to
+            const lastStudentMessage = history
+                .filter((msg: Message) => msg.sender === 'student')
+                .pop();
+            
+            const currentQuestion = lastStudentMessage ? lastStudentMessage.text : 'No specific question found';
+            
+            console.log('🔄 [patient-response] Current question to answer:', {
+                question: currentQuestion,
+                hasLastStudentMessage: !!lastStudentMessage
+            });
+            
             // Convert the history to a format suitable for the API
             const conversation = history
                 .filter((msg: Message) => msg.sender === 'student' || msg.sender === 'patient' || msg.sender === 'parent')
@@ -139,7 +151,7 @@ export async function POST(request: NextRequest) {
             const response = await ai.generateContent({
                 model: 'gemini-2.5-flash-lite',
                 contents: [{ 
-                    text: patientResponsePrompt(systemInstruction, conversation, !!isPediatric) + speakerInstruction
+                    text: patientResponsePrompt(systemInstruction, conversation, currentQuestion, !!isPediatric) + speakerInstruction
                 }],
                 config: {
                     maxOutputTokens: 250

@@ -121,6 +121,17 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
   formatDate,
   formatTimeSpent
 }) => {
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(label);
+      setTimeout(() => setCopySuccess(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
   const renderOverview = () => (
     <div className="space-y-6">
 
@@ -218,6 +229,35 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
               <span className="text-slate-600 dark:text-slate-400">Completed:</span>
               <span className="font-medium">{formatDate(caseData.completedAt)}</span>
             </div>
+          </div>
+          
+          {/* Case ID Section */}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-600 dark:text-slate-400">Case ID:</span>
+              <div className="flex items-center space-x-2">
+                <span className="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded border">
+                  {caseData.id.substring(0, 12)}...
+                </span>
+                <button
+                  onClick={() => copyToClipboard(caseData.id, 'Case ID')}
+                  className="p-1 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                  title="Copy full Case ID"
+                >
+                  {copySuccess === 'Case ID' ? (
+                    <Icon name="check" size={14} className="text-green-500" />
+                  ) : (
+                    <Icon name="copy" size={14} />
+                  )}
+                </button>
+              </div>
+            </div>
+            {copySuccess === 'Case ID' && (
+              <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
+                <Icon name="check" size={12} className="mr-1" />
+                Copied!
+              </div>
+            )}
           </div>
         </div>
       </div>

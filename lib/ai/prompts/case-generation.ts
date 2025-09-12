@@ -9,7 +9,6 @@ export const getDifficultyPrompt = (difficulty: DifficultyLevel): string => {
         case 'intermediate':
             return `
 INTERMEDIATE DIFFICULTY REQUIREMENTS:
-- less common conditions
 - Include 1-2 relevant comorbidities
 - Slightly atypical presentation of the primary diagnosis
 - Multiple possible diagnoses to consider

@@ -26,6 +26,7 @@ import {
 import { ConversationStorage } from "../lib/storage/localStorage";
 import { generateShareData } from "../lib/shared/shareUtils";
 import { fetchDepartments, transformDepartmentsForFrontend } from '../lib/services/departmentService';
+import { generateStaticOpeningLine } from "../lib/shared/openingLineUtils";
 
 interface AppContextType {
   caseState: CaseState;
@@ -291,6 +292,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       
         // Create initial case state with secondary context only
         // Primary context comes from JWT cookies
+      
+        // Determine the opening message based on user status
+        let openingMessage: string;
+        if (result.case.isFirstTime) {
+          // First-time users get the AI-generated opening line
+          openingMessage = `The patient is here today with the following complaints\n"${result.case.openingLine}"`;
+        } else {
+          // Returning users get a static opening line with time context
+          const isPediatric = department.name.toLowerCase().includes('pediatric') || department.name.toLowerCase().includes('paediatric');
+          const staticOpeningLine = generateStaticOpeningLine(isPediatric, userCountry || undefined);
+          openingMessage = `The patient is here to see you today.\n"${staticOpeningLine}"`;
+        }
+      
       const newCaseState = {
         ...initialCaseState,
           department: department.name,
@@ -300,7 +314,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           messages: [
             {
               sender: "system" as const,
-              text: "The patient is here to see you now",
+              text: openingMessage,
               timestamp: new Date().toISOString(),
             },
           ],
@@ -363,6 +377,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         
         // Create initial case state with secondary context only
         // Primary context comes from JWT cookies
+        
+        // For practice cases, we'll use the AI-generated opening line since they're typically one-off scenarios
+        // and don't need the first-time user logic
+        const openingMessage = `The patient is here today with the following complaints\n"${result.case.openingLine}"`;
+        
         const newCaseState = {
           ...initialCaseState,
           department: department.name,
@@ -372,7 +391,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           messages: [
             {
               sender: "system" as const,
-              text: "The patient is here to see you now",
+              text: openingMessage,
               timestamp: new Date().toISOString(),
             },
           ],

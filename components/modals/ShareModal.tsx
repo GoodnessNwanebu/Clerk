@@ -7,11 +7,12 @@ import html2canvas from 'html2canvas';
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onShare: () => void;
+  onSkip: () => Promise<void>;
+  onShare: () => Promise<void>;
   shareData: ShareData | null;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, shareData }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onSkip, onShare, shareData }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -186,7 +187,9 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, share
 
   const handleSkip = () => {
     if (isTransitioning) return;
-    handleTransition(onClose);
+    handleTransition(async () => {
+      await onSkip();
+    });
   };
 
   const handleRetry = () => {

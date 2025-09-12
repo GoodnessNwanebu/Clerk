@@ -431,6 +431,18 @@ export async function getUserStats(userId: string) {
   }
 }
 
+// Check if user is a first-time user (no completed cases)
+export async function isFirstTimeUser(userId: string): Promise<boolean> {
+  const completedCasesCount = await prisma.case.count({
+    where: {
+      userId,
+      isCompleted: true
+    }
+  });
+  
+  return completedCasesCount === 0;
+}
+
 // Save messages from localStorage
 export async function saveMessagesFromLocalStorage(
   caseId: string, 
