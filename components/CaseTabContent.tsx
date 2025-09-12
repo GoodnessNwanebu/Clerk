@@ -122,6 +122,13 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
   formatTimeSpent
 }) => {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState({
+    history: true, // Expanded by default
+    examinations: false,
+    investigations: false,
+    assessment: false,
+    management: false
+  });
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -131,6 +138,13 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
     } catch (err) {
       console.error('Failed to copy: ', err);
     }
+  };
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
   const renderOverview = () => (
     <div className="space-y-6">
@@ -215,49 +229,41 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
           <Icon name="file-text" size={20} className="mr-2" />
           Case Details
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">Department:</span>
-              <span className="font-medium">{caseData.department.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">Time Spent:</span>
-              <span className="font-medium">{formatTimeSpent(caseData.timeSpent)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">Completed:</span>
-              <span className="font-medium">{formatDate(caseData.completedAt)}</span>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-400">Department:</span>
+                <span className="font-medium">{caseData.department.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-400">Time Spent:</span>
+                <span className="font-medium">{formatTimeSpent(caseData.timeSpent)}</span>
+              </div>
             </div>
           </div>
           
           {/* Case ID Section */}
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <span className="text-slate-600 dark:text-slate-400">Case ID:</span>
               <div className="flex items-center space-x-2">
-                <span className="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded border">
-                  {caseData.id.substring(0, 12)}...
+                <span className="font-mono text-sm text-slate-700 dark:text-slate-300">
+                  {caseData.id.substring(0, 14)}...
                 </span>
                 <button
                   onClick={() => copyToClipboard(caseData.id, 'Case ID')}
                   className="p-1 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                  title="Copy full Case ID"
+                  title="Copy Case ID"
                 >
                   {copySuccess === 'Case ID' ? (
-                    <Icon name="check" size={14} className="text-green-500" />
+                    <Icon name="check" size={16} className="text-teal-600 dark:text-teal-400" />
                   ) : (
-                    <Icon name="copy" size={14} />
+                    <Icon name="copy" size={16} />
                   )}
                 </button>
               </div>
             </div>
-            {copySuccess === 'Case ID' && (
-              <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
-                <Icon name="check" size={12} className="mr-1" />
-                Copied!
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -528,20 +534,6 @@ export const CaseTabContent: React.FC<CaseTabContentProps> = ({
   );
 
   const renderManagement = () => {
-    const [expandedSections, setExpandedSections] = useState({
-      history: true, // Expanded by default
-      examinations: false,
-      investigations: false,
-      assessment: false,
-      management: false
-    });
-
-    const toggleSection = (section: keyof typeof expandedSections) => {
-      setExpandedSections(prev => ({
-        ...prev,
-        [section]: !prev[section]
-      }));
-    };
 
     return (
       <div className="space-y-6">

@@ -15,11 +15,7 @@ export const generateShareData = (
     : "Completed a challenging clinical case";
   
   // Generate the share message
-  const shareMessage = `${achievementText}
-
-Correctly diagnosed: ${diagnosis} !
-
-Come try a patient on ClerkSmart: https://clerksmart.vercel.app`;
+  const shareMessage = 'Come try a patient on ClerkSmart: https://clerksmart.vercel.app';
   
   return {
     diagnosis,
