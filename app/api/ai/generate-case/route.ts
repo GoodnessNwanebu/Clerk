@@ -20,6 +20,7 @@ import {
 import type { PrimaryContext } from '../../../../types/diagnosis';
 import { createCaseSession } from '../../../../lib/session/session-manager';
 import { cachePrimaryContext } from '../../../../lib/cache/primary-context-cache';
+import { isFirstTimeUser } from '../../../../lib/database/database';
 
 export async function POST(request: NextRequest) {
     try {
@@ -54,6 +55,10 @@ export async function POST(request: NextRequest) {
                 { status: 404 }
             );
         }
+
+        // Check if this is a first-time user (no completed cases)
+        const isFirstTime = await isFirstTimeUser(user.id);
+        console.log('👤 User first-time status:', isFirstTime);
 
         // Get department from database
         const departmentRecord = await prisma.department.findFirst({
@@ -355,7 +360,8 @@ export async function POST(request: NextRequest) {
                 openingLine: caseData.openingLine,
                 isPediatric,
                 difficultyLevel: difficulty,
-                createdAt: caseRecord.createdAt
+                createdAt: caseRecord.createdAt,
+                isFirstTime
             }
         };
 

@@ -122,7 +122,7 @@ export const generateSingleDiagnosisPrompt = (
     - Patients use lay terms, not medical terminology
     - Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
     - Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
-    - Avoid patients using exact drug names or dosages
+    - Avoid patients using exact drug names or dosages unless they are specifically mentioned in the case
     - Match communication style to education level and health literacy
     ${isPediatric ? `
     PEDIATRIC SPECIFIC GUIDELINES:
