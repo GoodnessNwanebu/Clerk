@@ -18,17 +18,6 @@ export default function SavedCasesPage() {
   } = useSavedCasesCache(userEmail);
   
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
-  const [copySuccess, setCopySuccess] = useState<string | null>(null);
-
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopySuccess(label);
-      setTimeout(() => setCopySuccess(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
-    }
-  };
 
   // Debug logging
   console.log('🔄 SavedCasesPage render:', { userEmail, casesCount: completedCases.length, isLoading, error });
@@ -249,47 +238,15 @@ export default function SavedCasesPage() {
                     {completedCase.diagnosis}
                   </h3>
                   
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-                      <div className="flex items-center space-x-1">
-                        <Icon name="calendar" size={14} />
-                        <span>{formatDate(completedCase.completedAt)}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Icon name="eye" size={14} />
-                        <span>View</span>
-                      </div>
+                  <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center space-x-1">
+                      <Icon name="calendar" size={14} />
+                      <span>{formatDate(completedCase.completedAt)}</span>
                     </div>
-                    
-                    {/* Case ID */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-400 dark:text-slate-500">Case ID:</span>
-                      <div className="flex items-center space-x-1">
-                        <span className="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded border text-slate-600 dark:text-slate-300">
-                          {completedCase.id.substring(0, 8)}...
-                        </span>
-                        <button
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            copyToClipboard(completedCase.id, completedCase.id); 
-                          }}
-                          className="p-1 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                          title="Copy full Case ID"
-                        >
-                          {copySuccess === completedCase.id ? (
-                            <Icon name="check" size={12} className="text-green-500" />
-                          ) : (
-                            <Icon name="copy" size={12} />
-                          )}
-                        </button>
-                      </div>
+                    <div className="flex items-center space-x-1">
+                      <Icon name="eye" size={14} />
+                      <span>View</span>
                     </div>
-                    {copySuccess === completedCase.id && (
-                      <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
-                        <Icon name="check" size={10} className="mr-1" />
-                        Copied!
-                      </div>
-                    )}
                   </div>
 
                   {/* Hover Effect */}
