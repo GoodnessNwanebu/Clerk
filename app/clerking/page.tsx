@@ -713,7 +713,7 @@ const ClerkingScreen: React.FC = () => {
 
 
 
-      <main className="flex-grow pt-28 pb-40 overflow-y-auto" ref={mainRef}>
+      <main className="flex-grow pt-28 overflow-y-auto" ref={mainRef} style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12rem)' }}>
 
         <div className="flex flex-col items-center mb-8 px-4">
 
