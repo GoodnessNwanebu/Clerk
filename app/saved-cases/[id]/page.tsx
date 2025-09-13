@@ -472,7 +472,7 @@ export default function CaseReviewPage({ params }: { params: Promise<{ id: strin
       <div 
         {...bindSwipeGesture()}
         className="max-w-6xl mx-auto px-6 py-8 transition-all duration-300 ease-out touch-pan-y"
-        style={{ marginTop: `${headerHeight + 60}px` }}
+        style={{ marginTop: `${headerHeight + 40}px` }}
       >
         <div className="transition-opacity duration-300 ease-out opacity-100">
           <CaseTabContent

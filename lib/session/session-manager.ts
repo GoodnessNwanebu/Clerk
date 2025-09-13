@@ -15,7 +15,7 @@ export async function createCaseSession(request: CreateSessionRequest): Promise<
   sessionId: string;
   expiresAt: Date;
 }> {
-  const { caseId, userId, expiresIn = 3600 } = request; // Default 1 hour
+  const { caseId, userId, expiresIn = 3600 * 24 } = request; // Default 24 hours
 
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + expiresIn * 1000);

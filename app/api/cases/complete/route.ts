@@ -6,6 +6,7 @@ import { generateCaseReport } from '../../../../lib/ai/ai-utils';
 import { invalidatePrimaryContext } from '../../../../lib/cache/primary-context-cache';
 import { comprehensiveFeedbackPrompt, getSurgicalContext } from '../../../../lib/ai/prompts/feedback';
 import { ai, MODEL, parseJsonResponse } from '../../../../lib/ai/ai-utils';
+import { retrySilently } from '../../../../lib/util';
 import { 
   saveMessagesFromLocalStorage,
   saveExaminationResultsFromLocalStorage,
@@ -66,26 +67,25 @@ export async function POST(request: NextRequest) {
       
       console.log('✅ [complete] Feedback generated successfully, starting case report in background...');
       
-      // Generate case report in the background (don't await)
-      const caseReportPromise = generateCaseReport({
-        primaryContext,
-        secondaryContext: {
-          messages,
-          finalDiagnosis,
-          managementPlan,
-          examinationResults,
-          investigationResults
-        }
-      }).then(async (caseReport) => {
-        console.log('✅ [complete] Case report generated in background, saving to database...');
+      // Generate case report in the background with retry logic (don't await)
+      const caseReportPromise = retrySilently(async () => {
+        console.log('🔄 [complete] Generating case report with retry logic...');
+        const caseReport = await generateCaseReport({
+          primaryContext,
+          secondaryContext: {
+            messages,
+            finalDiagnosis,
+            managementPlan,
+            examinationResults,
+            investigationResults
+          }
+        });
+        
+        console.log('✅ [complete] Case report generated, saving to database...');
         await saveCaseReport(caseId, caseReport);
         console.log('✅ [complete] Case report saved to database');
         return caseReport;
-      }).catch(async (error) => {
-        console.error('❌ [complete] Error generating case report in background:', error);
-        // Don't fail the entire request if case report generation fails
-        return null;
-      });
+      }, 3, 2000, 1.5); // 3 attempts, 2s initial delay, 1.5x backoff
       
       // Don't await the case report - let it run in background
       // The response will be sent immediately with just the feedback
