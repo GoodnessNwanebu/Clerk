@@ -18,7 +18,6 @@ import { getPatientResponse } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
 
 import { ClerkingTimer } from '../../components/ClerkingTimer';
-import { OSCETimer } from '../../components/OSCETimer';
 
 import { Message } from '../../types';
 
@@ -732,16 +731,11 @@ const ClerkingScreen: React.FC = () => {
 
           <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
 
-            {isOSCEMode ? (
-              <OSCETimer 
-                onTimeUp={handleTimeUp} 
-                onModalStateChange={handleModalStateChange}
-                autoStart={true}
-                autoStartDelay={3000}
-              />
-            ) : (
-              <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
-            )}
+            <ClerkingTimer 
+              onTimeUp={handleTimeUp} 
+              onModalStateChange={handleModalStateChange}
+              isOSCEMode={isOSCEMode}
+            />
 
             <button 
 

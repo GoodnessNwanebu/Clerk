@@ -4,6 +4,7 @@ import { Icon } from './Icon';
 interface ClerkingTimerProps {
   onTimeUp?: () => void;
   onModalStateChange?: (isOpen: boolean) => void;
+  isOSCEMode?: boolean;
 }
 
 interface TimeUpModalProps {
@@ -37,7 +38,7 @@ const TimeUpModal: React.FC<TimeUpModalProps> = ({ isOpen, onFinish }) => {
   );
 };
 
-export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalStateChange }) => {
+export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalStateChange, isOSCEMode = false }) => {
   const [isCountdown, setIsCountdown] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -47,6 +48,25 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
   const [isExpanded, setIsExpanded] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoStartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-start countdown for OSCE mode
+  useEffect(() => {
+    if (isOSCEMode && !isRunning && !isCountdown) {
+      // Set countdown mode and auto-start after 3 seconds
+      setIsCountdown(true);
+      autoStartTimeoutRef.current = setTimeout(() => {
+        setIsRunning(true);
+        console.log('🩺 OSCE Timer auto-started after 3 seconds');
+      }, 3000);
+    }
+
+    return () => {
+      if (autoStartTimeoutRef.current) {
+        clearTimeout(autoStartTimeoutRef.current);
+      }
+    };
+  }, [isOSCEMode, isRunning, isCountdown]);
 
   useEffect(() => {
     if (isRunning) {
@@ -128,6 +148,7 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
 
   const currentTime = isCountdown ? remainingSeconds : elapsedSeconds;
   const isWarningTime = isCountdown && remainingSeconds <= 60 && remainingSeconds > 0;
+  const isOSCECountdown = isOSCEMode && isCountdown && isRunning;
 
   return (
     <>
@@ -143,9 +164,9 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
               <Icon 
                 name="clock" 
                 size={14} 
-                className={`${isWarningTime ? 'text-red-500 animate-pulse' : isRunning ? 'text-teal-500' : ''} sm:w-4 sm:h-4`} 
+                className={`${isWarningTime ? 'text-red-500 animate-pulse' : isOSCECountdown ? 'text-red-500' : isRunning ? 'text-teal-500' : ''} sm:w-4 sm:h-4`} 
               />
-              <span className={`font-mono text-xs sm:text-sm font-medium ${isWarningTime ? 'text-red-500 font-bold' : isRunning ? 'text-teal-600 dark:text-teal-400' : ''}`}>
+              <span className={`font-mono text-xs sm:text-sm ${isWarningTime ? 'text-red-500 font-bold' : isOSCECountdown ? 'text-red-500 font-bold' : isRunning ? 'text-teal-600 dark:text-teal-400 font-medium' : 'font-medium'}`}>
                 {formatTime(currentTime)}
               </span>
             </button>
@@ -169,7 +190,7 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
             {/* Timer display */}
             <div className="text-center mb-3 sm:mb-4">
               <div className={`text-xl sm:text-2xl font-mono font-bold mb-1 ${
-                isWarningTime ? 'text-red-500 animate-pulse' : 'text-slate-800 dark:text-white'
+                isWarningTime ? 'text-red-500 animate-pulse' : isOSCECountdown ? 'text-red-500' : 'text-slate-800 dark:text-white'
               }`}>
                 {formatTime(currentTime)}
               </div>
