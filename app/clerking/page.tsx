@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import Image from 'next/image';
 
@@ -18,6 +18,7 @@ import { getPatientResponse } from '../../lib/ai/geminiService';
 import { Icon } from '../../components/Icon';
 
 import { ClerkingTimer } from '../../components/ClerkingTimer';
+import { OSCETimer } from '../../components/OSCETimer';
 
 import { Message } from '../../types';
 
@@ -60,8 +61,12 @@ const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = (
 const ClerkingScreen: React.FC = () => {
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
+  const [isOSCEMode, setIsOSCEMode] = useState(false);
+  const [osceSessionId, setOsceSessionId] = useState<string | null>(null);
+  const [osceHistoryQuestions, setOsceHistoryQuestions] = useState<string[]>([]);
 
   const { caseState, addMessage, userCountry, navigationEntryPoint } = useAppContext();
 
@@ -97,6 +102,15 @@ const ClerkingScreen: React.FC = () => {
   const [inputText, setInputText] = useState("");
 
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // Detect OSCE mode from URL parameters
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'osce') {
+      setIsOSCEMode(true);
+      console.log('🩺 OSCE Mode detected - using OSCE timer');
+    }
+  }, [searchParams]);
 
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
 
@@ -411,6 +425,12 @@ const ClerkingScreen: React.FC = () => {
 
     addMessage(studentMessage);
 
+    // Track OSCE history questions
+    if (isOSCEMode) {
+      setOsceHistoryQuestions(prev => [...prev, text]);
+      console.log('🩺 OSCE History Question:', text);
+    }
+
     setInputText("");
 
     
@@ -619,12 +639,41 @@ const ClerkingScreen: React.FC = () => {
 
 
 
-  const handleTimeUp = () => {
-
-    // Optional: Add any logic when timer expires, such as auto-navigation to summary
-
+  const handleTimeUp = async () => {
     console.log('Time is up for this patient session');
+    
+    if (isOSCEMode) {
+      console.log('🩺 OSCE timer expired - caching history questions and preparing for follow-up');
+      
+      try {
+        // Cache the history questions
+        if (osceHistoryQuestions.length > 0) {
+          const response = await fetch('/api/osce/history', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId: osceSessionId || 'temp-session',
+              questions: osceHistoryQuestions
+            }),
+          });
 
+          if (response.ok) {
+            console.log('✅ OSCE history questions cached successfully');
+          } else {
+            console.error('❌ Failed to cache OSCE history questions');
+          }
+        }
+
+        // TODO: Navigate to follow-up questions page
+        // For now, just log the action
+        console.log('🩺 Ready to navigate to follow-up questions');
+        
+      } catch (error) {
+        console.error('❌ Error handling OSCE timer expiration:', error);
+      }
+    }
   };
 
 
@@ -683,7 +732,16 @@ const ClerkingScreen: React.FC = () => {
 
           <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
 
-            <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
+            {isOSCEMode ? (
+              <OSCETimer 
+                onTimeUp={handleTimeUp} 
+                onModalStateChange={handleModalStateChange}
+                autoStart={true}
+                autoStartDelay={3000}
+              />
+            ) : (
+              <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
+            )}
 
             <button 
 
