@@ -12,3 +12,4 @@ export * from './diagnosis';
 export * from './feedback';
 export * from './case-report';
 export * from './ui';
+export * from './osce';

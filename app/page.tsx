@@ -361,15 +361,15 @@ export default function HomePage() {
         <main className="flex-grow flex flex-col justify-center space-y-8 max-w-lg mx-auto w-full">
           <ActionCard
             icon="play"
-            title="Start Simulation"
+            title="Start New Case"
             subtitle="Begin a new patient case"
-            onClick={() => router.push('/departments')}
+            onClick={() => router.push('/case-type')}
           />
           <ActionCard
-            icon="target"
-            title="Practice Mode"
-            subtitle="Practice specific conditions"
-            onClick={() => router.push('/practice')}
+            icon="timer"
+            title="OSCE Mode"
+            subtitle="Practice for clinical exams"
+            onClick={() => router.push('/osce')}
           />
           <ActionCard
             icon="book"

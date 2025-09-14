@@ -6,7 +6,7 @@ import {
   Mail, Sun, Moon, Monitor, Target, Search, AlertCircle, Clock, RotateCcw,
   Scissors, Venus, MapPin, Activity, Zap, Brain, Droplets, Wind, Scan,
   Shield, Bug, Ear, Eye, ZapOff, Bone, Sparkles, Droplet, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Bookmark,
-  Chrome, Compass, Info, Image, Download, UserCheck, FileText, Microscope, ClipboardList, MessageCircle, Share2, Trash2, Calendar, Plus, Filter, Eye as EyeIcon, Drill, Copy
+  Chrome, Compass, Info, Image, Download, UserCheck, FileText, Microscope, ClipboardList, MessageCircle, Share2, Trash2, Calendar, Plus, Filter, Eye as EyeIcon, Drill, Copy, Route, Timer
 } from 'lucide-react';
 
 // Using lucide-react directly is simpler and more maintainable
@@ -93,6 +93,8 @@ export const Icon: React.FC<{ name: string; className?: string; size?: number }>
     case 'eye': return <EyeIcon {...iconProps} />;
     case 'tooth': return <Drill {...iconProps} />;
     case 'copy': return <Copy {...iconProps} />;
+    case 'route': return <Route {...iconProps} />;
+    case 'timer': return <Timer {...iconProps} />;
     // Fallback for missing icons (like 'stomach')
     case 'stomach': return <Activity {...iconProps} />; // Using activity as fallback
     case 'mind': return <Brain {...iconProps} />; // Using brain as fallback
