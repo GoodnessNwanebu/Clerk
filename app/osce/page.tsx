@@ -11,7 +11,7 @@ import { useAuthCheck } from '../../hooks/useAuthCheck';
 
 const OSCEModeScreen: React.FC = () => {
   const router = useRouter();
-  const { isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
+  const { generateOSCECase, isGeneratingCase, setNavigationEntryPoint, departments, isLoadingDepartments } = useAppContext();
   const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute } = useAuthCheck();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
@@ -21,6 +21,18 @@ const OSCEModeScreen: React.FC = () => {
   const [osceMode, setOsceMode] = useState<'simulation' | 'practice'>('simulation');
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
 
+  const startOSCECaseGeneration = async (department: Department) => {
+    try {
+      // Generate OSCE case
+      await generateOSCECase(department, osceMode, condition);
+      
+      // Navigate to OSCE clerking page
+      router.push('/clerking?mode=osce');
+    } catch (err) {
+      throw err; // Re-throw to be handled by the calling function
+    }
+  };
+
   const handleDirectStartOSCE = async (department: Department) => {
     if (osceMode === 'practice' && !condition.trim()) {
       setError('Please enter a condition or custom case.');
@@ -29,12 +41,11 @@ const OSCEModeScreen: React.FC = () => {
 
     setError(null);
     try {
-      // TODO: Implement OSCE case generation
       console.log('Starting OSCE with:', { department, osceMode, condition, difficulty });
       
-      // For now, navigate to clerking page with OSCE mode
+      // Start OSCE case generation directly
       setNavigationEntryPoint('/osce');
-      router.push('/clerking?mode=osce');
+      await startOSCECaseGeneration(department);
     } catch (err) {
       if (err instanceof Error) {
         setError("We couldn't create your OSCE case right now. Please try again.");

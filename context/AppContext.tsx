@@ -48,6 +48,11 @@ interface AppContextType {
     condition: string,
     difficulty?: DifficultyLevel
   ) => Promise<void>;
+  generateOSCECase: (
+    department: Department,
+    osceMode?: 'simulation' | 'practice',
+    practiceCondition?: string
+  ) => Promise<void>;
   resumeCase: (caseId: string) => Promise<boolean>;
   addMessage: (message: Message) => void;
   setPreliminaryData: (
@@ -409,6 +414,83 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         setIsGeneratingCase(false);
     }
     },
+    [userCountry]
+  );
+
+  const generateOSCECase = useCallback(
+    async (
+      department: Department,
+      osceMode: 'simulation' | 'practice' = 'simulation',
+      practiceCondition?: string
+    ) => {
+    setIsGeneratingCase(true);
+    try {
+        // Use the OSCE case generation endpoint
+        const response = await fetch('/api/ai/generate-osce-case', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            department: department.name,
+            osceMode,
+            practiceCondition,
+            difficulty: 'standard', // OSCE cases use standard difficulty
+            userCountry: userCountry || undefined
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to generate an OSCE case for ${department.name}`
+          );
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(
+            `Failed to generate an OSCE case for ${department.name}`
+          );
+        }
+
+        // Initialize localStorage for this case (secondary context only)
+        const storage = new ConversationStorage(result.case.id);
+        setConversationStorage(storage);
+        
+        // Create initial case state with secondary context only
+        // Primary context comes from JWT cookies
+        
+        // For OSCE cases, we'll use the AI-generated opening line
+        const openingMessage = `The patient is here today with the following complaints\n"${result.case.openingLine}"`;
+        
+        const newCaseState = {
+          ...initialCaseState,
+          department: department.name,
+          caseId: result.case.id,
+          sessionId: result.case.sessionId,
+          caseDetails: null, // Primary context is in cache
+          messages: [
+            {
+              sender: "system" as const,
+              text: openingMessage,
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+        
+        setCaseState(newCaseState);
+        
+        // Save initial state to localStorage (secondary context only)
+        storage.saveConversation(newCaseState.messages, newCaseState);
+    } catch (error) {
+        console.error("Error in generateOSCECase:", error);
+        // Rethrow the error to be caught by the caller UI
+        throw error;
+    } finally {
+        setIsGeneratingCase(false);
+    }
+  },
     [userCountry]
   );
   
@@ -822,6 +904,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     generateNewCase, 
     generateNewCaseWithDifficulty, 
     generatePracticeCase, 
+    generateOSCECase,
     resumeCase,
     addMessage, 
     setPreliminaryData, 

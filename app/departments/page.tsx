@@ -45,6 +45,7 @@ const DepartmentSelectionScreen: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
 
+
   const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
     try {
