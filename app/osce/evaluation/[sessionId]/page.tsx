@@ -20,7 +20,15 @@ const EvaluationPage: React.FC<EvaluationPageProps> = () => {
   useEffect(() => {
     const loadEvaluation = async () => {
       try {
-        const response = await fetch(`/api/osce/evaluation?sessionId=${sessionId}`);
+        const response = await fetch(`/api/ai/evaluate-osce-performance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId: sessionId,
+          }),
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -194,7 +202,7 @@ const EvaluationPage: React.FC<EvaluationPageProps> = () => {
                 <div key={index} className="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
                   <div className="mb-3">
                     <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Question {index + 1}:</span>
-                    <p className="text-slate-700 dark:text-slate-300 mt-1 font-medium">{correction.questionId}</p>
+                    <p className="text-slate-700 dark:text-slate-300 mt-1 font-medium">{correction.question}</p>
                   </div>
                   
                   <div className="space-y-3">

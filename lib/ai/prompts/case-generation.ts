@@ -136,6 +136,113 @@ ${isPediatric ? `
 Generate the complete JSON output for this clinical case, ensuring all instructions, especially those for patient profile diversity, location realism, and **diagnostic variety**, are strictly followed.`;
 };
 
+export const generateOSCECasePrompt = (
+    departmentName: string,
+    randomBucket: string, 
+    timeContext: string, 
+    locationPrompt: string, 
+    surgicalPrompt: string, 
+    pediatricPrompt: string, 
+    isPediatric: boolean, 
+    isSurgical: boolean,
+    difficulty: DifficultyLevel,
+    specificPatientProfileRequest?: string,
+    specificDiagnosisRequest?: string
+) => {
+    const difficultyPrompt = getDifficultyPrompt(difficulty);
+    
+    return `You are an experienced clinical educator creating realistic OSCE (Objective Structured Clinical Examination) cases for medical students. Your goal is to create cases that are:
+- Educationally valuable and clinically relevant
+- Solvable by medical students with proper history taking and examination
+- Realistic and authentic to real clinical practice
+- Appropriate for the student's learning level
+
+Your task is to generate a detailed OSCE case for medical students in the **'${departmentName}'** department, focusing on the **"${randomBucket}"** pathophysiology category.
+
+${timeContext}
+${locationPrompt}
+${surgicalPrompt}
+${pediatricPrompt}
+${difficultyPrompt ? `\n\n${difficultyPrompt}` : ''}
+
+CRITICAL GUIDELINES FOR PATIENT PROFILE DIVERSITY AND AVOIDING STEREOTYPES:
+1.  **Do NOT Stereotype by Location:** For any given 'LOCATION' (e.g., Nigeria), **absolutely do not default** to specific 'educationLevel', 'healthLiteracy', or 'occupation' stereotypes (e.g., do not always choose 'basic' education or 'market trader' for Nigeria).
+2.  **Actively Vary Patient Profiles:** Ensure a realistic and diverse distribution of patient profiles across requests, especially for the same location. This includes, but is not limited to:
+    *   **Education Levels:** From basic/primary school to well-informed/postgraduate degrees.
+    *   **Health Literacy:** From minimal understanding to high medical knowledge.
+    *   **Occupations:** Include a wide range, such as university lecturers, doctors, engineers, bankers, accountants, IT specialists, civil servants (all levels), architects, business owners (small to large scale), students, retired executives, as well as artisans, traders, farmers, teachers, taxi/bus drivers, factory workers, etc.
+    *   **Socioeconomic Status:** Imply variety through the chosen occupation, residence (as described by the patient), and lifestyle factors.
+3.  **Location-Specific Realism:** When describing locations, ensure they are authentic and realistic for the specified region, including local landmarks, hospitals, and cultural context.
+4.  **Diagnostic Variety:** Ensure different cases present with varied symptoms, severity, and presentations within the same pathophysiological category to avoid predictable patterns.
+
+${specificPatientProfileRequest ? `SPECIFIC PATIENT PROFILE REQUEST: ${specificPatientProfileRequest}` : ''}
+${specificDiagnosisRequest ? `SPECIFIC DIAGNOSIS REQUEST: ${specificDiagnosisRequest}` : ''}
+
+PATIENT COMMUNICATION GUIDELINES:
+- Patients use lay terms, not medical terminology
+- Medications are described in common terms (e.g., "blood pressure pills", "diabetes medicine")
+- Symptoms are described naturally (e.g., "chest pain", "shortness of breath")
+- Avoid patients using exact drug names or dosages unless they have high health literacy or in a specific situation where its a routine medication
+- Match communication style to education level and health literacy
+
+EXAMPLES by category (DON'T LIMIT YOURSELF TO THESE):
+- Vascular: MI, Stroke, PVD${departmentName.toLowerCase().includes('cardiothoracic') ? ', Aortic Aneurysm, CAD' : ''}
+- Infectious/Inflammatory: Pneumonia, Sepsis, Gastroenteritis${departmentName.toLowerCase().includes('surgery') ? ', Appendicitis, Cholecystitis' : ''}
+- Neoplastic: Breast Cancer, Lung Cancer, Lymphoma
+- Degenerative: Osteoarthritis, Alzheimer's, Parkinson's
+- Autoimmune: RA, SLE, Multiple Sclerosis
+- Trauma/Mechanical: Fractures, Head Trauma${departmentName.toLowerCase().includes('surgery') ? ', Bowel Obstruction' : ''}
+- Endocrine/Metabolic: Diabetes, Thyroid Disease, Electrolyte Imbalances
+- Psychiatric/Functional: Depression, Anxiety, Functional Disorders
+
+OSCE FOLLOW-UP QUESTIONS REQUIREMENT:
+After generating the case, you must also generate exactly 10 follow-up questions that a medical student should be able to answer after taking this patient's history. These questions should test:
+
+1. **Diagnostic reasoning** - what is the diagnosis and understanding the condition
+2. **Management principles** - treatment approaches  
+3. **Investigations** - appropriate tests/workup
+4. **Complications** - potential problems
+5. **Clinical reasoning** - risk factors, social factors, and reasoning based on the history taken
+
+**IMPORTANT:** The first question must always ask about the student's diagnosis for this case.
+
+OUTPUT: ${isPediatric ? 
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "isPediatric": true, "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}, "followUpQuestions": [{"id": string, "question": string, "category": "diagnosis"|"management"|"investigation"|"complications"|"clinical reasoning", "correctAnswer": string, "explanation": string}]}` :
+`{"diagnosis": string, "primaryInfo": string, "openingLine": string, "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "followUpQuestions": [{"id": string, "question": string, "category": "diagnosis"|"management"|"investigation"|"complications"|"clinical reasoning", "correctAnswer": string, "explanation": string}]}`}
+
+CRITICAL JSON FORMATTING RULES:
+- ALL FIELDS ARE REQUIRED - DO NOT OMIT ANY FIELD
+- ESCAPE ALL QUOTES in primaryInfo and openingLine fields using backslash: \" instead of "
+- Use single quotes for patient quotes within text: 'patient said this' instead of "patient said this"
+- Ensure all JSON is properly formatted with no unescaped quotes
+- followUpQuestions array must contain exactly 10 questions
+
+- "diagnosis": Most likely diagnosis fitting ${randomBucket} category
+- "primaryInfo": Detailed clinical history with markdown headings:
+  * ## BIODATA ${isPediatric ? '(child age, parent)' : ''}
+  * ## Presenting Complaint
+  * ## History of Presenting Complaint
+  * ## Past Medical/Surgical History
+  * ## Drug History
+  * ## Family History
+  * ## Social History (INCLUDE SPECIFIC LOCATION: city, neighborhood, landmark, local hospital)
+  * ## Review of Systems
+  
+- "openingLine": REQUIRED - Natural first-person statement ${isPediatric ? 'from parent/child' : 'from patient'} that will be the patient's first words in the consultation
+${isPediatric ? `
+- "pediatricProfile": {"patientAge": number, "ageGroup": string, "respondingParent": "mother"|"father", "parentProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}, "developmentalStage": string, "communicationLevel": string}` : `
+- "patientProfile": {"educationLevel": "basic"|"moderate"|"well-informed", "healthLiteracy": "minimal"|"average"|"high", "occupation": string, "recordKeeping": "detailed"|"basic"|"minimal"}`}
+
+- "followUpQuestions": Array of exactly 10 questions with:
+  - "id": Unique identifier for each question (e.g., "q1", "q2", etc.)
+  - "question": The question text
+  - "category": One of "diagnosis", "management", "investigation", "complications", "clinical reasoning"
+  - "correctAnswer": The correct answer to the question
+  - "explanation": Brief explanation supporting the correct answer
+
+Generate the complete JSON output for this OSCE case including both the clinical case and follow-up questions, ensuring all instructions are strictly followed.`;
+};
+
 export const getLocationPrompt = (userCountry?: string) => {
     return userCountry 
         ? `LOCATION: ${userCountry}

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { auth } from '../../../../lib/auth';
 import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
+import type { OSCEEvaluation } from '../../../../types/osce';
 
 interface EvaluateOSCEPerformanceRequest {
+  sessionId: string;
   originalCase: {
     department: string;
     patientProfile: any;
@@ -12,6 +14,7 @@ interface EvaluateOSCEPerformanceRequest {
   };
   historyQuestions: string[];
   followUpAnswers: {
+    questionId: string;
     question: string;
     answer: string;
     category: string;
@@ -42,7 +45,7 @@ interface OSCEFeedback {
 
 interface EvaluateOSCEPerformanceResponse {
   success: boolean;
-  feedback: OSCEFeedback;
+  feedback: OSCEEvaluation;
   error?: string;
 }
 
@@ -57,40 +60,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { originalCase, historyQuestions, followUpAnswers, studentDiagnosis }: EvaluateOSCEPerformanceRequest = await request.json();
+    const { sessionId }: { sessionId: string } = await request.json();
     
-    console.log('📊 OSCE Performance evaluation request:', { 
-      department: originalCase.department,
-      historyQuestionsCount: historyQuestions.length,
-      followUpAnswersCount: followUpAnswers.length
-    });
+    console.log('📊 OSCE Performance evaluation request for session:', sessionId);
 
     // Validate required fields
-    if (!originalCase || !historyQuestions || !followUpAnswers || !studentDiagnosis) {
+    if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: originalCase, historyQuestions, followUpAnswers, studentDiagnosis' },
+        { success: false, error: 'Missing required field: sessionId' },
         { status: 400 }
       );
     }
 
-    // Generate evaluation prompt
+    // Retrieve cached follow-up questions and other session data
+    const { getOSCEFollowUpQuestions, getOSCESessionData } = await import('../../../../lib/cache/osce-cache');
+    const cachedQuestions = await getOSCEFollowUpQuestions(sessionId);
+    const sessionData = await getOSCESessionData(sessionId);
+    
+    if (!cachedQuestions || cachedQuestions.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Follow-up questions not found for this session' },
+        { status: 404 }
+      );
+    }
+
+    // Generate evaluation prompt using cached data
     const prompt = `
 You are an expert medical educator evaluating an OSCE (Objective Structured Clinical Examination) performance.
 
 **Case Details:**
-- Department: ${originalCase.department}
-- Target Diagnosis: ${originalCase.targetDiagnosis}
-- Key History Points: ${originalCase.keyHistoryPoints.join(', ')}
+- Session ID: ${sessionId}
+- Follow-up Questions Count: ${cachedQuestions.length}
 
-**Student's Performance:**
-
-**History Taking Questions Asked:**
-${historyQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
-
-**Follow-up Question Answers:**
-${followUpAnswers.map((qa, i) => `${i + 1}. Q: ${qa.question}\n   A: ${qa.answer}\n   Category: ${qa.category}`).join('\n\n')}
-
-**Student's Diagnosis:** ${studentDiagnosis}
+**Student's Follow-up Question Answers:**
+${cachedQuestions.map((q, i) => `${i + 1}. Q: ${q.question}\n   A: ${q.studentAnswer || 'No answer provided'}\n   Category: ${q.category}`).join('\n\n')}
 
 **Evaluation Criteria (Total: 100 points):**
 
@@ -163,6 +166,47 @@ Evaluate the performance now:`;
     // Parse the JSON response
     const feedback = parseJsonResponse<OSCEFeedback>(responseText, 'OSCE Evaluation');
     
+    // Generate followUpCorrections using pre-generated correct answers from cached questions
+    let followUpCorrections: Array<{
+      questionId: string;
+      question: string;
+      studentAnswer: string;
+      correctAnswer: string;
+      explanation: string;
+    }> = [];
+    
+    if (cachedQuestions && cachedQuestions.length > 0) {
+      followUpCorrections = cachedQuestions.map((question) => {
+        return {
+          questionId: question.id,
+          question: question.question,
+          studentAnswer: question.studentAnswer || 'No answer provided',
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation
+        };
+      });
+    }
+    
+    // Create OSCEEvaluation structure
+    const evaluation: OSCEEvaluation = {
+      sessionId: sessionId,
+      scores: {
+        historyTakingStructure: feedback.scoreBreakdown.historyStructure,
+        questionRelevance: feedback.scoreBreakdown.questionRelevance,
+        historyCoverage: feedback.scoreBreakdown.coverage,
+        diagnosticAccuracy: feedback.scoreBreakdown.diagnosticAccuracy,
+        followUpQuestions: 0, // Will be calculated based on follow-up answers
+        overallScore: feedback.overallScore
+      },
+      feedback: {
+        strengths: feedback.strengths,
+        weaknesses: feedback.areasForImprovement, // Map areasForImprovement to weaknesses
+        recommendations: feedback.recommendations,
+        followUpCorrections: followUpCorrections
+      },
+      completedAt: new Date().toISOString()
+    };
+    
     // Validate feedback structure
     if (!feedback.overallScore || !feedback.scoreBreakdown || !feedback.strengths || !feedback.areasForImprovement) {
       throw new Error('Invalid feedback structure: missing required fields');
@@ -185,13 +229,14 @@ Evaluate the performance now:`;
     }
 
     console.log('✅ Successfully evaluated OSCE performance:', {
-      overallScore: feedback.overallScore,
-      breakdown: feedback.scoreBreakdown
+      overallScore: evaluation.scores.overallScore,
+      breakdown: evaluation.scores,
+      followUpCorrectionsCount: evaluation.feedback.followUpCorrections.length
     });
 
     return NextResponse.json({
       success: true,
-      feedback: feedback
+      feedback: evaluation
     } as EvaluateOSCEPerformanceResponse);
 
   } catch (error) {

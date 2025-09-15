@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { auth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/database/prisma';
-import { Case, DifficultyLevel } from '../../../../types';
+import { Case, OSCECase, DifficultyLevel } from '../../../../types';
 import { getTimeContext } from '../../../../lib/shared/timeContext';
 import { ai, MODEL, MEDICAL_BUCKETS, getBucketForDepartment, parseJsonResponse, handleApiError } from '../../../../lib/ai/ai-utils';
 import { 
     generateCasePrompt, 
+    generateOSCECasePrompt,
     getDifficultyPrompt, 
     getLocationPrompt, 
     getSurgicalPrompt, 
@@ -178,7 +179,7 @@ OSCE SPECIFIC REQUIREMENTS:
             const subspecialtyContext = selectedSubspecialty ? 
                 `\n\nSUBSCRIPTY CONTEXT: This case should be specifically tailored for ${selectedSubspecialty} subspecialty within ${departmentRecord.name}. Focus on conditions and presentations commonly seen in ${selectedSubspecialty}.` : '';
             
-            userMessage = generateCasePrompt(
+            userMessage = generateOSCECasePrompt(
                 departmentRecord.name, 
                 randomBucket, 
                 timeContext.formattedContext, 
@@ -200,7 +201,7 @@ OSCE SPECIFIC REQUIREMENTS:
         
         console.log('🤖 AI Response for OSCE case:', response.text);
         
-        const caseData = parseJsonResponse<Case>(response.text, context);
+        const caseData = parseJsonResponse<OSCECase>(response.text, context);
         
         console.log('📋 Parsed OSCE case data:', {
             diagnosis: caseData.diagnosis,
@@ -337,40 +338,20 @@ OSCE SPECIFIC REQUIREMENTS:
         
         console.log('✅ OSCE Case created with ID:', caseRecord.id);
 
-        // Generate OSCE follow-up questions asynchronously (5-minute timer gives plenty of time)
-        console.log('🩺 Scheduling OSCE follow-up questions generation in background...');
-        setImmediate(async () => {
-            try {
-                const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-                const followUpResponse = await fetch(`${baseUrl}/api/ai/generate-osce-questions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        caseHistory: caseData.primaryInfo,
-                        diagnosis: caseData.diagnosis,
-                        department: department
-                    }),
-                });
-
-                if (followUpResponse.ok) {
-                    const followUpData = await followUpResponse.json();
-                    if (followUpData.success && followUpData.questions) {
-                        // Cache the follow-up questions
-                        const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
-                        await cacheOSCEFollowUpQuestions(sessionId, followUpData.questions);
-                        console.log('✅ OSCE follow-up questions generated and cached in background');
-                    } else {
-                        console.warn('⚠️ Failed to generate OSCE follow-up questions in background - invalid response');
-                    }
-                } else {
-                    console.warn('⚠️ Failed to generate OSCE follow-up questions in background - HTTP error');
-                }
-            } catch (error) {
-                console.error('❌ Error generating OSCE follow-up questions in background:', error);
+        // Cache the follow-up questions that were generated with the case
+        console.log('🩺 Caching OSCE follow-up questions...');
+        try {
+            if (caseData.followUpQuestions && caseData.followUpQuestions.length > 0) {
+                const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
+                await cacheOSCEFollowUpQuestions(sessionId, caseData.followUpQuestions);
+                console.log('✅ OSCE follow-up questions cached successfully');
+            } else {
+                console.warn('⚠️ No follow-up questions found in case data');
             }
-        });
+        } catch (error) {
+            console.error('❌ Error caching OSCE follow-up questions:', error);
+            // Don't fail the entire case creation if follow-up questions caching fails
+        }
 
         // Create primary context
         const primaryContext: PrimaryContext = {

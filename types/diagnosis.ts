@@ -5,6 +5,7 @@ import type { Message } from './conversation';
 import type { ExaminationResult } from './examination';
 import type { InvestigationResult } from './investigation';
 import type { Feedback, ComprehensiveFeedback } from './feedback';
+import type { OSCEFollowUpQuestion } from './osce';
 
 interface Case {
   diagnosis: string;
@@ -13,6 +14,10 @@ interface Case {
   patientProfile?: PatientProfile;
   pediatricProfile?: PediatricProfile; // For pediatric cases
   isPediatric?: boolean;
+}
+
+interface OSCECase extends Case {
+  followUpQuestions: OSCEFollowUpQuestion[];
 }
 
 interface PrimaryContext {
@@ -40,6 +45,7 @@ interface SecondaryContext {
 
 export type {
   Case,
+  OSCECase,
   PrimaryContext,
   SecondaryContext
 };

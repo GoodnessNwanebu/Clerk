@@ -27,7 +27,9 @@ export interface OSCESession {
 export interface OSCEFollowUpQuestion {
   id: string;
   question: string;
-  expectedAnswer: string;
+  category: 'diagnosis' | 'management' | 'investigation' | 'complications' | 'clinical reasoning';
+  correctAnswer: string;
+  explanation: string;
   isAnswered: boolean;
   studentAnswer?: string;
   isCorrect?: boolean;
@@ -51,6 +53,7 @@ export interface OSCEEvaluation {
     recommendations: string[];
     followUpCorrections: Array<{
       questionId: string;
+      question: string;
       studentAnswer: string;
       correctAnswer: string;
       explanation: string;
