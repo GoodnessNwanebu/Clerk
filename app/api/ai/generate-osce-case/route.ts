@@ -338,20 +338,6 @@ OSCE SPECIFIC REQUIREMENTS:
         
         console.log('✅ OSCE Case created with ID:', caseRecord.id);
 
-        // Cache the follow-up questions that were generated with the case
-        console.log('🩺 Caching OSCE follow-up questions...');
-        try {
-            if (caseData.followUpQuestions && caseData.followUpQuestions.length > 0) {
-                const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
-                await cacheOSCEFollowUpQuestions(sessionId, caseData.followUpQuestions);
-                console.log('✅ OSCE follow-up questions cached successfully');
-            } else {
-                console.warn('⚠️ No follow-up questions found in case data');
-            }
-        } catch (error) {
-            console.error('❌ Error caching OSCE follow-up questions:', error);
-            // Don't fail the entire case creation if follow-up questions caching fails
-        }
 
         // Create primary context
         const primaryContext: PrimaryContext = {
@@ -380,6 +366,21 @@ OSCE SPECIFIC REQUIREMENTS:
         console.log('✅ OSCE Session created successfully');
         console.log('🔐 Session ID:', sessionId);
         console.log('🔐 Session expires at:', expiresAt);
+
+        // Cache the follow-up questions that were generated with the case
+        console.log('🩺 Caching OSCE follow-up questions...');
+        try {
+            if (caseData.followUpQuestions && caseData.followUpQuestions.length > 0) {
+                const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
+                await cacheOSCEFollowUpQuestions(sessionId, caseData.followUpQuestions);
+                console.log('✅ OSCE follow-up questions cached successfully');
+            } else {
+                console.warn('⚠️ No follow-up questions found in case data');
+            }
+        } catch (error) {
+            console.error('❌ Error caching OSCE follow-up questions:', error);
+            // Don't fail the entire case creation if follow-up questions caching fails
+        }
 
         // Cache primary context
         console.log('💾 Caching OSCE primary context...');
