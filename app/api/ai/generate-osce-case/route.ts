@@ -337,11 +337,12 @@ OSCE SPECIFIC REQUIREMENTS:
         
         console.log('✅ OSCE Case created with ID:', caseRecord.id);
 
-        // Generate OSCE follow-up questions in background (non-blocking)
+        // Generate OSCE follow-up questions asynchronously (5-minute timer gives plenty of time)
         console.log('🩺 Scheduling OSCE follow-up questions generation in background...');
         setImmediate(async () => {
             try {
-                const followUpResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai/generate-osce-questions`, {
+                const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+                const followUpResponse = await fetch(`${baseUrl}/api/ai/generate-osce-questions`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -360,9 +361,11 @@ OSCE SPECIFIC REQUIREMENTS:
                         const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
                         await cacheOSCEFollowUpQuestions(sessionId, followUpData.questions);
                         console.log('✅ OSCE follow-up questions generated and cached in background');
+                    } else {
+                        console.warn('⚠️ Failed to generate OSCE follow-up questions in background - invalid response');
                     }
                 } else {
-                    console.warn('⚠️ Failed to generate OSCE follow-up questions in background');
+                    console.warn('⚠️ Failed to generate OSCE follow-up questions in background - HTTP error');
                 }
             } catch (error) {
                 console.error('❌ Error generating OSCE follow-up questions in background:', error);

@@ -110,6 +110,8 @@ const ClerkingScreen: React.FC = () => {
       // Use the case session ID as the OSCE session ID
       setOsceSessionId(caseState.sessionId);
       console.log('🩺 OSCE Mode detected - using OSCE timer');
+      console.log('🩺 Case State Session ID:', caseState.sessionId);
+      console.log('🩺 OSCE Session ID set to:', caseState.sessionId);
     }
   }, [searchParams, caseState.sessionId]);
 
@@ -669,6 +671,10 @@ const ClerkingScreen: React.FC = () => {
 
         // Navigate to follow-up questions page
         console.log('🩺 Navigating to follow-up questions');
+        console.log('🩺 Using OSCE Session ID:', osceSessionId);
+        if (!osceSessionId) {
+          console.error('❌ OSCE Session ID is null - this will cause follow-up questions to fail');
+        }
         router.push(`/osce/follow-up/${osceSessionId || 'temp-session'}`);
         
       } catch (error) {
@@ -747,7 +753,13 @@ const ClerkingScreen: React.FC = () => {
 
                 // Primary context is secured in JWT cookies
 
-                router.push('/summary');
+                // In OSCE mode, navigate to follow-up questions instead of summary
+                if (isOSCEMode && osceSessionId) {
+                  console.log('🩺 OSCE Mode: Navigating to follow-up questions');
+                  router.push(`/osce/follow-up/${osceSessionId}`);
+                } else {
+                  router.push('/summary');
+                }
 
               }} 
 

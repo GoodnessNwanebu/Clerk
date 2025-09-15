@@ -4,6 +4,9 @@ import type { OSCESession, OSCEFollowUpQuestion, OSCEEvaluation } from '../../ty
 // Cache TTL: 2 hours (longer than regular cases since OSCE sessions are longer)
 const OSCE_CACHE_TTL = 7200; // seconds
 
+// localStorage prefix for OSCE data
+const OSCE_STORAGE_PREFIX = 'clerksmart_osce_';
+
 /**
  * Generate cache keys for OSCE data
  */
@@ -115,6 +118,7 @@ export async function cacheOSCEFollowUpQuestions(
 ): Promise<void> {
   const cacheKey = getOSCEFollowUpKey(sessionId);
   
+  // Store in Next.js cache
   const cache = unstable_cache(
     async () => questions,
     [cacheKey],
@@ -125,10 +129,51 @@ export async function cacheOSCEFollowUpQuestions(
   );
 
   await cache();
+  
+  // Also store in localStorage for persistence
+  if (typeof window !== 'undefined') {
+    try {
+      const storageKey = `${OSCE_STORAGE_PREFIX}followup_${sessionId}`;
+      localStorage.setItem(storageKey, JSON.stringify({
+        questions,
+        cachedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + OSCE_CACHE_TTL * 1000).toISOString()
+      }));
+      console.log(`✅ Stored OSCE follow-up questions in localStorage for session: ${sessionId}`);
+    } catch (error) {
+      console.warn('Failed to store OSCE follow-up questions in localStorage:', error);
+    }
+  }
+  
   console.log(`✅ Cached OSCE follow-up questions for session: ${sessionId}`);
 }
 
 export async function getOSCEFollowUpQuestions(sessionId: string): Promise<OSCEFollowUpQuestion[] | null> {
+  // First try localStorage (client-side)
+  if (typeof window !== 'undefined') {
+    try {
+      const storageKey = `${OSCE_STORAGE_PREFIX}followup_${sessionId}`;
+      const stored = localStorage.getItem(storageKey);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        
+        // Check if localStorage data has expired
+        if (new Date(parsed.expiresAt) > new Date()) {
+          console.log(`✅ Retrieved OSCE follow-up questions from localStorage for session: ${sessionId}`);
+          return parsed.questions;
+        } else {
+          // Remove expired data
+          localStorage.removeItem(storageKey);
+          console.log(`❌ OSCE follow-up questions in localStorage expired for session: ${sessionId}`);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to retrieve OSCE follow-up questions from localStorage:', error);
+    }
+  }
+  
+  // Fallback to Next.js cache (server-side or localStorage miss)
   const cacheKey = getOSCEFollowUpKey(sessionId);
   
   try {
@@ -142,7 +187,13 @@ export async function getOSCEFollowUpQuestions(sessionId: string): Promise<OSCEF
     );
 
     const questions = await cache();
-    return questions;
+    if (questions) {
+      console.log(`✅ Retrieved OSCE follow-up questions from cache for session: ${sessionId}`);
+      return questions;
+    }
+    
+    console.log(`❌ No cached OSCE follow-up questions found for session: ${sessionId}`);
+    return null;
   } catch (error) {
     console.error(`❌ Error retrieving OSCE follow-up questions for session ${sessionId}:`, error);
     return null;
@@ -170,7 +221,20 @@ export async function updateOSCEFollowUpAnswer(
   questions[questionIndex].studentAnswer = answer;
   questions[questionIndex].isAnswered = true;
 
-  await cacheOSCEFollowUpQuestions(sessionId, questions);
+  // Update localStorage with modified questions
+  if (typeof window !== 'undefined') {
+    try {
+      const storageKey = `${OSCE_STORAGE_PREFIX}followup_${sessionId}`;
+      localStorage.setItem(storageKey, JSON.stringify({
+        questions,
+        cachedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + OSCE_CACHE_TTL * 1000).toISOString()
+      }));
+    } catch (error) {
+      console.warn('Failed to update OSCE follow-up questions in localStorage:', error);
+    }
+  }
+  
   console.log(`✅ Updated follow-up answer for question ${questionId} in session: ${sessionId}`);
 }
 
