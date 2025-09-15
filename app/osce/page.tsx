@@ -100,8 +100,11 @@ const OSCEModeScreen: React.FC = () => {
         onClose={hideAuthModal}
         message={authMessage}
       />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300 flex flex-col">
-        <div className="max-w-4xl mx-auto flex-1 flex flex-col">
+      <div 
+        className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300 flex flex-col"
+        style={{ height: '100vh', maxHeight: '100vh' }}
+      >
+        <div className="max-w-4xl mx-auto flex-1 flex flex-col overflow-hidden">
           <header className="flex items-center justify-between mb-8">
             <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
               <Icon name="arrow-left" size={24} />
@@ -110,7 +113,7 @@ const OSCEModeScreen: React.FC = () => {
             <div className="w-8"></div>
           </header>
 
-          <main className="flex-1 space-y-8">
+          <main className="flex-1 space-y-8 overflow-y-auto">
             {/* Introduction */}
             <div className="text-center space-y-2">
               
