@@ -52,9 +52,10 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
 
   // Auto-start countdown for OSCE mode
   useEffect(() => {
-    if (isOSCEMode && !isRunning && !isCountdown) {
+    if (isOSCEMode && !isRunning) {
       // Set countdown mode and auto-start after 3 seconds
       setIsCountdown(true);
+      setRemainingSeconds(300); // 5 minutes
       autoStartTimeoutRef.current = setTimeout(() => {
         setIsRunning(true);
         console.log('🩺 OSCE Timer auto-started after 3 seconds');
@@ -66,7 +67,7 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
         clearTimeout(autoStartTimeoutRef.current);
       }
     };
-  }, [isOSCEMode, isRunning, isCountdown]);
+  }, [isOSCEMode, isRunning]);
 
   useEffect(() => {
     if (isRunning) {
@@ -223,33 +224,37 @@ export const ClerkingTimer: React.FC<ClerkingTimerProps> = ({ onTimeUp, onModalS
               </div>
             )}
 
-            {/* Controls */}
-            <div className="flex space-x-2 mb-3">
-              <button
-                onClick={handleToggleTimer}
-                className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium text-sm transition-all ${
-                  isRunning
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                    : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:scale-105'
-                }`}
-              >
-                {isRunning ? 'Pause' : 'Start'}
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-2 sm:px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                <Icon name="rotate-ccw" size={14} className="sm:w-4 sm:h-4" />
-              </button>
-            </div>
+            {/* Controls - hidden in OSCE mode */}
+            {!isOSCEMode && (
+              <>
+                <div className="flex space-x-2 mb-3">
+                  <button
+                    onClick={handleToggleTimer}
+                    className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium text-sm transition-all ${
+                      isRunning
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                        : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:scale-105'
+                    }`}
+                  >
+                    {isRunning ? 'Pause' : 'Start'}
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="px-2 sm:px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <Icon name="rotate-ccw" size={14} className="sm:w-4 sm:h-4" />
+                  </button>
+                </div>
 
-            {/* Mode toggle */}
-            <button
-              onClick={handleModeToggle}
-              className="w-full py-1.5 sm:py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-teal-500 dark:hover:text-teal-400 transition-colors border-t border-slate-200 dark:border-slate-600 pt-2"
-            >
-              Switch to {isCountdown ? 'Stopwatch' : 'Countdown'} Mode
-            </button>
+                {/* Mode toggle */}
+                <button
+                  onClick={handleModeToggle}
+                  className="w-full py-1.5 sm:py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-teal-500 dark:hover:text-teal-400 transition-colors border-t border-slate-200 dark:border-slate-600 pt-2"
+                >
+                  Switch to {isCountdown ? 'Stopwatch' : 'Countdown'} Mode
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
