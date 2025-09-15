@@ -337,6 +337,38 @@ OSCE SPECIFIC REQUIREMENTS:
         
         console.log('✅ OSCE Case created with ID:', caseRecord.id);
 
+        // Generate OSCE follow-up questions in background (non-blocking)
+        console.log('🩺 Scheduling OSCE follow-up questions generation in background...');
+        setImmediate(async () => {
+            try {
+                const followUpResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai/generate-osce-questions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        caseHistory: caseData.primaryInfo,
+                        diagnosis: caseData.diagnosis,
+                        department: department
+                    }),
+                });
+
+                if (followUpResponse.ok) {
+                    const followUpData = await followUpResponse.json();
+                    if (followUpData.success && followUpData.questions) {
+                        // Cache the follow-up questions
+                        const { cacheOSCEFollowUpQuestions } = await import('../../../../lib/cache/osce-cache');
+                        await cacheOSCEFollowUpQuestions(sessionId, followUpData.questions);
+                        console.log('✅ OSCE follow-up questions generated and cached in background');
+                    }
+                } else {
+                    console.warn('⚠️ Failed to generate OSCE follow-up questions in background');
+                }
+            } catch (error) {
+                console.error('❌ Error generating OSCE follow-up questions in background:', error);
+            }
+        });
+
         // Create primary context
         const primaryContext: PrimaryContext = {
             diagnosis: caseData.diagnosis,

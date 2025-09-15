@@ -100,8 +100,8 @@ const OSCEModeScreen: React.FC = () => {
         onClose={hideAuthModal}
         message={authMessage}
       />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-6 transition-colors duration-300 flex flex-col">
+        <div className="max-w-4xl mx-auto flex-1 flex flex-col">
           <header className="flex items-center justify-between mb-8">
             <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
               <Icon name="arrow-left" size={24} />
@@ -110,7 +110,7 @@ const OSCEModeScreen: React.FC = () => {
             <div className="w-8"></div>
           </header>
 
-          <main className="space-y-8">
+          <main className="flex-1 space-y-8">
             {/* Introduction */}
             <div className="text-center space-y-2">
               
@@ -353,25 +353,6 @@ const OSCEModeScreen: React.FC = () => {
               </>
             )}
 
-            {/* Start Button */}
-            <button
-              onClick={handleStartOSCE}
-              disabled={!selectedDepartment || (osceMode === 'practice' && !condition.trim()) || isGeneratingCase}
-              className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2"
-            >
-              {isGeneratingCase ? (
-                <>
-                  <Icon name="loader-2" size={20} className="animate-spin" />
-                  <span>Generating OSCE Case...</span>
-                </>
-              ) : (
-                <>
-                  <Icon name="play" size={20} />
-                  <span>Start Station</span>
-                </>
-              )}
-            </button>
-
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">
@@ -387,9 +368,28 @@ const OSCEModeScreen: React.FC = () => {
                 </div>
               </div>
             )}
-
-            
           </main>
+        </div>
+        
+        {/* Fixed Bottom Button */}
+        <div className="max-w-4xl mx-auto w-full px-6 pb-6">
+          <button
+            onClick={handleStartOSCE}
+            disabled={!selectedDepartment || (osceMode === 'practice' && !condition.trim()) || isGeneratingCase}
+            className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2"
+          >
+            {isGeneratingCase ? (
+              <>
+                <Icon name="loader-2" size={20} className="animate-spin" />
+                <span>Generating OSCE Case...</span>
+              </>
+            ) : (
+              <>
+                <Icon name="play" size={20} />
+                <span>Start Station</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </>

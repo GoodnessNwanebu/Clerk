@@ -107,9 +107,11 @@ const ClerkingScreen: React.FC = () => {
     const mode = searchParams.get('mode');
     if (mode === 'osce') {
       setIsOSCEMode(true);
+      // Use the case session ID as the OSCE session ID
+      setOsceSessionId(caseState.sessionId);
       console.log('🩺 OSCE Mode detected - using OSCE timer');
     }
-  }, [searchParams]);
+  }, [searchParams, caseState.sessionId]);
 
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
 
@@ -665,9 +667,9 @@ const ClerkingScreen: React.FC = () => {
           }
         }
 
-        // TODO: Navigate to follow-up questions page
-        // For now, just log the action
-        console.log('🩺 Ready to navigate to follow-up questions');
+        // Navigate to follow-up questions page
+        console.log('🩺 Navigating to follow-up questions');
+        router.push(`/osce/follow-up/${osceSessionId || 'temp-session'}`);
         
       } catch (error) {
         console.error('❌ Error handling OSCE timer expiration:', error);
