@@ -340,13 +340,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         const urlParams = new URLSearchParams(window.location.search);
         const isOSCEMode = urlParams.get('osce') === 'true';
         
+        console.log('🔍 [AppContext] OSCE mode detection:', {
+          currentURL: window.location.href,
+          urlParams: urlParams.toString(),
+          osceParam: urlParams.get('osce'),
+          isOSCEMode,
+          caseId: result.case.id
+        });
+        
         if (isOSCEMode) {
-          console.log('🎯 [AppContext] Starting OSCE question generation in background');
-          // Don't await - let it run in background
-          generateOSCEFollowupQuestions(result.case.id).catch(error => {
-            console.error('❌ [AppContext] OSCE question generation failed:', error);
-          });
+          console.log('🎯 [AppContext] Starting OSCE question generation in background for case:', result.case.id);
+          // Add small delay to ensure primary context is cached before generating questions
+          setTimeout(() => {
+            generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
+              .then(questions => {
+                console.log('✅ [AppContext] OSCE questions generated successfully:', questions.length, 'questions');
+              })
+              .catch(error => {
+                console.error('❌ [AppContext] OSCE question generation failed:', error);
+              });
+          }, 1000); // 1 second delay to allow cache to be written
+        } else {
+          console.log('ℹ️ [AppContext] Not OSCE mode, skipping question generation');
         }
+      } else {
+        console.log('ℹ️ [AppContext] Browser check failed:', {
+          isBrowser: typeof window !== 'undefined',
+          hasCaseId: !!result.case.id,
+          caseId: result.case.id
+        });
       }
     } catch (error) {
         console.error("Error in generateNewCase:", error);
@@ -448,12 +470,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           const urlParams = new URLSearchParams(window.location.search);
           const isOSCEMode = urlParams.get('osce') === 'true';
           
+          console.log('🔍 [AppContext] OSCE mode detection (practice):', {
+            currentURL: window.location.href,
+            urlParams: urlParams.toString(),
+            osceParam: urlParams.get('osce'),
+            isOSCEMode,
+            caseId: result.case.id
+          });
+          
           if (isOSCEMode) {
-            console.log('🎯 [AppContext] Starting OSCE question generation in background for practice case');
-            // Don't await - let it run in background
-            generateOSCEFollowupQuestions(result.case.id).catch(error => {
-              console.error('❌ [AppContext] OSCE question generation failed:', error);
-            });
+            console.log('🎯 [AppContext] Starting OSCE question generation in background for practice case:', result.case.id);
+            // Add small delay to ensure primary context is cached before generating questions
+            setTimeout(() => {
+              generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
+                .then(questions => {
+                  console.log('✅ [AppContext] OSCE questions generated successfully (practice):', questions.length, 'questions');
+                })
+                .catch(error => {
+                  console.error('❌ [AppContext] OSCE question generation failed (practice):', error);
+                });
+            }, 1000); // 1 second delay to allow cache to be written
+          } else {
+            console.log('ℹ️ [AppContext] Not OSCE mode (practice), skipping question generation');
           }
         }
       } catch (error) {

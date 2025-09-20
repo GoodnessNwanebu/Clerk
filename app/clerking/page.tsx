@@ -702,7 +702,12 @@ const ClerkingScreen: React.FC = () => {
 
                 // Primary context is secured in JWT cookies
 
-                router.push('/summary');
+                console.log('🏁 [Clerking] Header finish button clicked, OSCE mode:', isOSCEMode);
+
+                // Navigate to follow-up questions in OSCE mode, otherwise summary
+                const destination = isOSCEMode ? '/osce-followup' : '/summary';
+                console.log('🏁 [Clerking] Navigating to:', destination);
+                router.push(destination);
 
               }} 
 

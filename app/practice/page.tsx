@@ -48,6 +48,13 @@ const PracticeModeScreen: React.FC = () => {
       setNavigationEntryPoint('/practice');
       // Navigate to clerking with OSCE parameter if OSCE mode is enabled
       const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';
+      console.log('🚀 [Practice] Navigating to clerking:', {
+        osceMode,
+        clerkingUrl,
+        department: department.name,
+        condition: condition.trim(),
+        finalSubspecialtyName
+      });
       router.push(clerkingUrl);
     } catch (err) {
       if (err instanceof Error) {
@@ -156,8 +163,8 @@ const PracticeModeScreen: React.FC = () => {
               </div>
               <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
               <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
-                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
-                <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
+                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created. After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
+              
               </div>
               <button 
                 onClick={() => setShowOSCEInfoModal(false)}
@@ -483,30 +490,6 @@ const PracticeModeScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Tips Section */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center space-x-2">
-                <Icon name="lightbulb" size={20} />
-                <span>Tips for Practice Mode</span>
-              </h3>
-              <ul className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
-                {inputMode === 'diagnosis' ? (
-                  <>
-                <li>&bull; Be specific with conditions (e.g., &ldquo;Acute Myocardial Infarction&rdquo; vs &ldquo;Heart Problem&rdquo;)</li>
-                <li>&bull; Use medical terminology for more accurate simulations</li>
-                <li>&bull; Practice common OSCE conditions that you need to master</li>
-                <li>&bull; Try different presentations of the same condition</li>
-                  </>
-                ) : (
-                  <>
-                    <li>&bull; Include patient demographics (age, gender, occupation)</li>
-                    <li>&bull; Describe presenting symptoms and their timeline</li>
-                    <li>&bull; Mention relevant past medical history and medications</li>
-                    <li>&bull; Add social context that might affect the case</li>
-                  </>
-                )}
-              </ul>
-            </div>
           </main>
         </div>
       </div>

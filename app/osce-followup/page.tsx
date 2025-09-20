@@ -33,9 +33,19 @@ const OSCEFollowupPage: React.FC = () => {
         return;
       }
 
-      // Check if questions are ready
-      if (areOSCEQuestionsReady(caseState.caseId)) {
+      console.log('🔍 [OSCE Followup] Checking for questions, case ID:', caseState.caseId);
+      
+      // Check localStorage for questions
+      const questionsReady = areOSCEQuestionsReady(caseState.caseId);
+      console.log('📋 [OSCE Followup] Questions ready check:', questionsReady);
+      
+      if (questionsReady) {
         const osceQuestions = getOSCEQuestions(caseState.caseId);
+        console.log('📋 [OSCE Followup] Retrieved questions:', {
+          questionsCount: osceQuestions?.length || 0,
+          hasQuestions: !!osceQuestions
+        });
+        
         if (osceQuestions) {
           setQuestions(osceQuestions);
           // Initialize empty responses
@@ -45,15 +55,16 @@ const OSCEFollowupPage: React.FC = () => {
           }));
           setResponses(initialResponses);
           setIsLoading(false);
-          console.log('✅ [OSCE Followup] Questions loaded successfully');
+          console.log('✅ [OSCE Followup] Questions loaded successfully, count:', osceQuestions.length);
         }
       } else {
         // Questions not ready, check status
         const status = getOSCEGenerationStatus(caseState.caseId);
+        console.log('⏳ [OSCE Followup] Questions not ready, status:', status);
         setGenerationStatus(status);
         
         if (status?.status === 'failed') {
-          console.error('❌ [OSCE Followup] Question generation failed');
+          console.error('❌ [OSCE Followup] Question generation failed:', status.lastError);
           // Could show error state or redirect
         }
       }
@@ -63,17 +74,24 @@ const OSCEFollowupPage: React.FC = () => {
 
     // Poll for questions if they're not ready
     if (!areOSCEQuestionsReady(caseState.caseId || '')) {
+      console.log('⏳ [OSCE Followup] Starting polling for questions...');
       const pollInterval = setInterval(() => {
+        console.log('🔄 [OSCE Followup] Polling for questions...');
         if (caseState.caseId && areOSCEQuestionsReady(caseState.caseId)) {
+          console.log('✅ [OSCE Followup] Questions became ready during polling');
           initializeQuestions();
           clearInterval(pollInterval);
         } else if (caseState.caseId) {
           const status = getOSCEGenerationStatus(caseState.caseId);
+          console.log('⏳ [OSCE Followup] Still waiting, status:', status);
           setGenerationStatus(status);
         }
       }, 2000);
 
-      return () => clearInterval(pollInterval);
+      return () => {
+        console.log('🛑 [OSCE Followup] Stopping polling');
+        clearInterval(pollInterval);
+      };
     }
   }, [caseState.caseId, router]);
 

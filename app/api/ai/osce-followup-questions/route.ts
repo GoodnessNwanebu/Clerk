@@ -16,11 +16,20 @@ export async function POST(request: NextRequest) {
       const aiContext = 'generateOSCEFollowupQuestions';
       
       // Use secure primary context from cache
-      const { primaryContext } = sessionContext;
+      const { primaryContext, caseSession } = sessionContext;
       
-      console.log('🎯 [OSCE Follow-up] Generating questions for:', {
+      console.log('🎯 [OSCE Follow-up] API endpoint called for case:', caseSession.caseId);
+      console.log('🔍 [OSCE Follow-up] Session context:', {
+        userId: sessionContext.user.id,
+        caseId: caseSession.caseId,
+        sessionId: caseSession.sessionId,
+        isActive: caseSession.isActive
+      });
+      console.log('🔍 [OSCE Follow-up] Primary context:', {
         diagnosis: primaryContext.diagnosis,
-        department: primaryContext.department
+        department: primaryContext.department,
+        isPediatric: primaryContext.isPediatric,
+        hasPrimaryInfo: !!primaryContext.primaryInfo
       });
 
       // Extract patient demographics if available from primary context
@@ -28,6 +37,14 @@ export async function POST(request: NextRequest) {
       const patientAge = primaryContext.pediatricProfile?.patientAge;
       // Gender information would be extracted from primaryInfo text if needed
       const patientGender = undefined; // Will be extracted from case text by AI
+
+      console.log('🔧 [OSCE Follow-up] Creating AI prompt with:', {
+        diagnosis: primaryContext.diagnosis,
+        department: primaryContext.department,
+        patientAge,
+        patientGender,
+        primaryInfoLength: primaryContext.primaryInfo?.length || 0
+      });
 
       const userMessage = osceFollowupQuestionsPrompt(
         primaryContext.diagnosis,
@@ -37,12 +54,16 @@ export async function POST(request: NextRequest) {
         patientGender
       );
 
+      console.log('🤖 [OSCE Follow-up] Sending request to AI...');
       const aiResponse = await ai.generateContent({
         model: MODEL,
         contents: [{ text: userMessage }],
       });
       
-      console.log('🤖 [OSCE Follow-up] AI Response received');
+      console.log('🤖 [OSCE Follow-up] AI Response received:', {
+        hasText: !!aiResponse.text,
+        textLength: aiResponse.text?.length || 0
+      });
       
       const osceData = parseJsonResponse<OSCEFollowupAIResponse>(aiResponse.text, aiContext);
       

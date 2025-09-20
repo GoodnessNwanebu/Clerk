@@ -75,7 +75,7 @@ export const getOSCEGenerationStatus = (caseId: string): OSCEGenerationStatus | 
  * Questions are stored in localStorage, answers are cached server-side
  * Includes retry mechanism with exponential backoff and status tracking
  */
-export const generateOSCEFollowupQuestions = async (caseId: string): Promise<OSCEQuestion[]> => {
+export const generateOSCEFollowupQuestions = async (caseId: string, sessionId: string): Promise<OSCEQuestion[]> => {
   // Initialize status tracking
   const initialStatus: OSCEGenerationStatus = {
     caseId,
@@ -87,21 +87,45 @@ export const generateOSCEFollowupQuestions = async (caseId: string): Promise<OSC
   updateOSCEStatus(initialStatus);
 
   const generateQuestions = async (): Promise<OSCEQuestion[]> => {
-    console.log('🎯 [OSCE Utils] Starting background generation for case:', caseId);
+    console.log('🎯 [OSCE Utils] Starting API call for case:', caseId);
+    console.log('🔍 [OSCE Utils] Request details:', {
+      url: '/api/ai/osce-followup-questions',
+      method: 'POST',
+      credentials: 'include',
+      caseId,
+      sessionId
+    });
     
     const response = await fetch('/api/ai/osce-followup-questions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        caseId,
+        sessionId
+      }),
       credentials: 'include', // Include session cookies
     });
 
+    console.log('📡 [OSCE Utils] API response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error(`Failed to generate OSCE questions: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ [OSCE Utils] API error response:', errorText);
+      throw new Error(`Failed to generate OSCE questions: ${response.status} - ${errorText}`);
     }
 
     const data: OSCEFollowupQuestionsResponse = await response.json();
+    console.log('📋 [OSCE Utils] Parsed API response:', {
+      success: data.success,
+      questionsCount: data.questions?.length || 0,
+      hasQuestions: !!data.questions
+    });
     
     if (!data.success || !data.questions) {
       throw new Error('Invalid OSCE questions response');
@@ -130,7 +154,12 @@ export const generateOSCEFollowupQuestions = async (caseId: string): Promise<OSC
     
     localStorage.setItem(`osce-questions-${caseId}`, JSON.stringify(osceQuestions));
     
-    console.log('💾 [OSCE Utils] Questions stored in localStorage');
+    console.log('💾 [OSCE Utils] Questions stored in localStorage:', {
+      caseId,
+      questionsCount: data.questions.length,
+      storageKey: `osce-questions-${caseId}`,
+      generatedAt: osceQuestions.generatedAt
+    });
     
     return data.questions;
   };

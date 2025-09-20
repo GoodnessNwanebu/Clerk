@@ -55,6 +55,12 @@ const DepartmentSelectionScreen: React.FC = () => {
       setNavigationEntryPoint('/departments');
       // Navigate to clerking with OSCE parameter if OSCE mode is enabled
       const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';
+      console.log('🚀 [Departments] Navigating to clerking:', {
+        osceMode,
+        clerkingUrl,
+        department: department.name,
+        subspecialty: subspecialtyName
+      });
       router.push(clerkingUrl);
     } catch (err) {
       if (err instanceof Error) {
@@ -136,6 +142,7 @@ const DepartmentSelectionScreen: React.FC = () => {
         onSelectMultipleSubspecialties={handleMultipleSubspecialtySelect}
         disabled={isGeneratingCase}
         mode="simulation"
+        initialSelections={[]} // Empty for simulation mode - fresh selection each time
       />
       <AuthRequiredModal
         isOpen={isAuthModalOpen}
