@@ -4,6 +4,10 @@ import { Icon } from './Icon';
 interface SideTimerProps {
   onTimeUp?: () => void;
   onModalStateChange?: (isOpen: boolean) => void;
+  onFinish?: () => void;
+  showOSCEToggle?: boolean;
+  osceMode?: boolean;
+  onOSCEToggle?: (enabled: boolean) => void;
 }
 
 interface TimeUpModalProps {
@@ -16,7 +20,7 @@ const TimeUpModal: React.FC<TimeUpModalProps> = ({ isOpen, onFinish }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50">
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-5 w-[80vw] max-w-xs bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-3">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center">
             <Icon name="clock" size={24} className="text-white" />
@@ -37,7 +41,7 @@ const TimeUpModal: React.FC<TimeUpModalProps> = ({ isOpen, onFinish }) => {
   );
 };
 
-export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChange }) => {
+export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChange, onFinish, showOSCEToggle = false, osceMode = false, onOSCEToggle }) => {
   const [isCountdown, setIsCountdown] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -124,6 +128,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
   const handleFinishSession = () => {
     setShowTimeUpModal(false);
     onModalStateChange?.(false);
+    onFinish?.();
   };
 
   const handleOpenSettings = () => {
@@ -190,6 +195,33 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* OSCE Mode Toggle */}
+            {showOSCEToggle && (
+              <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">OSCE Mode</span>
+                    <button className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
+                      <Icon name="info" size={10} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => onOSCEToggle?.(!osceMode)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      osceMode ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                      osceMode ? 'transform translate-x-5' : ''
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  Practice conditions in exam-style stations
+                </p>
               </div>
             )}
 

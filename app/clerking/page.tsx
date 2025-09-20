@@ -985,7 +985,11 @@ const ClerkingScreen: React.FC = () => {
       />
 
       {/* Side Timer */}
-      <SideTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
+      <SideTimer 
+        onTimeUp={handleTimeUp} 
+        onModalStateChange={handleModalStateChange}
+        onFinish={() => router.push('/summary')}
+      />
 
     </div>
 

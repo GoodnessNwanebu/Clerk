@@ -8,6 +8,7 @@ import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
 import { AuthRequiredModal } from '../../components/modals/AuthRequiredModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { SideTimer } from '../../components/SideTimer';
 import { useAuthCheck } from '../../hooks/useAuthCheck';
 import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
@@ -44,6 +45,7 @@ const DepartmentSelectionScreen: React.FC = () => {
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
+  const [osceMode, setOsceMode] = useState(false);
 
   const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
@@ -194,6 +196,13 @@ const DepartmentSelectionScreen: React.FC = () => {
                 </button>
             </div>
         )}
+
+        {/* Side Timer with OSCE Toggle */}
+        <SideTimer 
+          showOSCEToggle={true}
+          osceMode={osceMode}
+          onOSCEToggle={setOsceMode}
+        />
       </div>
     </>
   );

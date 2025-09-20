@@ -24,6 +24,7 @@ const PracticeModeScreen: React.FC = () => {
   const [selectedMainDepartment, setSelectedMainDepartment] = useState<Department | null>(null);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
+  const [osceMode, setOsceMode] = useState(false);
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
@@ -332,6 +333,31 @@ const PracticeModeScreen: React.FC = () => {
                 {difficulty === 'standard' && 'Classic textbook presentations'}
                 {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
                 {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
+              </p>
+            </div>
+
+            {/* OSCE Mode Toggle */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">OSCE Mode</span>
+                  <button className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
+                    <Icon name="info" size={10} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setOsceMode(!osceMode)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    osceMode ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    osceMode ? 'transform translate-x-5' : ''
+                  }`} />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Practice conditions in exam-style stations
               </p>
             </div>
 

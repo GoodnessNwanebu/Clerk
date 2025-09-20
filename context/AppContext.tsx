@@ -74,6 +74,13 @@ interface AppContextType {
   // Saved cases cache management
   addCaseToCache: (caseData: any) => void;
   clearSavedCasesCache: () => void;
+  
+  // OSCE mode (temporary stub - to be implemented)
+  generateOSCECase: (
+    department: Department,
+    mode: 'simulation' | 'practice',
+    condition?: string
+  ) => Promise<void>;
 }
 
 const initialCaseState: CaseState = {
@@ -333,6 +340,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     },
     [userCountry]
+  );
+
+  // Temporary stub for OSCE mode - to be implemented
+  const generateOSCECase = useCallback(
+    async (
+      department: Department,
+      mode: 'simulation' | 'practice',
+      condition?: string
+    ) => {
+      // TODO: Implement OSCE case generation
+      console.log('OSCE case generation (stub):', { department, mode, condition });
+      throw new Error('OSCE mode not yet implemented');
+    },
+    []
   );
 
   const generatePracticeCase = useCallback(
@@ -821,7 +842,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setNavigationEntryPoint,
     generateNewCase, 
     generateNewCaseWithDifficulty, 
-    generatePracticeCase, 
+    generatePracticeCase,
+    generateOSCECase,
     resumeCase,
     addMessage, 
     setPreliminaryData, 
