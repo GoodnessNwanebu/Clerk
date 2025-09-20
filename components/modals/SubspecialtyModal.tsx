@@ -10,6 +10,7 @@ interface SubspecialtyModalProps {
   onSelectMultipleSubspecialties?: (subspecialties: Subspecialty[]) => void;
   disabled?: boolean;
   mode?: 'simulation' | 'practice';
+  initialSelections?: string[]; // Pre-selected subspecialty names
 }
 
 const SubspecialtyCard: React.FC<{ 
@@ -51,16 +52,22 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
   onSelectSubspecialty,
   onSelectMultipleSubspecialties,
   disabled = false,
-  mode = 'simulation'
+  mode = 'simulation',
+  initialSelections = []
 }) => {
-  const [selectedSubspecialties, setSelectedSubspecialties] = useState<string[]>([]);
+  const [selectedSubspecialties, setSelectedSubspecialties] = useState<string[]>(initialSelections);
 
-  // Reset selected subspecialties when modal opens or department changes
+  // Initialize with existing selections when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedSubspecialties([]);
+      setSelectedSubspecialties(initialSelections);
     }
-  }, [isOpen, department?.name]);
+  }, [isOpen, initialSelections]);
+
+  // Reset selected subspecialties when department changes
+  useEffect(() => {
+    setSelectedSubspecialties([]);
+  }, [department?.name]);
   // Close modal with Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -92,8 +99,8 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
   if (!isOpen) return null;
 
   const handleClose = () => {
-    // In practice mode, pass the selected subspecialties when closing
-    if (mode === 'practice' && selectedSubspecialties.length > 0 && onSelectMultipleSubspecialties) {
+    // In practice mode, always pass the selected subspecialties when closing (even if empty)
+    if (mode === 'practice' && onSelectMultipleSubspecialties) {
       const selectedSubspecialtyObjects = department.subspecialties?.filter(sub => 
         selectedSubspecialties.includes(sub.name)
       ) || [];

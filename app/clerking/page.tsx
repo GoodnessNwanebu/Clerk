@@ -65,6 +65,17 @@ const ClerkingScreen: React.FC = () => {
 
   const { caseState, addMessage, userCountry, navigationEntryPoint } = useAppContext();
 
+  // Detect OSCE mode from URL parameters
+  const [isOSCEMode, setIsOSCEMode] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const osceMode = urlParams.get('osce') === 'true';
+      setIsOSCEMode(osceMode);
+    }
+  }, []);
+
   const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error: speechError } = useSpeechRecognition();
   
   // PWA Install Modal
@@ -988,7 +999,13 @@ const ClerkingScreen: React.FC = () => {
       <SideTimer 
         onTimeUp={handleTimeUp} 
         onModalStateChange={handleModalStateChange}
-        onFinish={() => router.push('/summary')}
+        onFinish={() => {
+          // Navigate to follow-up questions in OSCE mode, otherwise summary
+          const destination = isOSCEMode ? '/osce-followup' : '/summary';
+          router.push(destination);
+        }}
+        osceMode={isOSCEMode}
+        autoStartOSCE={isOSCEMode}
       />
 
     </div>

@@ -18,6 +18,7 @@ const PracticeModeScreen: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [selectedSubspecialty, setSelectedSubspecialty] = useState<Subspecialty | null>(null);
   const [selectedSubspecialties, setSelectedSubspecialties] = useState<Subspecialty[]>([]);
+  const [departmentSubspecialtySelections, setDepartmentSubspecialtySelections] = useState<Record<string, string[]>>({});
   const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,9 @@ const PracticeModeScreen: React.FC = () => {
 
       await generatePracticeCase(department, condition.trim(), difficulty, finalSubspecialtyName);
       setNavigationEntryPoint('/practice');
-      router.push('/clerking');
+      // Navigate to clerking with OSCE parameter if OSCE mode is enabled
+      const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';
+      router.push(clerkingUrl);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
@@ -87,6 +90,14 @@ const PracticeModeScreen: React.FC = () => {
 
   const handleMultipleSubspecialtySelect = (subspecialties: Subspecialty[]) => {
     setSelectedSubspecialties(subspecialties);
+    
+    // Store selections for this department
+    if (selectedMainDepartment) {
+      setDepartmentSubspecialtySelections(prev => ({
+        ...prev,
+        [selectedMainDepartment.name]: subspecialties.map(s => s.name)
+      }));
+    }
     
     // Set the first subspecialty for display purposes, but we'll randomly pick during case generation
     if (subspecialties.length > 0) {
@@ -144,11 +155,9 @@ const PracticeModeScreen: React.FC = () => {
                 <Icon name="info" size={24} className="text-white" />
               </div>
               <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
-              <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-2">
-                <p>• Clerking is timed with a 5-minute countdown</p>
-                <p>• Timer starts immediately when case is created</p>
-                <p>• Focus on obtaining maximum history within time limit</p>
-                <p>• Followed by 10 follow-up questions after summary</p>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
+                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
+                <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
               </div>
               <button 
                 onClick={() => setShowOSCEInfoModal(false)}
@@ -170,6 +179,7 @@ const PracticeModeScreen: React.FC = () => {
         onSelectMultipleSubspecialties={handleMultipleSubspecialtySelect}
         disabled={isGeneratingCase}
         mode="practice"
+        initialSelections={selectedMainDepartment ? departmentSubspecialtySelections[selectedMainDepartment.name] || [] : []}
       />
       <AuthRequiredModal
         isOpen={isAuthModalOpen}

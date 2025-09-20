@@ -27,6 +27,7 @@ import { ConversationStorage } from "../lib/storage/localStorage";
 import { generateShareData } from "../lib/shared/shareUtils";
 import { fetchDepartments, transformDepartmentsForFrontend } from '../lib/services/departmentService';
 import { generateStaticOpeningLine } from "../lib/shared/openingLineUtils";
+import { generateOSCEFollowupQuestions } from "../lib/ai/osce-utils";
 
 interface AppContextType {
   caseState: CaseState;
@@ -332,6 +333,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       
         // Save initial state to localStorage (secondary context only)
       storage.saveConversation(newCaseState.messages, newCaseState);
+
+      // Generate OSCE follow-up questions in background (only if browser environment)
+      if (typeof window !== 'undefined' && result.case.id) {
+        // Check if this might be OSCE mode by looking at current URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const isOSCEMode = urlParams.get('osce') === 'true';
+        
+        if (isOSCEMode) {
+          console.log('🎯 [AppContext] Starting OSCE question generation in background');
+          // Don't await - let it run in background
+          generateOSCEFollowupQuestions(result.case.id).catch(error => {
+            console.error('❌ [AppContext] OSCE question generation failed:', error);
+          });
+        }
+      }
     } catch (error) {
         console.error("Error in generateNewCase:", error);
         // Rethrow the error to be caught by the caller UI
@@ -425,7 +441,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         
         // Save initial state to localStorage (secondary context only)
         storage.saveConversation(newCaseState.messages, newCaseState);
-    } catch (error) {
+
+        // Generate OSCE follow-up questions in background for practice cases (only if browser environment)
+        if (typeof window !== 'undefined' && result.case.id) {
+          // Check if this might be OSCE mode by looking at current URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const isOSCEMode = urlParams.get('osce') === 'true';
+          
+          if (isOSCEMode) {
+            console.log('🎯 [AppContext] Starting OSCE question generation in background for practice case');
+            // Don't await - let it run in background
+            generateOSCEFollowupQuestions(result.case.id).catch(error => {
+              console.error('❌ [AppContext] OSCE question generation failed:', error);
+            });
+          }
+        }
+      } catch (error) {
         console.error("Error in generatePracticeCase:", error);
         // Rethrow the error to be caught by the caller UI
         throw error;

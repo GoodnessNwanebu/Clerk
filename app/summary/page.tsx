@@ -33,6 +33,7 @@ const SummaryScreen: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { caseState, setPreliminaryData, setInvestigationResults, setExaminationResults, setFinalData, setFeedback, completeCaseAndSave } = useAppContext();
+    
     const [phase, setPhase] = useState<'initial' | 'results'>('initial');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -206,14 +207,14 @@ const SummaryScreen: React.FC = () => {
         }
     };
 
-    const handleSubmitForFeedback = async () => {
+    const handleSubmitForFeedback = async (): Promise<void> => {
         setError(null);
         setIsLoading(true);
         
         try {
             setFinalData(finalDiagnosis, managementPlan);
             
-            // Start case completion and feedback generation
+            // Complete case and get feedback (standard flow only)
             const caseCompleted = await completeCaseAndSave();
             
             if (!caseCompleted) {

@@ -8,6 +8,7 @@ interface SideTimerProps {
   showOSCEToggle?: boolean;
   osceMode?: boolean;
   onOSCEToggle?: (enabled: boolean) => void;
+  autoStartOSCE?: boolean; // New prop to auto-start OSCE timer
 }
 
 interface OSCEInfoModalProps {
@@ -31,11 +32,9 @@ const OSCEInfoModal: React.FC<OSCEInfoModalProps> = ({ isOpen, onClose }) => {
             <Icon name="info" size={24} className="text-white" />
           </div>
           <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
-          <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-2">
-            <p>• Clerking is timed with a 5-minute countdown</p>
-            <p>• Timer starts immediately when case is created</p>
-            <p>• Focus on obtaining maximum history within time limit</p>
-            <p>• Followed by 10 follow-up questions after summary</p>
+          <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
+            <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
+            <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
           </div>
           <button 
             onClick={onClose}
@@ -75,7 +74,7 @@ const TimeUpModal: React.FC<TimeUpModalProps> = ({ isOpen, onFinish }) => {
   );
 };
 
-export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChange, onFinish, showOSCEToggle = false, osceMode = false, onOSCEToggle }) => {
+export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChange, onFinish, showOSCEToggle = false, osceMode = false, onOSCEToggle, autoStartOSCE = false }) => {
   const [isCountdown, setIsCountdown] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -87,6 +86,23 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
   const [showOSCEInfoModal, setShowOSCEInfoModal] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-start OSCE timer with 3-second delay
+  useEffect(() => {
+    if (autoStartOSCE && osceMode) {
+      // Set to countdown mode and 5-minute timer
+      setIsCountdown(true);
+      setCountdownMinutes(5);
+      setRemainingSeconds(300);
+      
+      // Start timer after 3-second delay
+      const delayTimer = setTimeout(() => {
+        setIsRunning(true);
+      }, 3000);
+
+      return () => clearTimeout(delayTimer);
+    }
+  }, [autoStartOSCE, osceMode]);
 
   useEffect(() => {
     if (isRunning) {

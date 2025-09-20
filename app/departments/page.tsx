@@ -46,13 +46,16 @@ const DepartmentSelectionScreen: React.FC = () => {
   const [selectedSubspecialties, setSelectedSubspecialties] = useState<Subspecialty[]>([]);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [osceMode, setOsceMode] = useState(false);
+  const [showOSCEInfoModal, setShowOSCEInfoModal] = useState(false);
 
   const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
     try {
       await generateNewCaseWithDifficulty(department, difficulty, subspecialtyName);
       setNavigationEntryPoint('/departments');
-      router.push('/clerking');
+      // Navigate to clerking with OSCE parameter if OSCE mode is enabled
+      const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';
+      router.push(clerkingUrl);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.startsWith('QUOTA_EXCEEDED')) {
@@ -100,6 +103,30 @@ const DepartmentSelectionScreen: React.FC = () => {
 
   return (
     <>
+      {/* OSCE Info Modal */}
+      {showOSCEInfoModal && (
+        <div className="fixed inset-0 bg-black/60 z-50">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center">
+                <Icon name="info" size={24} className="text-white" />
+              </div>
+              <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
+                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
+                <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
+              </div>
+              <button 
+                onClick={() => setShowOSCEInfoModal(false)}
+                className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isGeneratingCase && <LoadingOverlay message="Creating new case..." department={selectedDepartment?.name || 'general'} />}
       <SubspecialtyModal
         isOpen={showSubspecialtyModal}
@@ -170,35 +197,30 @@ const DepartmentSelectionScreen: React.FC = () => {
           </div>
 
           {/* OSCE Mode Toggle */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
-              OSCE Mode
-            </label>
-            <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">OSCE Mode</span>
+                <button 
+                  onClick={() => setShowOSCEInfoModal(true)}
+                  className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors"
+                >
+                  <Icon name="info" size={10} />
+                </button>
+              </div>
               <button
-                onClick={() => setOsceMode(false)}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  !osceMode
-                    ? 'bg-teal-500 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                onClick={() => setOsceMode(!osceMode)}
+                className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-in-out ${
+                  osceMode ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
                 }`}
               >
-                Standard
-              </button>
-              <button
-                onClick={() => setOsceMode(true)}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  osceMode
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                OSCE Mode
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out ${
+                  osceMode ? 'transform translate-x-5' : ''
+                }`} />
               </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
-              {!osceMode && 'Standard clinical case simulation'}
-              {osceMode && 'OSCE-style timed clinical examination'}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Practice conditions in exam-style stations
             </p>
           </div>
         </div>
