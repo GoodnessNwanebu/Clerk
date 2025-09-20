@@ -17,6 +17,7 @@ const PracticeModeScreen: React.FC = () => {
   const { isAuthModalOpen, authMessage, hideAuthModal, checkAuthAndExecute } = useAuthCheck();
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [selectedSubspecialty, setSelectedSubspecialty] = useState<Subspecialty | null>(null);
+  const [selectedSubspecialties, setSelectedSubspecialties] = useState<Subspecialty[]>([]);
   const [inputMode, setInputMode] = useState<'diagnosis' | 'custom'>('diagnosis');
   const [condition, setCondition] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ const PracticeModeScreen: React.FC = () => {
   const [osceMode, setOsceMode] = useState(false);
   const [showOSCEInfoModal, setShowOSCEInfoModal] = useState(false);
 
-  const handleDirectStartPractice = async (department: Department) => {
+  const handleDirectStartPractice = async (department: Department, subspecialtyName?: string) => {
     if (!condition.trim()) {
       setError('Please enter a condition or custom case.');
       return;
@@ -35,7 +36,14 @@ const PracticeModeScreen: React.FC = () => {
 
     setError(null);
     try {
-      await generatePracticeCase(department, condition.trim(), difficulty);
+      // If we have multiple subspecialties selected, randomly pick one
+      let finalSubspecialtyName = subspecialtyName;
+      if (!finalSubspecialtyName && selectedSubspecialties.length > 0) {
+        const randomSubspecialty = selectedSubspecialties[Math.floor(Math.random() * selectedSubspecialties.length)];
+        finalSubspecialtyName = randomSubspecialty.name;
+      }
+
+      await generatePracticeCase(department, condition.trim(), difficulty, finalSubspecialtyName);
       setNavigationEntryPoint('/practice');
       router.push('/clerking');
     } catch (err) {
@@ -77,20 +85,25 @@ const PracticeModeScreen: React.FC = () => {
     setShowDepartmentDropdown(false);
   };
 
-  const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
-    // Get the parent department name for the backend
-    const parentDepartmentName = getParentDepartment(subspecialty.name);
+  const handleMultipleSubspecialtySelect = (subspecialties: Subspecialty[]) => {
+    setSelectedSubspecialties(subspecialties);
     
-    const departmentFromSubspecialty: Department = {
-      name: parentDepartmentName, // Use parent department name for backend
-      icon: subspecialty.icon,
-      gradient: subspecialty.gradient,
-      description: subspecialty.description,
-      avatar: subspecialty.avatar
-    };
-    
-    setSelectedDepartment(departmentFromSubspecialty);
-    setSelectedSubspecialty(subspecialty);
+    // Set the first subspecialty for display purposes, but we'll randomly pick during case generation
+    if (subspecialties.length > 0) {
+      const firstSubspecialty = subspecialties[0];
+      const parentDepartmentName = getParentDepartment(firstSubspecialty.name);
+      
+      const departmentFromSubspecialty: Department = {
+        name: parentDepartmentName, // Use parent department name for backend
+        icon: firstSubspecialty.icon,
+        gradient: firstSubspecialty.gradient,
+        description: firstSubspecialty.description,
+        avatar: firstSubspecialty.avatar
+      };
+      
+      setSelectedDepartment(departmentFromSubspecialty);
+      setSelectedSubspecialty(firstSubspecialty);
+    }
     setShowSubspecialtyModal(false);
   };
 
@@ -153,8 +166,10 @@ const PracticeModeScreen: React.FC = () => {
         isOpen={showSubspecialtyModal}
         onClose={() => setShowSubspecialtyModal(false)}
         department={selectedMainDepartment!}
-        onSelectSubspecialty={handleSubspecialtySelect}
+        onSelectSubspecialty={() => {}} // Not used in practice mode
+        onSelectMultipleSubspecialties={handleMultipleSubspecialtySelect}
         disabled={isGeneratingCase}
+        mode="practice"
       />
       <AuthRequiredModal
         isOpen={isAuthModalOpen}
@@ -287,33 +302,6 @@ const PracticeModeScreen: React.FC = () => {
                 })}
               </div>
               
-              {/* Selected Subspecialty Display */}
-              {selectedSubspecialty && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Icon name="check-circle" size={20} className="text-green-600 dark:text-green-400" />
-                      <div>
-                        <span className="font-medium text-green-800 dark:text-green-200">Selected:</span>
-                        <span className="ml-2 font-semibold text-green-900 dark:text-green-100">
-                          {selectedMainDepartment?.name} → {selectedSubspecialty.name}
-                        </span>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setSelectedDepartment(null);
-                        setSelectedMainDepartment(null);
-                        setSelectedSubspecialty(null);
-                      }} 
-                      className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors"
-                      disabled={isGeneratingCase}
-                    >
-                      <Icon name="x" size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Difficulty Selector */}

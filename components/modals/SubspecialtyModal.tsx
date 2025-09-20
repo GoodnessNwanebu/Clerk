@@ -7,7 +7,9 @@ interface SubspecialtyModalProps {
   onClose: () => void;
   department: Department;
   onSelectSubspecialty: (subspecialty: Subspecialty) => void;
+  onSelectMultipleSubspecialties?: (subspecialties: Subspecialty[]) => void;
   disabled?: boolean;
+  mode?: 'simulation' | 'practice';
 }
 
 const SubspecialtyCard: React.FC<{ 
@@ -47,22 +49,31 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
   onClose, 
   department, 
   onSelectSubspecialty,
-  disabled = false 
+  onSelectMultipleSubspecialties,
+  disabled = false,
+  mode = 'simulation'
 }) => {
   const [selectedSubspecialties, setSelectedSubspecialties] = useState<string[]>([]);
+
+  // Reset selected subspecialties when modal opens or department changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedSubspecialties([]);
+    }
+  }, [isOpen, department?.name]);
   // Close modal with Escape key
   useEffect(() => {
     if (!isOpen) return;
     
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
@@ -79,6 +90,17 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
 
   // Don't render if not open
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    // In practice mode, pass the selected subspecialties when closing
+    if (mode === 'practice' && selectedSubspecialties.length > 0 && onSelectMultipleSubspecialties) {
+      const selectedSubspecialtyObjects = department.subspecialties?.filter(sub => 
+        selectedSubspecialties.includes(sub.name)
+      ) || [];
+      onSelectMultipleSubspecialties(selectedSubspecialtyObjects);
+    }
+    onClose();
+  };
 
   const handleSubspecialtyToggle = (subspecialty: Subspecialty) => {
     if (disabled) return;
@@ -106,7 +128,7 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
   return (
     <div 
       className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" 
-      onClick={onClose}
+      onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="subspecialty-title"
@@ -122,7 +144,7 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
             <p className="text-slate-600 dark:text-slate-400 mt-1">Choose a subspecialty</p>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             aria-label="Close subspecialty selection"
           >
@@ -179,31 +201,32 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => {
-              if (selectedSubspecialties.length > 0) {
-                // For now, just select the first one - will be enhanced later for multiple selection
-                const firstSelected = department.subspecialties?.find(sub => selectedSubspecialties.includes(sub.name));
-                if (firstSelected) {
-                  onSelectSubspecialty(firstSelected);
+        {mode === 'simulation' && (
+          <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => {
+                if (selectedSubspecialties.length > 0 && onSelectMultipleSubspecialties) {
+                  const selectedSubspecialtyObjects = department.subspecialties?.filter(sub => 
+                    selectedSubspecialties.includes(sub.name)
+                  ) || [];
+                  onSelectMultipleSubspecialties(selectedSubspecialtyObjects);
                   onClose();
                 }
-              }
-            }}
-            disabled={disabled || selectedSubspecialties.length === 0}
-            className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
-              disabled || selectedSubspecialties.length === 0
-                ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                : 'bg-teal-500 hover:bg-teal-600 text-white'
-            }`}
-          >
-            Start Case
-          </button>
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
-            Select subspecialties to start your case in those specific areas of {department.name}.
-          </p>
-        </div>
+              }}
+              disabled={disabled || selectedSubspecialties.length === 0}
+              className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                disabled || selectedSubspecialties.length === 0
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                  : 'bg-teal-500 hover:bg-teal-600 text-white'
+              }`}
+            >
+              Start Case
+            </button>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
+              Select subspecialties to start your case in those specific areas of {department.name}.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

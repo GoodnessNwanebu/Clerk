@@ -46,7 +46,8 @@ interface AppContextType {
   generatePracticeCase: (
     department: Department,
     condition: string,
-    difficulty?: DifficultyLevel
+    difficulty?: DifficultyLevel,
+    subspecialtyName?: string
   ) => Promise<void>;
   resumeCase: (caseId: string) => Promise<boolean>;
   addMessage: (message: Message) => void;
@@ -360,7 +361,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     async (
       department: Department,
       condition: string,
-      difficulty: DifficultyLevel = "standard"
+      difficulty: DifficultyLevel = "standard",
+      subspecialtyName?: string
     ) => {
     setIsGeneratingCase(true);
     try {
@@ -374,6 +376,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
             department: department.name,
             practiceCondition: condition,
             difficulty,
+            subspecialty: subspecialtyName,
             userCountry: userCountry || undefined
           })
         });

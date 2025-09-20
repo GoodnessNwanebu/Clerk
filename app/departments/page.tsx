@@ -8,7 +8,6 @@ import { Icon } from '../../components/Icon';
 import { SubspecialtyModal } from '../../components/modals/SubspecialtyModal';
 import { AuthRequiredModal } from '../../components/modals/AuthRequiredModal';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { SideTimer } from '../../components/SideTimer';
 import { useAuthCheck } from '../../hooks/useAuthCheck';
 import { fetchDepartments, transformDepartmentsForFrontend, hasSubspecialties, getParentDepartment } from '../../lib/services/departmentService';
 
@@ -44,6 +43,7 @@ const DepartmentSelectionScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSubspecialtyModal, setShowSubspecialtyModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedSubspecialties, setSelectedSubspecialties] = useState<Subspecialty[]>([]);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [osceMode, setOsceMode] = useState(false);
 
@@ -77,20 +77,25 @@ const DepartmentSelectionScreen: React.FC = () => {
     }
   };
 
-  const handleSubspecialtySelect = (subspecialty: Subspecialty) => {
+  const handleMultipleSubspecialtySelect = (subspecialties: Subspecialty[]) => {
+    setSelectedSubspecialties(subspecialties);
+    
+    // Randomly pick one subspecialty from the selected ones
+    const randomSubspecialty = subspecialties[Math.floor(Math.random() * subspecialties.length)];
+    
     // Get the parent department name for the backend
-    const parentDepartmentName = getParentDepartment(subspecialty.name);
+    const parentDepartmentName = getParentDepartment(randomSubspecialty.name);
     
     const departmentFromSubspecialty: Department = {
       name: parentDepartmentName, // Use parent department name for backend
-      icon: subspecialty.icon,
-      gradient: subspecialty.gradient,
-      description: subspecialty.description,
-      avatar: subspecialty.avatar
+      icon: randomSubspecialty.icon,
+      gradient: randomSubspecialty.gradient,
+      description: randomSubspecialty.description,
+      avatar: randomSubspecialty.avatar
     };
     
-    // Pass the subspecialty name to the case generation
-    checkAuthAndExecute(() => handleDirectSelect(departmentFromSubspecialty, subspecialty.name), 'Please sign in to create a case');
+    // Pass the randomly selected subspecialty name to the case generation
+    checkAuthAndExecute(() => handleDirectSelect(departmentFromSubspecialty, randomSubspecialty.name), 'Please sign in to create a case');
   };
 
   return (
@@ -100,8 +105,10 @@ const DepartmentSelectionScreen: React.FC = () => {
         isOpen={showSubspecialtyModal}
         onClose={() => setShowSubspecialtyModal(false)}
         department={selectedDepartment!}
-        onSelectSubspecialty={handleSubspecialtySelect}
+        onSelectSubspecialty={() => {}} // Not used in simulation mode
+        onSelectMultipleSubspecialties={handleMultipleSubspecialtySelect}
         disabled={isGeneratingCase}
+        mode="simulation"
       />
       <AuthRequiredModal
         isOpen={isAuthModalOpen}
@@ -118,47 +125,82 @@ const DepartmentSelectionScreen: React.FC = () => {
         </header>
         
         {/* Difficulty Selector */}
-        <div className="mb-8 max-w-md mx-auto">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
-            Case Difficulty Level
-          </label>
-          <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
-            <button
-              onClick={() => setDifficulty('standard')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                difficulty === 'standard'
-                  ? 'bg-teal-500 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Standard
-            </button>
-            <button
-              onClick={() => setDifficulty('intermediate')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                difficulty === 'intermediate'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Intermediate
-            </button>
-            <button
-              onClick={() => setDifficulty('difficult')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                difficulty === 'difficult'
-                  ? 'bg-red-500 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Difficult
-            </button>
+        <div className="mb-8 max-w-md mx-auto space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
+              Case Difficulty Level
+            </label>
+            <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+              <button
+                onClick={() => setDifficulty('standard')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  difficulty === 'standard'
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setDifficulty('intermediate')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  difficulty === 'intermediate'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Intermediate
+              </button>
+              <button
+                onClick={() => setDifficulty('difficult')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  difficulty === 'difficult'
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Difficult
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+              {difficulty === 'standard' && 'Classic textbook presentations'}
+              {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
+              {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
-            {difficulty === 'standard' && 'Classic textbook presentations'}
-            {difficulty === 'intermediate' && 'Realistic complexity with comorbidities'}
-            {difficulty === 'difficult' && 'Complex cases with multiple challenges'}
-          </p>
+
+          {/* OSCE Mode Toggle */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
+              OSCE Mode
+            </label>
+            <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+              <button
+                onClick={() => setOsceMode(false)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  !osceMode
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setOsceMode(true)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  osceMode
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                OSCE Mode
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+              {!osceMode && 'Standard clinical case simulation'}
+              {osceMode && 'OSCE-style timed clinical examination'}
+            </p>
+          </div>
         </div>
         
         <main className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 max-w-5xl mx-auto">
@@ -197,12 +239,6 @@ const DepartmentSelectionScreen: React.FC = () => {
             </div>
         )}
 
-        {/* Side Timer with OSCE Toggle */}
-        <SideTimer 
-          showOSCEToggle={true}
-          osceMode={osceMode}
-          onOSCEToggle={setOsceMode}
-        />
       </div>
     </>
   );
