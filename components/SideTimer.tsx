@@ -10,10 +10,44 @@ interface SideTimerProps {
   onOSCEToggle?: (enabled: boolean) => void;
 }
 
+interface OSCEInfoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 interface TimeUpModalProps {
   isOpen: boolean;
   onFinish: () => void;
 }
+
+const OSCEInfoModal: React.FC<OSCEInfoModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <Icon name="info" size={24} className="text-white" />
+          </div>
+          <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
+          <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-2">
+            <p>• Clerking is timed with a 5-minute countdown</p>
+            <p>• Timer starts immediately when case is created</p>
+            <p>• Focus on obtaining maximum history within time limit</p>
+            <p>• Followed by 10 follow-up questions after summary</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const TimeUpModal: React.FC<TimeUpModalProps> = ({ isOpen, onFinish }) => {
   if (!isOpen) return null;
@@ -50,6 +84,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
   const [showTimeUpModal, setShowTimeUpModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showOSCEInfoModal, setShowOSCEInfoModal] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -86,8 +121,8 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
 
   // Handle modal state changes
   useEffect(() => {
-    onModalStateChange?.(showTimeUpModal || showSettingsModal);
-  }, [showTimeUpModal, showSettingsModal, onModalStateChange]);
+    onModalStateChange?.(showTimeUpModal || showSettingsModal || showOSCEInfoModal);
+  }, [showTimeUpModal, showSettingsModal, showOSCEInfoModal, onModalStateChange]);
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -144,6 +179,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
 
   return (
     <>
+      <OSCEInfoModal isOpen={showOSCEInfoModal} onClose={() => setShowOSCEInfoModal(false)} />
       <TimeUpModal isOpen={showTimeUpModal} onFinish={handleFinishSession} />
       
       {/* Settings Modal */}
@@ -204,7 +240,13 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200">OSCE Mode</span>
-                    <button className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowOSCEInfoModal(true);
+                      }}
+                      className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors"
+                    >
                       <Icon name="info" size={10} />
                     </button>
                   </div>
@@ -280,15 +322,43 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
             />
           </button>
 
-          {/* Timer Bar */}
+          {/* Timer Bar or OSCE Toggle */}
           <div 
-            className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-l-xl shadow-lg transition-all duration-300 cursor-pointer hover:shadow-xl ${
-              isCollapsed ? 'w-16' : 'w-24'
-            }`}
-            onClick={handleOpenSettings}
+            className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-l-xl shadow-lg transition-all duration-300 ${
+              showOSCEToggle ? 'cursor-default' : 'cursor-pointer hover:shadow-xl'
+            } ${isCollapsed ? 'w-16' : showOSCEToggle ? 'w-32' : 'w-24'}`}
+            onClick={showOSCEToggle ? undefined : handleOpenSettings}
           >
             <div className="px-3 py-4">
-              {isCollapsed ? (
+              {showOSCEToggle ? (
+                // OSCE Toggle UI
+                <div className="text-center">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-200">OSCE</span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowOSCEInfoModal(true);
+                        }}
+                        className="w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors"
+                      >
+                        <Icon name="info" size={8} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => onOSCEToggle?.(!osceMode)}
+                      className={`relative w-8 h-4 rounded-full transition-all duration-300 ease-in-out ${
+                        osceMode ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 ease-in-out ${
+                        osceMode ? 'transform translate-x-4' : ''
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              ) : isCollapsed ? (
                 // Collapsed state - vertical time display
                 <div className="text-center">
                   <div className={`text-sm font-bold font-mono leading-tight ${

@@ -25,6 +25,7 @@ const PracticeModeScreen: React.FC = () => {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('standard');
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [osceMode, setOsceMode] = useState(false);
+  const [showOSCEInfoModal, setShowOSCEInfoModal] = useState(false);
 
   const handleDirectStartPractice = async (department: Department) => {
     if (!condition.trim()) {
@@ -121,6 +122,32 @@ const PracticeModeScreen: React.FC = () => {
 
   return (
     <>
+      {/* OSCE Info Modal */}
+      {showOSCEInfoModal && (
+        <div className="fixed inset-0 bg-black/60 z-50">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <Icon name="info" size={24} className="text-white" />
+              </div>
+              <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-2">
+                <p>• Clerking is timed with a 5-minute countdown</p>
+                <p>• Timer starts immediately when case is created</p>
+                <p>• Focus on obtaining maximum history within time limit</p>
+                <p>• Followed by 10 follow-up questions after summary</p>
+              </div>
+              <button 
+                onClick={() => setShowOSCEInfoModal(false)}
+                className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isGeneratingCase && <LoadingOverlay message="Creating practice case..." department={selectedDepartment?.name || 'general'} />}
       <SubspecialtyModal
         isOpen={showSubspecialtyModal}
@@ -341,17 +368,20 @@ const PracticeModeScreen: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">OSCE Mode</span>
-                  <button className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
+                  <button 
+                    onClick={() => setShowOSCEInfoModal(true)}
+                    className="w-4 h-4 rounded-full bg-slate-400 dark:bg-slate-500 flex items-center justify-center text-white text-xs font-bold hover:bg-slate-500 dark:hover:bg-slate-400 transition-colors"
+                  >
                     <Icon name="info" size={10} />
                   </button>
                 </div>
                 <button
                   onClick={() => setOsceMode(!osceMode)}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                  className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-in-out ${
                     osceMode ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
                   }`}
                 >
-                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out ${
                     osceMode ? 'transform translate-x-5' : ''
                   }`} />
                 </button>

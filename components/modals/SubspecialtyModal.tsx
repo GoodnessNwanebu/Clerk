@@ -146,15 +146,13 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                   selectedSubspecialties.length === (department.subspecialties?.length || 0)
                     ? 'bg-teal-500 border-teal-500'
-                    : selectedSubspecialties.length > 0
-                    ? 'bg-teal-500/50 border-teal-500'
                     : 'border-slate-300 dark:border-slate-600'
                 }`}>
-                  {selectedSubspecialties.length > 0 && (
+                  {selectedSubspecialties.length === (department.subspecialties?.length || 0) && (
                     <Icon 
                       name="check" 
                       size={12} 
-                      className={selectedSubspecialties.length === (department.subspecialties?.length || 0) ? 'text-white' : 'text-white/70'} 
+                      className="text-white" 
                     />
                   )}
                 </div>
@@ -200,7 +198,7 @@ export const SubspecialtyModal: React.FC<SubspecialtyModalProps> = ({
                 : 'bg-teal-500 hover:bg-teal-600 text-white'
             }`}
           >
-            Start Case {selectedSubspecialties.length > 0 && `(${selectedSubspecialties.length} selected)`}
+            Start Case
           </button>
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
             Select subspecialties to start your case in those specific areas of {department.name}.
