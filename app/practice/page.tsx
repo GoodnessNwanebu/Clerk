@@ -44,7 +44,7 @@ const PracticeModeScreen: React.FC = () => {
         finalSubspecialtyName = randomSubspecialty.name;
       }
 
-      await generatePracticeCase(department, condition.trim(), difficulty, finalSubspecialtyName);
+      await generatePracticeCase(department, condition.trim(), difficulty, finalSubspecialtyName, osceMode);
       setNavigationEntryPoint('/practice');
       // Navigate to clerking with OSCE parameter if OSCE mode is enabled
       const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';
@@ -123,6 +123,22 @@ const PracticeModeScreen: React.FC = () => {
       setSelectedSubspecialty(firstSubspecialty);
     }
     setShowSubspecialtyModal(false);
+  };
+
+  // Helper function to get subspecialty display text
+  const getSubspecialtyDisplayText = (department: Department): string | null => {
+    const selections = departmentSubspecialtySelections[department.name];
+    if (!selections || selections.length === 0) return null;
+    
+    const totalSubspecialties = department.subspecialties?.length || 0;
+    
+    if (selections.length === 1) {
+      return selections[0];
+    } else if (totalSubspecialties > 0 && selections.length === totalSubspecialties) {
+      return 'All Subspecialties';
+    } else {
+      return `${selections.length} Subspecialties`;
+    }
   };
 
   const handleStartPractice = async () => {
@@ -240,13 +256,13 @@ const PracticeModeScreen: React.FC = () => {
                       )}
                       <div className="text-left">
                         <span className="font-medium">
-                          {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
-                        </span>
-                        {selectedSubspecialty && (
-                          <div className="text-sm text-teal-600 dark:text-teal-400">
-                            → {selectedSubspecialty.name}
-                          </div>
-                        )}
+                        {selectedMainDepartment ? selectedMainDepartment.name : 'Select a department'}
+                      </span>
+                      {selectedMainDepartment && getSubspecialtyDisplayText(selectedMainDepartment) && (
+                        <div className="text-sm text-teal-600 dark:text-teal-400">
+                          → {getSubspecialtyDisplayText(selectedMainDepartment)}
+                        </div>
+                      )}
                       </div>
                     </div>
                     <Icon 
@@ -303,9 +319,9 @@ const PracticeModeScreen: React.FC = () => {
                           <Icon name={dept.icon} size={24} />
                           <div className="text-left">
                             <span className="font-medium">{dept.name}</span>
-                            {isSelected && selectedSubspecialty && (
+                            {isSelected && getSubspecialtyDisplayText(dept) && (
                               <div className="text-sm text-teal-600 dark:text-teal-400">
-                                → {selectedSubspecialty.name}
+                                → {getSubspecialtyDisplayText(dept)}
                               </div>
                             )}
                           </div>

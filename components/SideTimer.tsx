@@ -26,19 +26,45 @@ const OSCEInfoModal: React.FC<OSCEInfoModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50">
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-6">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center">
-            <Icon name="info" size={24} className="text-white" />
+          {/* Icon with more breathing room */}
+          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center">
+            <Icon name="info" size={28} className="text-white" />
           </div>
-          <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
-          <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
-            <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
-            <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
+          
+          {/* Title with better spacing */}
+          <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white">OSCE Mode</h2>
+          
+          {/* Content with clear hierarchy and spacing */}
+          <div className="text-left space-y-6 mb-8">
+            {/* Timer section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center">
+                <Icon name="clock" size={16} className="mr-2 text-teal-500" />
+                Timing
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
+                5-minute countdown starts immediately when your case loads
+              </p>
+            </div>
+            
+            {/* Assessment section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center">
+                <Icon name="help-circle" size={16} className="mr-2 text-teal-500" />
+                Assessment
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
+                Answer 10 follow-up questions to test your clinical reasoning
+              </p>
+            </div>
           </div>
+          
+          {/* Action button with proper spacing */}
           <button 
             onClick={onClose}
-            className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
+            className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
           >
             Got it
           </button>
@@ -192,6 +218,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
 
   const currentTime = isCountdown ? remainingSeconds : elapsedSeconds;
   const isWarningTime = isCountdown && remainingSeconds <= 60 && remainingSeconds > 0;
+  const isOSCECountdown = autoStartOSCE && osceMode && isCountdown;
 
   return (
     <>
@@ -217,6 +244,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
             {/* Timer display */}
             <div className="text-center mb-4">
               <div className={`text-3xl font-mono font-bold mb-2 ${
+                isOSCECountdown ? 'text-red-500' : 
                 isWarningTime ? 'text-red-500 animate-pulse' : 'text-slate-800 dark:text-white'
               }`}>
                 {formatTime(currentTime)}
@@ -226,8 +254,8 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
               </div>
             </div>
 
-            {/* Countdown minutes selector */}
-            {isCountdown && !isRunning && (
+            {/* Countdown minutes selector - disabled in OSCE mode */}
+            {isCountdown && !isRunning && !(autoStartOSCE && osceMode) && (
               <div className="mb-4">
                 <label className="block text-sm text-slate-500 dark:text-slate-400 mb-2">
                   Set minutes:
@@ -283,33 +311,37 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
               </div>
             )}
 
-            {/* Controls */}
-            <div className="flex space-x-2 mb-4">
-              <button
-                onClick={handleToggleTimer}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-                  isRunning
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                    : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:scale-105'
-                }`}
-              >
-                {isRunning ? 'Pause' : 'Start'}
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                <Icon name="rotate-ccw" size={18} />
-              </button>
-            </div>
+            {/* Controls - disabled in OSCE mode */}
+            {!(autoStartOSCE && osceMode) && (
+              <div className="flex space-x-2 mb-4">
+                <button
+                  onClick={handleToggleTimer}
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                    isRunning
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                      : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:scale-105'
+                  }`}
+                >
+                  {isRunning ? 'Pause' : 'Start'}
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Icon name="rotate-ccw" size={18} />
+                </button>
+              </div>
+            )}
 
-            {/* Mode toggle */}
-            <button
-              onClick={handleModeToggle}
-              className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-teal-500 dark:hover:text-teal-400 transition-colors border-t border-slate-200 dark:border-slate-600 pt-3"
-            >
-              Switch to {isCountdown ? 'Stopwatch' : 'Countdown'} Mode
-            </button>
+            {/* Mode toggle - disabled in OSCE mode */}
+            {!(autoStartOSCE && osceMode) && (
+              <button
+                onClick={handleModeToggle}
+                className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-teal-500 dark:hover:text-teal-400 transition-colors border-t border-slate-200 dark:border-slate-600 pt-3"
+              >
+                Switch to {isCountdown ? 'Stopwatch' : 'Countdown'} Mode
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -341,9 +373,9 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
           {/* Timer Bar or OSCE Toggle */}
           <div 
             className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-l-xl shadow-lg transition-all duration-300 ${
-              showOSCEToggle ? 'cursor-default' : 'cursor-pointer hover:shadow-xl'
+              showOSCEToggle || (autoStartOSCE && osceMode) ? 'cursor-default' : 'cursor-pointer hover:shadow-xl'
             } ${isCollapsed ? 'w-16' : showOSCEToggle ? 'w-32' : 'w-24'}`}
-            onClick={showOSCEToggle ? undefined : handleOpenSettings}
+            onClick={(showOSCEToggle || (autoStartOSCE && osceMode)) ? undefined : handleOpenSettings}
           >
             <div className="px-3 py-4">
               {showOSCEToggle ? (
@@ -378,6 +410,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
                 // Collapsed state - vertical time display
                 <div className="text-center">
                   <div className={`text-sm font-bold font-mono leading-tight ${
+                    isOSCECountdown ? 'text-red-500' : 
                     isWarningTime ? 'text-red-500 animate-pulse' : 
                     isRunning ? 'text-teal-600 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'
                   }`}>
@@ -390,6 +423,7 @@ export const SideTimer: React.FC<SideTimerProps> = ({ onTimeUp, onModalStateChan
                 // Expanded state - horizontal time display
                 <div className="text-center">
                   <div className={`text-lg font-bold font-mono ${
+                    isOSCECountdown ? 'text-red-500' : 
                     isWarningTime ? 'text-red-500 animate-pulse' : 
                     isRunning ? 'text-teal-600 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'
                   }`}>

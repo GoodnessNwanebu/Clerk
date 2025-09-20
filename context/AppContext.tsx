@@ -42,13 +42,15 @@ interface AppContextType {
   generateNewCaseWithDifficulty: (
     department: Department,
     difficulty: DifficultyLevel,
-    subspecialty?: string
+    subspecialty?: string,
+    osceMode?: boolean
   ) => Promise<void>;
   generatePracticeCase: (
     department: Department,
     condition: string,
     difficulty?: DifficultyLevel,
-    subspecialtyName?: string
+    subspecialtyName?: string,
+    osceMode?: boolean
   ) => Promise<void>;
   resumeCase: (caseId: string) => Promise<boolean>;
   addMessage: (message: Message) => void;
@@ -265,7 +267,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const generateNewCaseWithDifficulty = useCallback(
-    async (department: Department, difficulty: DifficultyLevel, subspecialty?: string) => {
+    async (department: Department, difficulty: DifficultyLevel, subspecialty?: string, osceMode?: boolean) => {
     setIsGeneratingCase(true);
     try {
         // Use JWT-based case generation (backend creates session and JWT)
@@ -334,39 +336,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         // Save initial state to localStorage (secondary context only)
       storage.saveConversation(newCaseState.messages, newCaseState);
 
-      // Generate OSCE follow-up questions in background (only if browser environment)
-      if (typeof window !== 'undefined' && result.case.id) {
-        // Check if this might be OSCE mode by looking at current URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const isOSCEMode = urlParams.get('osce') === 'true';
-        
-        console.log('🔍 [AppContext] OSCE mode detection:', {
-          currentURL: window.location.href,
-          urlParams: urlParams.toString(),
-          osceParam: urlParams.get('osce'),
-          isOSCEMode,
-          caseId: result.case.id
+      // Generate OSCE follow-up questions in background if OSCE mode is enabled
+      if (osceMode && result.case.id && result.case.sessionId) {
+        console.log('🎯 [AppContext] OSCE mode enabled, starting question generation for case:', result.case.id);
+        console.log('🔍 [AppContext] OSCE generation params:', {
+          osceMode,
+          caseId: result.case.id,
+          sessionId: result.case.sessionId
         });
         
-        if (isOSCEMode) {
-          console.log('🎯 [AppContext] Starting OSCE question generation in background for case:', result.case.id);
-          // Add small delay to ensure primary context is cached before generating questions
-          setTimeout(() => {
-            generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
-              .then(questions => {
-                console.log('✅ [AppContext] OSCE questions generated successfully:', questions.length, 'questions');
-              })
-              .catch(error => {
-                console.error('❌ [AppContext] OSCE question generation failed:', error);
-              });
-          }, 1000); // 1 second delay to allow cache to be written
-        } else {
-          console.log('ℹ️ [AppContext] Not OSCE mode, skipping question generation');
-        }
+        // Add small delay to ensure primary context is cached before generating questions
+        setTimeout(() => {
+          generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
+            .then(questions => {
+              console.log('✅ [AppContext] OSCE questions generated successfully:', questions.length, 'questions');
+            })
+            .catch(error => {
+              console.error('❌ [AppContext] OSCE question generation failed:', error);
+            });
+        }, 1000); // 1 second delay to allow cache to be written
       } else {
-        console.log('ℹ️ [AppContext] Browser check failed:', {
-          isBrowser: typeof window !== 'undefined',
+        console.log('ℹ️ [AppContext] OSCE question generation skipped:', {
+          osceMode: !!osceMode,
           hasCaseId: !!result.case.id,
+          hasSessionId: !!result.case.sessionId,
           caseId: result.case.id
         });
       }
@@ -400,7 +393,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       department: Department,
       condition: string,
       difficulty: DifficultyLevel = "standard",
-      subspecialtyName?: string
+      subspecialtyName?: string,
+      osceMode?: boolean
     ) => {
     setIsGeneratingCase(true);
     try {
@@ -464,35 +458,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         // Save initial state to localStorage (secondary context only)
         storage.saveConversation(newCaseState.messages, newCaseState);
 
-        // Generate OSCE follow-up questions in background for practice cases (only if browser environment)
-        if (typeof window !== 'undefined' && result.case.id) {
-          // Check if this might be OSCE mode by looking at current URL
-          const urlParams = new URLSearchParams(window.location.search);
-          const isOSCEMode = urlParams.get('osce') === 'true';
-          
-          console.log('🔍 [AppContext] OSCE mode detection (practice):', {
-            currentURL: window.location.href,
-            urlParams: urlParams.toString(),
-            osceParam: urlParams.get('osce'),
-            isOSCEMode,
-            caseId: result.case.id
+        // Generate OSCE follow-up questions in background if OSCE mode is enabled
+        if (osceMode && result.case.id && result.case.sessionId) {
+          console.log('🎯 [AppContext] OSCE mode enabled for practice case, starting question generation:', result.case.id);
+          console.log('🔍 [AppContext] OSCE generation params (practice):', {
+            osceMode,
+            caseId: result.case.id,
+            sessionId: result.case.sessionId
           });
           
-          if (isOSCEMode) {
-            console.log('🎯 [AppContext] Starting OSCE question generation in background for practice case:', result.case.id);
-            // Add small delay to ensure primary context is cached before generating questions
-            setTimeout(() => {
-              generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
-                .then(questions => {
-                  console.log('✅ [AppContext] OSCE questions generated successfully (practice):', questions.length, 'questions');
-                })
-                .catch(error => {
-                  console.error('❌ [AppContext] OSCE question generation failed (practice):', error);
-                });
-            }, 1000); // 1 second delay to allow cache to be written
-          } else {
-            console.log('ℹ️ [AppContext] Not OSCE mode (practice), skipping question generation');
-          }
+          // Add small delay to ensure primary context is cached before generating questions
+          setTimeout(() => {
+            generateOSCEFollowupQuestions(result.case.id, result.case.sessionId)
+              .then(questions => {
+                console.log('✅ [AppContext] OSCE questions generated successfully (practice):', questions.length, 'questions');
+              })
+              .catch(error => {
+                console.error('❌ [AppContext] OSCE question generation failed (practice):', error);
+              });
+          }, 1000); // 1 second delay to allow cache to be written
+        } else {
+          console.log('ℹ️ [AppContext] OSCE question generation skipped (practice):', {
+            osceMode: !!osceMode,
+            hasCaseId: !!result.case.id,
+            hasSessionId: !!result.case.sessionId,
+            caseId: result.case.id
+          });
         }
       } catch (error) {
         console.error("Error in generatePracticeCase:", error);

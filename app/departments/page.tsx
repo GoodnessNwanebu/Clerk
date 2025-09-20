@@ -51,7 +51,7 @@ const DepartmentSelectionScreen: React.FC = () => {
   const handleDirectSelect = async (department: Department, subspecialtyName?: string) => {
     setError(null);
     try {
-      await generateNewCaseWithDifficulty(department, difficulty, subspecialtyName);
+      await generateNewCaseWithDifficulty(department, difficulty, subspecialtyName, osceMode);
       setNavigationEntryPoint('/departments');
       // Navigate to clerking with OSCE parameter if OSCE mode is enabled
       const clerkingUrl = osceMode ? '/clerking?osce=true' : '/clerking';

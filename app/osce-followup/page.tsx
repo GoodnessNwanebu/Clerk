@@ -12,6 +12,32 @@ interface QuestionResponse {
   answer: string;
 }
 
+const TimeUpModal: React.FC<{ isOpen: boolean; onFinish: () => void }> = ({ isOpen, onFinish }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center">
+            <Icon name="clock" size={24} className="text-white" />
+          </div>
+          <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">Time's Up!</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Your OSCE session has ended. Please complete your follow-up questions.
+          </p>
+          <button 
+            onClick={onFinish}
+            className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform"
+          >
+            Continue to Questions
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const OSCEFollowupPage: React.FC = () => {
   const router = useRouter();
   const { caseState } = useAppContext();
@@ -23,6 +49,28 @@ const OSCEFollowupPage: React.FC = () => {
   const [generationStatus, setGenerationStatus] = useState<OSCEGenerationStatus | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showTimeUpModal, setShowTimeUpModal] = useState<boolean>(false);
+
+  // Prevent back navigation in OSCE mode
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // Prevent going back to clerking page
+      event.preventDefault();
+      setShowTimeUpModal(true);
+      // Push the current state back to prevent actual navigation
+      window.history.pushState(null, '', window.location.href);
+    };
+
+    // Add popstate listener
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push an extra state to prevent back navigation
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   // Initialize questions and responses
   useEffect(() => {
@@ -126,6 +174,11 @@ const OSCEFollowupPage: React.FC = () => {
     console.log('🎤 [OSCE Followup] Microphone clicked for question:', currentQuestion.id);
   };
 
+  const handleFinishSession = (): void => {
+    setShowTimeUpModal(false);
+    // Modal just closes - user continues with questions
+  };
+
   const handleSubmitAnswers = async (): Promise<void> => {
     if (isSubmitting) return;
 
@@ -191,21 +244,18 @@ const OSCEFollowupPage: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4">
-            <Icon name="loader-2" size={64} className="animate-spin text-teal-500" />
-          </div>
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
-            Give it a minute, we are generating your questions
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400">
-            {generationStatus?.status === 'retrying' 
-              ? `Generating questions (attempt ${generationStatus.attempts}/${generationStatus.maxAttempts})...`
-              : 'Preparing your OSCE follow-up questions...'
-            }
+      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white p-6">
+        <Icon name="loader-2" size={48} className="animate-spin mb-6" />
+        
+        <p className="text-lg font-semibold mb-4 text-center max-w-md">
+          Generating questions...
+        </p>
+        
+        {generationStatus?.status === 'retrying' && (
+          <p className="text-slate-300 text-sm text-center max-w-md">
+            Attempt {generationStatus.attempts}/{generationStatus.maxAttempts}
           </p>
-        </div>
+        )}
       </div>
     );
   }
@@ -239,10 +289,12 @@ const OSCEFollowupPage: React.FC = () => {
   const allQuestionsAnswered = responses.every(r => r.answer.trim());
 
   return (
-    <div 
-      className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300 flex flex-col"
-      style={{ height: '100vh', maxHeight: '100vh' }}
-    >
+    <>
+      <TimeUpModal isOpen={showTimeUpModal} onFinish={handleFinishSession} />
+      <div 
+        className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300 flex flex-col"
+        style={{ height: '100vh', maxHeight: '100vh' }}
+      >
       {/* Top Section - Question Counter & Progress */}
       <div className="flex-shrink-0 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
@@ -346,7 +398,8 @@ const OSCEFollowupPage: React.FC = () => {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };
 
