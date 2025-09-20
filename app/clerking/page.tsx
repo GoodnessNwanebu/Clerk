@@ -17,7 +17,7 @@ import { getPatientResponse } from '../../lib/ai/geminiService';
 
 import { Icon } from '../../components/Icon';
 
-import { ClerkingTimer } from '../../components/ClerkingTimer';
+import { SideTimer } from '../../components/SideTimer';
 
 import { Message } from '../../types';
 
@@ -663,13 +663,13 @@ const ClerkingScreen: React.FC = () => {
 
           </button>
 
-          <div className="text-center flex-shrink-0">
+          <div className="text-center flex-1">
 
-            <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
 
-              {caseState.department && caseState.department.length > 15 
+              {caseState.department && caseState.department.length > 25 
 
-                ? `${caseState.department.substring(0, 15)}...` 
+                ? `${caseState.department.substring(0, 25)}...` 
 
                 : caseState.department
 
@@ -677,13 +677,11 @@ const ClerkingScreen: React.FC = () => {
 
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Patient Clerking</p>
+            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400">Patient Clerking</p>
 
           </div>
 
-          <div className="flex items-center space-x-4 sm:space-x-6 flex-shrink-0">
-
-            <ClerkingTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
+          <div className="flex items-center flex-shrink-0">
 
             <button 
 
@@ -985,6 +983,9 @@ const ClerkingScreen: React.FC = () => {
         onClose={handleCloseInstallModal}
         onComplete={handleCompleteInstallModal}
       />
+
+      {/* Side Timer */}
+      <SideTimer onTimeUp={handleTimeUp} onModalStateChange={handleModalStateChange} />
 
     </div>
 
