@@ -22,6 +22,7 @@ QUESTION REQUIREMENTS:
 - Emphasize core medical knowledge that students should know about this condition
 - Questions should be the type students would encounter in any OSCE station for this diagnosis
 - Avoid overly specific patient details - focus on general clinical knowledge
+- **CRITICAL: DO NOT include the diagnosis name or any suggestive terms in the questions**
 
 **IMPORTANT** First question should ask the student for their most likely diagnosis
 
@@ -49,7 +50,7 @@ Return a JSON object with questions and corresponding answers:
     {
       "id": "q2", 
       "domain": "risk_factors",
-      "question": "List 4 important risk factors for developing ${diagnosis}",
+      "question": "List 4 important risk factors for this condition",
       "answer": "1. Risk factor 1 with explanation 2. Risk factor 2 with explanation 3. Risk factor 3 with explanation"
     }
     // ... continue for all 10 questions
@@ -57,11 +58,12 @@ Return a JSON object with questions and corresponding answers:
 }
 
 IMPORTANT:
-- Questions should test FUNDAMENTAL clinical knowledge about ${diagnosis}
+- Questions should test FUNDAMENTAL clinical knowledge about the condition
 - Focus on what every medical student should know about this condition
 - Use realistic OSCE exam language and format
 - Answers should be comprehensive but concise
-- Questions should be applicable to ANY patient with ${diagnosis}, not just this specific case
+- Questions should be applicable to ANY patient with this condition, not just this specific case
+- **NEVER include the diagnosis name in questions - use generic terms like "this condition", "this patient", "this presentation"**
 - Ensure questions cover all 6 domains listed above
 - Each question should have a unique ID (q1, q2, ... q10)`;
 };

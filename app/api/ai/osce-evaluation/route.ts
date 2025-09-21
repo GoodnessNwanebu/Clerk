@@ -10,7 +10,8 @@ import { getOSCEQuestions } from '../../../../lib/ai/osce-utils';
 export async function POST(request: NextRequest) {
   return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
     try {
-      const { studentResponses, caseState } = sessionContext.requestBody || {};
+      const body = await request.json();
+      const { studentResponses, caseState } = body;
       
       if (!studentResponses || !Array.isArray(studentResponses)) {
         return NextResponse.json({ 

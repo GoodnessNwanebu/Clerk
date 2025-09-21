@@ -129,11 +129,39 @@ const OSCEFollowupPage: React.FC = () => {
         
         if (osceQuestions) {
           setQuestions(osceQuestions);
-          // Initialize empty responses
-          const initialResponses: QuestionResponse[] = osceQuestions.map(q => ({
-            questionId: q.id,
-            answer: ''
-          }));
+          
+          // Check for saved responses in localStorage
+          const savedResponsesKey = `osce-responses-${caseState.caseId}`;
+          const savedResponses = localStorage.getItem(savedResponsesKey);
+          
+          let initialResponses: QuestionResponse[];
+          if (savedResponses) {
+            try {
+              const parsedResponses = JSON.parse(savedResponses);
+              // Merge saved responses with question structure
+              initialResponses = osceQuestions.map(q => {
+                const savedResponse = parsedResponses.find((r: QuestionResponse) => r.questionId === q.id);
+                return {
+                  questionId: q.id,
+                  answer: savedResponse?.answer || ''
+                };
+              });
+              console.log('✅ [OSCE Followup] Loaded saved responses from localStorage');
+            } catch (error) {
+              console.warn('⚠️ [OSCE Followup] Failed to parse saved responses, using empty responses');
+              initialResponses = osceQuestions.map(q => ({
+                questionId: q.id,
+                answer: ''
+              }));
+            }
+          } else {
+            // Initialize empty responses
+            initialResponses = osceQuestions.map(q => ({
+              questionId: q.id,
+              answer: ''
+            }));
+          }
+          
           setResponses(initialResponses);
           setIsLoading(false);
           console.log('✅ [OSCE Followup] Questions loaded successfully, count:', osceQuestions.length);
@@ -177,11 +205,21 @@ const OSCEFollowupPage: React.FC = () => {
   }, [caseState.caseId, router]);
 
   const handleAnswerChange = (questionId: string, answer: string): void => {
-    setResponses(prev => prev.map(response => 
-      response.questionId === questionId 
-        ? { ...response, answer }
-        : response
-    ));
+    setResponses(prev => {
+      const updatedResponses = prev.map(response => 
+        response.questionId === questionId 
+          ? { ...response, answer }
+          : response
+      );
+      
+      // Save to localStorage whenever responses change
+      if (caseState.caseId) {
+        const savedResponsesKey = `osce-responses-${caseState.caseId}`;
+        localStorage.setItem(savedResponsesKey, JSON.stringify(updatedResponses));
+      }
+      
+      return updatedResponses;
+    });
   };
 
   const handleNextQuestion = (): void => {
@@ -364,8 +402,8 @@ const OSCEFollowupPage: React.FC = () => {
     <>
       <TimeUpModal isOpen={showTimeUpModal} onFinish={handleFinishSession} />
       <PermissionModal isOpen={showPermissionModal} onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300 flex flex-col justify-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
           {/* Top Section - Question Counter & Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
@@ -396,6 +434,7 @@ const OSCEFollowupPage: React.FC = () => {
               {/* Answer input with microphone */}
               <div className="relative">
                 <textarea
+                  key={currentQuestion.id}
                   value={currentResponse?.answer || ''}
                   onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                   placeholder="Enter your answer here..."
