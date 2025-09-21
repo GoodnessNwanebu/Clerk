@@ -200,22 +200,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [isBrowser]);
 
-  // Check for pending country after authentication and update user
-  useEffect(() => {
-    if (!isBrowser) return;
-    
-    const checkPendingCountry = async () => {
-      const pendingCountry = localStorage.getItem('pendingUserCountry');
-      if (pendingCountry && userEmail) {
-        setUserCountry(pendingCountry);
-          console.log(`✅ Updated user country from onboarding: ${pendingCountry}`);
-          // Clear the pending country
-          localStorage.removeItem('pendingUserCountry'); 
-      }
-    };
-
-    checkPendingCountry();
-  }, [isBrowser, userEmail]);
+  // Effects will be defined after setUserCountry function
 
   const setUserEmail = (email: string) => {
     if (isBrowser) {
@@ -230,29 +215,100 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     setUserCountryState(country);
 
- 
-    
-    // Update user country in database
-    try {
-      const response = await fetch('/api/user', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ country }),
-        credentials: 'include',
-      });
+    // Update user country in database with retry mechanism
+    const updateCountryWithRetry = async (retries = 3): Promise<void> => {
+      try {
+        const response = await fetch('/api/user', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ country }),
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
+        }
+
+        const result = await response.json();
+        console.log(`✅ Updated user country to: ${country}`, result);
+      } catch (error) {
+        console.error(`❌ Failed to update user country (attempt ${4 - retries}):`, error);
+        
+        if (retries > 1) {
+          // Retry with exponential backoff
+          const delay = Math.pow(2, 4 - retries) * 1000; // 1s, 2s, 4s
+          console.log(`🔄 Retrying country update in ${delay}ms...`);
+          setTimeout(() => updateCountryWithRetry(retries - 1), delay);
+        } else {
+          console.error('💥 All retries failed for country update. Country may be lost in database.');
+          // Store failed update for later retry
+          if (isBrowser) {
+            localStorage.setItem('failedCountryUpdate', country);
+            localStorage.setItem('failedCountryUpdateTimestamp', Date.now().toString());
+          }
+        }
       }
+    };
 
-      console.log(`✅ Updated user country to: ${country}`);
-    } catch (error) {
-      console.error('Failed to update user country in database:', error);
-      // Don't throw error - localStorage update still succeeded
-    }
-  }, []);
+    // Start the update process
+    updateCountryWithRetry();
+  }, [isBrowser]);
+
+  // Sync country to database after authentication (only if user is signed in)
+  useEffect(() => {
+    if (!isBrowser || !userEmail) return;
+    
+    const syncCountryToDatabase = async () => {
+      const pendingCountry = localStorage.getItem('pendingUserCountry');
+      
+      // Only sync if we have a pending country from onboarding
+      if (pendingCountry) {
+        console.log(`🌍 Syncing pending country to database: ${pendingCountry}`);
+        
+        // Use the robust setUserCountry method (with retries)
+        await setUserCountry(pendingCountry);
+        
+        // Clear the pending country after successful sync
+        localStorage.removeItem('pendingUserCountry');
+        console.log(`✅ Country sync completed: ${pendingCountry}`);
+      }
+    };
+
+    syncCountryToDatabase();
+  }, [isBrowser, userEmail, setUserCountry]);
+
+  // Recovery mechanism for failed country updates
+  useEffect(() => {
+    if (!isBrowser || !userEmail) return;
+
+    const recoverFailedCountryUpdate = async () => {
+      const failedCountry = localStorage.getItem('failedCountryUpdate');
+      const failedTimestamp = localStorage.getItem('failedCountryUpdateTimestamp');
+      
+      if (failedCountry && failedTimestamp) {
+        const timeSinceFailure = Date.now() - parseInt(failedTimestamp);
+        const oneHour = 60 * 60 * 1000;
+        
+        // Only retry if failure was recent (within 1 hour)
+        if (timeSinceFailure < oneHour) {
+          console.log(`🔄 Attempting to recover failed country update: ${failedCountry}`);
+          await setUserCountry(failedCountry);
+          // Clear the failed update markers
+          localStorage.removeItem('failedCountryUpdate');
+          localStorage.removeItem('failedCountryUpdateTimestamp');
+        } else {
+          // Clean up old failed updates
+          localStorage.removeItem('failedCountryUpdate');
+          localStorage.removeItem('failedCountryUpdateTimestamp');
+        }
+      }
+    };
+
+    recoverFailedCountryUpdate();
+  }, [isBrowser, userEmail, setUserCountry]);
 
   const setNavigationEntryPoint = (entryPoint: string) => {
     if (isBrowser) {

@@ -112,15 +112,14 @@ const DepartmentSelectionScreen: React.FC = () => {
       {/* OSCE Info Modal */}
       {showOSCEInfoModal && (
         <div className="fixed inset-0 bg-black/60 z-50">
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-6">
             <div className="text-center">
               <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center">
                 <Icon name="info" size={24} className="text-white" />
               </div>
-              <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">OSCE Mode</h2>
-              <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-left space-y-3">
-                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created.</p>
-                <p>After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
+              <h2 className="text-lg font-bold mb-6 text-slate-900 dark:text-white">OSCE Mode</h2>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-6 px-4">
+                <p>You'll have 5 minutes to clerk the patient, with the timer starting immediately when the case is created. After completing your case, you'll answer 10 follow-up questions to test your clinical reasoning.</p>
               </div>
               <button 
                 onClick={() => setShowOSCEInfoModal(false)}

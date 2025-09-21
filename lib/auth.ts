@@ -29,11 +29,13 @@ export const handler = NextAuth({
             update: {
               name: user.name || undefined,
               image: user.image || undefined,
+              // Don't update country here - preserve existing value
             },
             create: {
               email: user.email,
               name: user.name || undefined,
               image: user.image || undefined,
+              // Country will be set via client-side API call after auth
             },
           });
           console.log('✅ User created/updated in database:', dbUser.id);

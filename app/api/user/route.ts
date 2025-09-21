@@ -9,7 +9,7 @@ import { prisma } from '../../../lib/database/prisma';
 export async function PATCH(request: NextRequest) {
   try {
     // Get user session with proper typing
-    const session = await getServerSession(auth) as { user?: { email?: string } } | null;
+    const session = await getServerSession(auth) as { user?: { email?: string; name?: string; image?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized. Please sign in to continue.' },
@@ -21,29 +21,25 @@ export async function PATCH(request: NextRequest) {
     const { country } = body;
 
     // Validate request
-    if (!country) {
+    if (!country || typeof country !== 'string' || country.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Country is required' },
+        { success: false, error: 'Valid country is required' },
         { status: 400 }
       );
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+    const trimmedCountry = country.trim();
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Update user country
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { country },
+    // Get or create user in database (robust user handling)
+    const user = await prisma.user.upsert({
+      where: { email: session.user.email },
+      update: { country: trimmedCountry },
+      create: {
+        email: session.user.email,
+        country: trimmedCountry,
+        name: session.user.name || undefined,
+        image: session.user.image || undefined,
+      },
       select: {
         id: true,
         email: true,
@@ -53,17 +49,29 @@ export async function PATCH(request: NextRequest) {
       }
     });
 
-    console.log(`✅ Updated user country: ${user.email} -> ${country}`);
+    console.log(`✅ Updated user country: ${user.email} -> ${trimmedCountry}`);
 
     return NextResponse.json({
       success: true,
-      user: updatedUser
+      user: user,
+      message: `Country successfully set to ${trimmedCountry}`
     });
 
   } catch (error) {
-    console.error('User update error:', error);
+    console.error('💥 User country update error:', error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('unique constraint')) {
+        return NextResponse.json(
+          { success: false, error: 'User account conflict. Please try again.' },
+          { status: 409 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Failed to update country. Please try again.' },
       { status: 500 }
     );
   }

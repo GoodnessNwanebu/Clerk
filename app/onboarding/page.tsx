@@ -67,7 +67,12 @@ const OnboardingScreen: React.FC = () => {
   // Auto-advance if user is already signed in and we're on the sign-in step
   useEffect(() => {
     if (isSignInStep && session && status === 'authenticated') {
-      // User is already signed in, automatically complete onboarding
+      // User is already signed in, ensure country is synced and complete onboarding
+      if (selectedCountry) {
+        // Force immediate country sync since user is authenticated
+        setUserCountry(selectedCountry);
+      }
+      
       setTimeout(() => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('hasOnboarded', 'true');
@@ -75,16 +80,19 @@ const OnboardingScreen: React.FC = () => {
         router.push('/');
       }, 1000); // Small delay to show the success state
     }
-  }, [isSignInStep, session, status, router]);
+  }, [isSignInStep, session, status, router, selectedCountry, setUserCountry]);
 
   const handleNext = () => {
     if (step < onboardingSteps.length - 1) {
       // If moving from country step to sign-in step, save the country selection
       if (isCountryStep) {
-        // Store country in localStorage for NextAuth signup process
+        // Store country immediately as the user's country AND as pending
         if (typeof window !== 'undefined') {
-          localStorage.setItem('pendingUserCountry', selectedCountry);
+          localStorage.setItem('userCountry', selectedCountry); // Set as current country
+          localStorage.setItem('pendingUserCountry', selectedCountry); // Keep pending for DB sync
         }
+        // Also update the context immediately
+        setUserCountry(selectedCountry);
       }
       setStep(step + 1);
     } else {
@@ -110,10 +118,21 @@ const OnboardingScreen: React.FC = () => {
   }
 
   const handleSignIn = () => {
+    // Ensure country is set before signing in
+    if (selectedCountry && typeof window !== 'undefined') {
+      localStorage.setItem('userCountry', selectedCountry);
+      localStorage.setItem('pendingUserCountry', selectedCountry);
+    }
     signIn('google', { callbackUrl: '/' });
   };
 
   const handleSkipSignIn = () => {
+    // Ensure country is set even when skipping sign-in
+    if (selectedCountry && typeof window !== 'undefined') {
+      localStorage.setItem('userCountry', selectedCountry);
+      setUserCountry(selectedCountry);
+    }
+    
     // Skip sign-in and complete onboarding
     if (typeof window !== 'undefined') {
       localStorage.setItem('hasOnboarded', 'true');
