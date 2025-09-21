@@ -5,7 +5,6 @@ import { requireActiveSession } from '../../../../lib/middleware/session-middlew
 import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
 import { OSCEEvaluation, OSCEEvaluationRequest, OSCEEvaluationAPIResponse } from '../../../../types/osce';
 import { getOSCEAnswers } from '../../../../lib/cache/osce-answers-cache';
-import { getOSCEQuestions } from '../../../../lib/ai/osce-utils';
 
 export async function POST(request: NextRequest) {
   return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
@@ -41,14 +40,12 @@ export async function POST(request: NextRequest) {
         }, { status: 404 });
       }
 
-      // Get questions from localStorage (we need the question text)
-      const questions = getOSCEQuestions(caseId);
-      if (!questions) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'OSCE questions not found' 
-        }, { status: 404 });
-      }
+      // Get questions from server-side cache (questionData contains the questions)
+      const questions = cachedAnswers.questionData.map(q => ({
+        id: q.id,
+        domain: q.domain,
+        question: q.question
+      }));
 
       // Create full case state for evaluation (merge primary context with secondary context)
       const fullCaseState = {
