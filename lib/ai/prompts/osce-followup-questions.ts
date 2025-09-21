@@ -43,7 +43,7 @@ Return a JSON object with questions and corresponding answers:
     {
       "id": "q1",
       "domain": "primary_diagnosis",
-      "question": "What are the most likely diagnosis for this patient?",
+      "question": "What is the most likely diagnosis for this patient?",
       "answer": "Detailed correct answer with clinical reasoning"
     },
     {

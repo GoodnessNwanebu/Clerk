@@ -39,19 +39,23 @@ const TimeUpModal: React.FC<{ isOpen: boolean; onFinish: () => void }> = ({ isOp
   );
 };
 
-const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
-  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 text-slate-900 dark:text-white text-center max-w-sm">
-      <Icon name="mic" size={40} className="mx-auto text-teal-400 mb-4"/>
-      <h2 className="text-xl font-bold mb-2">Microphone Access</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">ClerkSmart needs access to your microphone to enable voice input for answers.</p>
-      <div className="flex space-x-4">
-        <button onClick={onDeny} className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Deny</button>
-        <button onClick={onAllow} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform">Allow</button>
+const PermissionModal: React.FC<{ isOpen: boolean; onAllow: () => void; onDeny: () => void }> = ({ isOpen, onAllow, onDeny }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 text-slate-900 dark:text-white text-center max-w-sm">
+        <Icon name="mic" size={40} className="mx-auto text-teal-400 mb-4"/>
+        <h2 className="text-xl font-bold mb-2">Microphone Access</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">ClerkSmart needs access to your microphone to enable voice input for answers.</p>
+        <div className="flex space-x-4">
+          <button onClick={onDeny} className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Deny</button>
+          <button onClick={onAllow} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform">Allow</button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const OSCEFollowupPage: React.FC = () => {
   const router = useRouter();
