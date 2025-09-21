@@ -357,7 +357,7 @@ const OSCEFollowupPage: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white p-6">
+      <div className="fixed inset-0 bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-slate-900 dark:text-white p-6">
         <Icon name="loader-2" size={48} className="animate-spin mb-6" />
         
         <p className="text-lg font-semibold mb-4 text-center max-w-md">
