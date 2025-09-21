@@ -7,6 +7,8 @@ import { OSCEEvaluation, OSCEEvaluationRequest, OSCEEvaluationAPIResponse } from
 import { getOSCEAnswers } from '../../../../lib/cache/osce-answers-cache';
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 [OSCE Evaluation] Route hit - starting processing...');
+  
   return requireActiveSession(request, async (sessionContext: SessionMiddlewareContext) => {
     try {
       console.log('🔍 [OSCE Evaluation] Starting request processing...');
