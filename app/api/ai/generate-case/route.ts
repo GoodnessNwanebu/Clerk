@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
         const { sessionId, expiresAt } = await createCaseSession({
             caseId: caseRecord.id,
             userId: user.id,
-            expiresIn: 3600 // 1 hour
+            expiresIn: 86400 // 24 hours
         });
 
         console.log('✅ Session created successfully');
