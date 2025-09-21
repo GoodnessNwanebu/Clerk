@@ -310,7 +310,10 @@ const OSCEFollowupPage: React.FC = () => {
         },
         body: JSON.stringify({
           studentResponses,
-          caseState
+          caseState,
+          // Middleware requires these fields
+          caseId: caseState.caseId,
+          sessionId: caseState.sessionId
         }),
         credentials: 'include',
       });
