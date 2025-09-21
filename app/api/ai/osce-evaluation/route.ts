@@ -3,7 +3,7 @@ import { ai, MODEL, parseJsonResponse, handleApiError } from '../../../../lib/ai
 import { osceEvaluationPrompt } from '../../../../lib/ai/prompts/osce-evaluation';
 import { requireActiveSession } from '../../../../lib/middleware/session-middleware';
 import type { SessionMiddlewareContext } from '../../../../lib/middleware/session-middleware';
-import { OSCEEvaluation, OSCEEvaluationRequest, OSCEEvaluationAPIResponse } from '../../../../types/osce';
+import { OSCEEvaluation, OSCEEvaluationAPIResponse, OSCEStudentResponse } from '../../../../types/osce';
 import { getOSCEAnswers } from '../../../../lib/cache/osce-answers-cache';
 
 export async function POST(request: NextRequest) {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     try {
       console.log('🔍 [OSCE Evaluation] Starting request processing...');
       
-      // Use the body that was already parsed by the middleware
+      // Get the request body that was already parsed by the middleware
       const body = sessionContext.requestBody || {};
       console.log('🔍 [OSCE Evaluation] Request body received:', {
         hasStudentResponses: !!body.studentResponses,
@@ -22,8 +22,10 @@ export async function POST(request: NextRequest) {
         caseStateKeys: body.caseState ? Object.keys(body.caseState) : []
       });
       
+      // Extract required data from request body
       const { studentResponses, caseState } = body;
       
+      // Validate student responses
       if (!studentResponses || !Array.isArray(studentResponses)) {
         console.log('❌ [OSCE Evaluation] Student responses validation failed:', {
           studentResponses: studentResponses,
@@ -35,6 +37,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
+      // Validate case state
       if (!caseState) {
         console.log('❌ [OSCE Evaluation] Case state validation failed');
         return NextResponse.json({ 
@@ -43,6 +46,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
+      // Get session context
       const { caseSession, primaryContext } = sessionContext;
       const caseId = caseSession.caseId;
 
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
         }, { status: 404 });
       }
 
-      // Get questions from server-side cache (questionData contains the questions)
+      // Extract questions from cached data
       const questions = cachedAnswers.questionData.map(q => ({
         id: q.id,
         domain: q.domain,
@@ -82,10 +86,10 @@ export async function POST(request: NextRequest) {
         firstQuestion: questions[0] ? { id: questions[0].id, domain: questions[0].domain } : null
       });
 
-      // Create full case state for evaluation (merge primary context with secondary context)
+      // Create full case state for evaluation
       const fullCaseState = {
         ...caseState,
-        caseDetails: primaryContext // Use primary context as caseDetails
+        caseDetails: primaryContext
       };
 
       console.log('🔍 [OSCE Evaluation] Full case state created:', {
@@ -93,6 +97,7 @@ export async function POST(request: NextRequest) {
         caseStateKeys: Object.keys(fullCaseState)
       });
 
+      // Generate evaluation using AI
       const aiContext = 'generateOSCEEvaluation';
       const userMessage = osceEvaluationPrompt(
         fullCaseState,
@@ -114,7 +119,7 @@ export async function POST(request: NextRequest) {
       
       const osceEvaluation = parseJsonResponse<OSCEEvaluation>(aiResponse.text, aiContext);
       
-      // Validate the response structure
+      // Validate the AI response structure
       const requiredFields = [
         'diagnosis', 
         'scoreBreakdown', 
@@ -139,6 +144,7 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ [OSCE Evaluation] Generated evaluation with overall score:', osceEvaluation.scoreBreakdown.overallScore);
 
+      // Return successful response
       const response: OSCEEvaluationAPIResponse = {
         success: true,
         evaluation: osceEvaluation
