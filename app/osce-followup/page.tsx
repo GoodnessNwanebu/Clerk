@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../../components/Icon';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { getOSCEQuestions, getOSCEGenerationStatus, areOSCEQuestionsReady } from '../../lib/ai/osce-utils';
 import { OSCEQuestion, OSCEGenerationStatus, OSCEStudentResponse, OSCEEvaluationAPIResponse } from '../../types/osce';
 
@@ -38,6 +39,20 @@ const TimeUpModal: React.FC<{ isOpen: boolean; onFinish: () => void }> = ({ isOp
   );
 };
 
+const PermissionModal: React.FC<{ onAllow: () => void; onDeny: () => void }> = ({ onAllow, onDeny }) => (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 text-slate-900 dark:text-white text-center max-w-sm">
+      <Icon name="mic" size={40} className="mx-auto text-teal-400 mb-4"/>
+      <h2 className="text-xl font-bold mb-2">Microphone Access</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">ClerkSmart needs access to your microphone to enable voice input for answers.</p>
+      <div className="flex space-x-4">
+        <button onClick={onDeny} className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Deny</button>
+        <button onClick={onAllow} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-lg font-semibold text-white hover:scale-105 transform transition-transform">Allow</button>
+      </div>
+    </div>
+  </div>
+);
+
 const OSCEFollowupPage: React.FC = () => {
   const router = useRouter();
   const { caseState } = useAppContext();
@@ -50,6 +65,20 @@ const OSCEFollowupPage: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showTimeUpModal, setShowTimeUpModal] = useState<boolean>(false);
+  const [showPermissionModal, setShowPermissionModal] = useState<boolean>(false);
+
+  // Speech recognition functionality
+  const { isListening, transcript, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition();
+
+  // Effect to handle speech recognition transcript
+  useEffect(() => {
+    if (!isListening && transcript.trim() && questions.length > 0) {
+      const currentQuestion = questions[currentQuestionIndex];
+      if (currentQuestion) {
+        handleAnswerChange(currentQuestion.id, transcript);
+      }
+    }
+  }, [isListening, transcript, questions, currentQuestionIndex]);
 
   // Prevent back navigation in OSCE mode
   useEffect(() => {
@@ -169,9 +198,48 @@ const OSCEFollowupPage: React.FC = () => {
     }
   };
 
-  const handleMicClick = (): void => {
-    // TODO: Implement microphone functionality
-    console.log('🎤 [OSCE Followup] Microphone clicked for question:', currentQuestion.id);
+  const handleMicClick = async (): Promise<void> => {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    try {
+      // Check for permission first
+      if (typeof window !== 'undefined' && navigator?.permissions) {
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+
+        if (permissionStatus.state === 'prompt') {
+          setShowPermissionModal(true);
+          return;
+        }
+
+        if (permissionStatus.state === 'denied') {
+          alert("Microphone access was denied. Please enable it in your browser settings.");
+          return;
+        }
+      }
+
+      startListening();
+    } catch (error) {
+      console.error("Error checking mic permissions:", error);
+      // Fallback for browsers that don't support permissions.query
+      handlePermissionAllow();
+    }
+  };
+
+  const handlePermissionAllow = (): void => {
+    setShowPermissionModal(false);
+    if (typeof window !== 'undefined' && navigator?.mediaDevices) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => startListening())
+        .catch(() => alert("Microphone access is required. Please enable it in your browser settings."));
+    }
+  };
+
+  const handlePermissionDeny = (): void => {
+    setShowPermissionModal(false);
+    alert("Microphone access is required for voice input.");
   };
 
   const handleFinishSession = (): void => {
@@ -291,113 +359,117 @@ const OSCEFollowupPage: React.FC = () => {
   return (
     <>
       <TimeUpModal isOpen={showTimeUpModal} onFinish={handleFinishSession} />
-      <div 
-        className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300 flex flex-col"
-        style={{ height: '100vh', maxHeight: '100vh' }}
-      >
-      {/* Top Section - Question Counter & Progress */}
-      <div className="flex-shrink-0 p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-            {currentQuestionIndex + 1}/10
-          </span>
-        </div>
-        
-        {/* Progress bar */}
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-          <div 
-            className="bg-teal-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Question Section */}
-      <main className="flex-1 px-4 sm:px-6 pb-4 overflow-y-auto">
-        <div className="max-w-2xl mx-auto">
-          {/* Question */}
-          <div className="mb-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-              {currentQuestion.question}
-            </h2>
+      <PermissionModal isOpen={showPermissionModal} onAllow={handlePermissionAllow} onDeny={handlePermissionDeny} />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+          {/* Top Section - Question Counter & Progress */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                Question {currentQuestionIndex + 1} of 10
+              </span>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div 
+                className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+              />
+            </div>
           </div>
 
-          {/* Answer input with microphone */}
-          <div className="relative">
-            <textarea
-              value={currentResponse?.answer || ''}
-              onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-              placeholder="Enter your answer here..."
-              rows={8}
-              className="w-full p-4 pr-16 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 resize-none text-base"
-            />
-            <button
-              onClick={handleMicClick}
-              className="absolute bottom-4 right-4 p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-              aria-label="Voice input"
-            >
-              <Icon name="mic" size={20} />
-            </button>
-          </div>
-        </div>
-      </main>
+          {/* Question Section */}
+          <main className="mb-8">
+            <div className="max-w-3xl mx-auto">
+              {/* Question */}
+              <div className="mb-8">
+                <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
+                  {currentQuestion.question}
+                </h2>
+              </div>
 
-      {/* Navigation Footer */}
-      <footer className="flex-shrink-0 p-4 sm:p-6 border-t border-slate-200 dark:border-slate-700">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          {/* Previous Button */}
-          {currentQuestionIndex > 0 ? (
-            <button
-              onClick={handlePreviousQuestion}
-              className="flex items-center space-x-2 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-            >
-              <Icon name="chevron-left" size={20} />
-              <span>Previous</span>
-            </button>
-          ) : (
-            <div></div> // Empty space to maintain layout
-          )}
+              {/* Answer input with microphone */}
+              <div className="relative">
+                <textarea
+                  value={currentResponse?.answer || ''}
+                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                  placeholder="Enter your answer here..."
+                  rows={8}
+                  className="w-full p-4 pr-16 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 resize-none text-base"
+                />
+                <button
+                  onClick={handleMicClick}
+                  className={`absolute bottom-4 right-4 p-2 rounded-full transition-colors ${
+                    isListening 
+                      ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' 
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                >
+                  <Icon name={isListening ? "mic-off" : "mic"} size={20} />
+                </button>
+              </div>
+            </div>
+          </main>
 
-          {/* Next/Skip/Submit Button */}
-          <div className="flex space-x-3">
-            {!isLastQuestion ? (
-              <button
-                onClick={hasCurrentAnswer ? handleNextQuestion : handleSkipQuestion}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-                  hasCurrentAnswer 
-                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-600'
-                }`}
-              >
-                <span>{hasCurrentAnswer ? 'Next' : 'Skip'}</span>
-                <Icon name="chevron-right" size={20} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmitAnswers}
-                disabled={!allQuestionsAnswered || isSubmitting}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-                  allQuestionsAnswered && !isSubmitting
-                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                    : 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Icon name="loader-2" size={20} className="animate-spin" />
-                    <span>Submitting...</span>
-                  </>
+          {/* Navigation Footer */}
+          <footer className="border-t border-slate-200 dark:border-slate-700 pt-6">
+            <div className="max-w-3xl mx-auto flex items-center justify-between">
+              {/* Previous Button */}
+              {currentQuestionIndex > 0 ? (
+                <button
+                  onClick={handlePreviousQuestion}
+                  className="flex items-center space-x-2 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                >
+                  <Icon name="chevron-left" size={20} />
+                  <span>Previous</span>
+                </button>
+              ) : (
+                <div></div> // Empty space to maintain layout
+              )}
+
+              {/* Next/Skip/Submit Button */}
+              <div className="flex space-x-3">
+                {!isLastQuestion ? (
+                  <button
+                    onClick={hasCurrentAnswer ? handleNextQuestion : handleSkipQuestion}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                      hasCurrentAnswer 
+                        ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <span>{hasCurrentAnswer ? 'Next' : 'Skip'}</span>
+                    <Icon name="chevron-right" size={20} />
+                  </button>
                 ) : (
-                  <>
-                    <Icon name="check" size={20} />
-                    <span>Submit Answers</span>
-                  </>
+                  <button
+                    onClick={handleSubmitAnswers}
+                    disabled={isSubmitting}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                      !isSubmitting
+                        ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                        : 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Icon name="loader-2" size={20} className="animate-spin" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="check" size={20} />
+                        <span>Submit Answers</span>
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
-          </div>
+              </div>
+            </div>
+          </footer>
         </div>
-      </footer>
       </div>
     </>
   );

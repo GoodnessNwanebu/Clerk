@@ -18,25 +18,22 @@ PATIENT CONTEXT:
 
 QUESTION REQUIREMENTS:
 - Format: Short answer questions only
-- Style: Balance generic OSCE format with patient-specific context
-- Use patient's age, gender, and presentation in questions where relevant
-- Reference specific symptoms/findings from the patient history
-- Realistic OSCE exam style questions
+- Style: Focus on GENERIC clinical knowledge about the diagnosis, not patient-specific details
+- Emphasize core medical knowledge that students should know about this condition
+- Questions should be the type students would encounter in any OSCE station for this diagnosis
+- Avoid overly specific patient details - focus on general clinical knowledge
+
+**IMPORTANT** First question should ask the student for their most likely diagnosis
 
 QUESTION DOMAINS (distribute 10 questions across these 6 areas):
-1. Primary Diagnosis (1-2 questions) - most likely diagnosis, diagnostic reasoning
-2. Differential Diagnosis (1-2 questions) - alternative diagnoses to consider
-3. Risk Factors (2 questions) - factors that contributed to this condition
-4. Investigations (2 questions) - appropriate tests and imaging
-5. Management/Treatment (2 questions) - treatment plans and interventions  
-6. Complications/Monitoring (1 question) - potential complications to watch for
+1. Primary Diagnosis (2 questions) - core features, diagnostic criteria, pathophysiology
+2. Differential Diagnosis (1 question) - alternative diagnoses, distinguishing features
+3. Risk Factors (2 questions) - general risk factors for this condition
+4. Investigations (1 question) - standard investigations and their rationale
+5. Management/Treatment (2 question) - general treatment principles
+6. Complications/Monitoring (2 question) - common complications and monitoring
 
-QUESTION EXAMPLES:
-- "What is the most likely diagnosis for this ${patientContext}?"
-- "Given this patient's presentation, what risk factors likely contributed to their condition?"
-- "What investigations would you order to confirm the diagnosis?"
-- "Outline your initial management plan for this patient"
-- "What complications should you monitor for in this case?"
+
 
 OUTPUT FORMAT:
 Return a JSON object with questions and corresponding answers:
@@ -46,13 +43,13 @@ Return a JSON object with questions and corresponding answers:
     {
       "id": "q1",
       "domain": "primary_diagnosis",
-      "question": "What is the most likely diagnosis for this patient?",
+      "question": "What are the most likely diagnosis for this patient?",
       "answer": "Detailed correct answer with clinical reasoning"
     },
     {
       "id": "q2", 
       "domain": "risk_factors",
-      "question": "List 3 key risk factors that likely contributed to this patient's condition",
+      "question": "List 4 important risk factors for developing ${diagnosis}",
       "answer": "1. Risk factor 1 with explanation 2. Risk factor 2 with explanation 3. Risk factor 3 with explanation"
     }
     // ... continue for all 10 questions
@@ -60,10 +57,11 @@ Return a JSON object with questions and corresponding answers:
 }
 
 IMPORTANT:
-- Questions should test clinical knowledge appropriate for medical students
-- Use realistic OSCE language and format
+- Questions should test FUNDAMENTAL clinical knowledge about ${diagnosis}
+- Focus on what every medical student should know about this condition
+- Use realistic OSCE exam language and format
 - Answers should be comprehensive but concise
-- Reference the specific patient context where appropriate
+- Questions should be applicable to ANY patient with ${diagnosis}, not just this specific case
 - Ensure questions cover all 6 domains listed above
 - Each question should have a unique ID (q1, q2, ... q10)`;
 };
