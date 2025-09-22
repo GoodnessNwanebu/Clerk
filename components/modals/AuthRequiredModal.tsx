@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { Icon } from '../Icon';
+import { useAppContext } from '../../context/AppContext';
 
 interface AuthRequiredModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
   onClose, 
   message 
 }) => {
+  const { data: session, status } = useSession();
+  const { setUserCountry } = useAppContext();
   // Close modal with Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -39,6 +42,33 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  // Sync country to database after successful sign-in
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.email && isOpen) {
+      // Check for pending country in localStorage
+      const pendingCountry = localStorage.getItem('pendingUserCountry');
+      const userCountry = localStorage.getItem('userCountry');
+      
+      if (pendingCountry || userCountry) {
+        const countryToSync = pendingCountry || userCountry;
+        if (countryToSync) {
+          console.log(`🔄 [AuthRequiredModal] Syncing country after sign-in: ${countryToSync}`);
+          
+          // Use the existing setUserCountry mechanism to sync to database
+          setUserCountry(countryToSync);
+          
+          // Clear pending country after sync
+          if (pendingCountry) {
+            localStorage.removeItem('pendingUserCountry');
+          }
+        }
+      }
+      
+      // Close modal after sign-in
+      onClose();
+    }
+  }, [status, session, isOpen, setUserCountry, onClose]);
 
   // Don't render if not open
   if (!isOpen) return null;
