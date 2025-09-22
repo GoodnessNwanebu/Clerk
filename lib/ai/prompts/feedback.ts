@@ -35,22 +35,52 @@ IMPORTANT: The "diagnosis" field should contain ONLY the CORRECT diagnosis name 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities. Explain clinical significance.
 
 MISSED OPPORTUNITIES ANALYSIS:
-Analyze the student's performance across these four domains and identify specific missed opportunities:
+**CRITICAL: Before identifying any missed opportunities, you MUST cross-reference what the student actually did with what they should have done.**
+
+**STEP 1: CROSS-REFERENCE ANALYSIS**
+Before flagging anything as "missed," you MUST verify:
+
+1. **EXAMINATION CROSS-REFERENCE**: 
+   - Check the student's examination plan against the examination results
+   - If they requested "cardiovascular examination" AND got cardiovascular results → DO NOT flag as missed
+   - If they requested "general examination" AND got vital signs → DO NOT flag as missed
+   - Only flag examinations that were NOT requested AND would be clinically relevant
+
+2. **INVESTIGATION CROSS-REFERENCE**:
+   - Check the student's investigation plan against the investigation results  
+   - If they requested "ECG" AND got ECG results → DO NOT flag as missed
+   - If they requested "chest X-ray" AND got chest X-ray results → DO NOT flag as missed
+   - Only flag investigations that were NOT requested AND would be clinically relevant
+
+3. **MANAGEMENT CROSS-REFERENCE**:
+   - Check the student's management plan against what was actually provided
+   - If they mentioned a treatment AND it's in their plan → DO NOT flag as missed
+   - Only flag management gaps that are actually missing from their plan
+
+**STEP 2: REASONING VALIDATION**
+For each potential missed opportunity, ask yourself:
+- "Did the student actually request this?" → If YES, do not flag
+- "Did the student receive results for this?" → If YES, do not flag  
+- "Is this actually missing from their plan?" → If NO, do not flag
+- "Would this be clinically relevant for this specific case?" → If NO, do not flag
+
+**STEP 3: IDENTIFY ACTUAL GAPS**
+Only after cross-referencing, identify specific missed opportunities across these domains:
 
 1. **CLERKING OPPORTUNITIES**: What important history questions were not asked? What communication gaps occurred? What information was missed that could have aided diagnosis?
 
-2. **EXAMINATION OPPORTUNITIES**: What system examinations were not performed that would be relevant for this case? What examination techniques were missed?
+2. **EXAMINATION OPPORTUNITIES**: What system examinations were NOT requested that would be relevant for this case? (Only flag if they didn't request it AND didn't get results)
 
-3. **INVESTIGATION OPPORTUNITIES**: What important investigations were not requested? What inappropriate investigations were requested? What timing or urgency considerations were missed?
+3. **INVESTIGATION OPPORTUNITIES**: What important investigations were NOT requested? What inappropriate investigations were requested? What timing or urgency considerations were missed?
 
-4. **MANAGEMENT OPPORTUNITIES**: What treatment gaps exist? What follow-up planning was missed? What safety considerations were overlooked?
+4. **MANAGEMENT OPPORTUNITIES**: What treatment gaps exist in their actual plan? What follow-up planning was missed? What safety considerations were overlooked?
 
 For each missed opportunity, explain:
 - What was missed (specific and actionable)
 - Why it matters clinically (clinical significance)
 - How it could have changed the patient's care
-
 AVOID DUPLICATION: Do not include diagnostic reasoning gaps in missed opportunities as these are covered in the clinical reasoning section.
+**VALIDATION CHECK**: Before finalizing, verify that you are NOT flagging anything the student actually did or requested.
 
 ${surgicalContext}
 
@@ -89,22 +119,52 @@ IMPORTANT:
 - "clinicalPearls" should be 3-5 actionable clinical tips
 
 MISSED OPPORTUNITIES ANALYSIS:
-Analyze the student's performance across these four domains and identify specific missed opportunities:
+**CRITICAL: Before identifying any missed opportunities, you MUST cross-reference what the student actually did with what they should have done.**
+
+**STEP 1: CROSS-REFERENCE ANALYSIS**
+Before flagging anything as "missed," you MUST verify:
+
+1. **EXAMINATION CROSS-REFERENCE**: 
+   - Check the student's examination plan against the examination results
+   - If they requested "cardiovascular examination" AND got cardiovascular results → DO NOT flag as missed
+   - If they requested "general examination" AND got vital signs → DO NOT flag as missed
+   - Only flag examinations that were NOT requested AND would be clinically relevant
+
+2. **INVESTIGATION CROSS-REFERENCE**:
+   - Check the student's investigation plan against the investigation results  
+   - If they requested "ECG" AND got ECG results → DO NOT flag as missed
+   - If they requested "chest X-ray" AND got chest X-ray results → DO NOT flag as missed
+   - Only flag investigations that were NOT requested AND would be clinically relevant
+
+3. **MANAGEMENT CROSS-REFERENCE**:
+   - Check the student's management plan against what was actually provided
+   - If they mentioned a treatment AND it's in their plan → DO NOT flag as missed
+   - Only flag management gaps that are actually missing from their plan
+
+**STEP 2: REASONING VALIDATION**
+For each potential missed opportunity, ask yourself:
+- "Did the student actually request this?" → If YES, do not flag
+- "Did the student receive results for this?" → If YES, do not flag  
+- "Is this actually missing from their plan?" → If NO, do not flag
+- "Would this be clinically relevant for this specific case?" → If NO, do not flag
+
+**STEP 3: IDENTIFY ACTUAL GAPS**
+Only after cross-referencing, identify specific missed opportunities across these domains:
 
 1. **CLERKING OPPORTUNITIES**: What important history questions were not asked? What communication gaps occurred? What information was missed that could have aided diagnosis?
 
-2. **EXAMINATION OPPORTUNITIES**: What system examinations were not performed that would be relevant for this case? What examination techniques were missed?
+2. **EXAMINATION OPPORTUNITIES**: What system examinations were NOT requested that would be relevant for this case? (Only flag if they didn't request it AND didn't get results)
 
-3. **INVESTIGATION OPPORTUNITIES**: What important investigations were not requested? What inappropriate investigations were requested? What timing or urgency considerations were missed?
+3. **INVESTIGATION OPPORTUNITIES**: What important investigations were NOT requested? What inappropriate investigations were requested? What timing or urgency considerations were missed?
 
-4. **MANAGEMENT OPPORTUNITIES**: What treatment gaps exist? What follow-up planning was missed? What safety considerations were overlooked?
+4. **MANAGEMENT OPPORTUNITIES**: What treatment gaps exist in their actual plan? What follow-up planning was missed? What safety considerations were overlooked?
 
 For each missed opportunity, explain:
 - What was missed (specific and actionable)
-- Why it matters clinically (clinical significance)
+- Why it matters clinically (clinical significance)  
 - How it could have changed the patient's care
 
-AVOID DUPLICATION: Do not include diagnostic reasoning gaps in missed opportunities as these are covered in the clinical reasoning section.
+**VALIDATION CHECK**: Before finalizing, verify that you are NOT flagging anything the student actually did or requested.
 
 Use direct address ("you"). Be encouraging and educational. Focus on learning opportunities.
 

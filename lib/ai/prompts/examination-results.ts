@@ -15,7 +15,7 @@ const parseExaminationScope = (plan: string): {
         generalExamination: ['general examination', 'general exam', 'basic examination', 'vital signs', 'general appearance'],
         cardiovascular: ['cardiovascular', 'cardiac', 'heart', 'cv examination', 'cv exam'],
         respiratory: ['respiratory', 'chest', 'lung', 'respiratory examination', 'respiratory exam'],
-        abdominal: ['abdominal', 'abdomen', 'gastrointestinal', 'gi', 'abdominal examination', 'abdominal exam'],
+        abdominal: ['abdominal', 'abdomen', 'gastrointestinal', 'gi', 'abdominal examination', 'abdominal exam' ],
         neurological: ['neurological', 'neurology', 'neuro', 'neurological examination', 'neurological exam'],
         musculoskeletal: ['musculoskeletal', 'msk', 'orthopedic', 'joint', 'musculoskeletal examination', 'musculoskeletal exam']
     };
